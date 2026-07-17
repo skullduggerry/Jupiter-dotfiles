@@ -1,0 +1,51 @@
+window#osd {
+    background: rgba(20, 20, 20, 0.0);
+}
+window#osd > box {
+    background: rgba(20, 20, 20, 0.4);
+    border-radius: 16px;
+    padding: 8px 20px;
+    border: 2px solid rgb(55, 55, 55);
+    }
+
+window#osd label {
+    color: white !important;
+    font-family: "JetBrainsMono Nerd Font";
+    font-size: 14px;
+    font-weight: 500;
+}
+
+window#osd image,
+window#osd progressbar {
+    color: white;
+    font-size: 6px;
+}
+
+window#osd progressbar,
+window#osd segmentedprogress {
+    color: rgb(255, 255, 255) !important;
+    min-height: 5px;
+    border-radius: 999px;
+    background: transparent;
+    border: none;
+}
+
+window#osd trough,
+window#osd segment {
+    min-height: inherit;
+    border-radius: inherit;
+    border: none;
+    background: rgba(20, 20, 20, 0.4);
+}
+
+window#osd progress,
+window#osd segment.active {
+    min-height: inherit;
+    border-radius: inherit;
+    border: none;
+    background: white;
+    color:white;
+}
+
+window#osd segment { margin-left: 8px; }
+window#osd segment:first-child { margin-left: 0; }
