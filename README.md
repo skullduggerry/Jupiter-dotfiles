@@ -1,6 +1,6 @@
 # Jupiter-dotfiles
 
-Dotfiles by @skullduggerry and @lwctr, usually set up with [Jupiter-installer](https://codeberg.org/skullduggery/Jupiter-installer).
+Dotfiles by @skullduggery and @lwctr, usually set up with [Jupiter-installer](https://codeberg.org/skullduggery/Jupiter-installer).
 
 To use your own configuration it is recommended to create a fork and clone that and symlink it. 
 Any changes in the dotfiles can then simply be pushed and reused upon reinstall, this is made easier by adding the link to your fork to config.sh in the installer.
