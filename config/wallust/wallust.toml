@@ -5,3 +5,4 @@ palette = "dark16"
 [templates]
 
 kitty = { src='kitty.conf', target='~/.config/kitty/colors.conf'}
+nvim = { src='nvim.lua', dst='~/.config/nvim/lua/colors.lua'}
