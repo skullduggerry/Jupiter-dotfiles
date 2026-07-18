@@ -1,5 +1,7 @@
 require 'colors'
 
+vim.api.nvim_set_hl(0, "Normal", {bg = "NONE", ctermbg = "NONE"})
+
 vim.o.number = true
 vim.o.relativenumber = true
 vim.o.wrap = true
