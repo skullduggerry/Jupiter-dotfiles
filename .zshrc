@@ -13,4 +13,4 @@ source /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring
 source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
-(cat ~/.cache/wallust/sequences &)
+export PATH="$HOME/.cargo/bin:$PATH"
