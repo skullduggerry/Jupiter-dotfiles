@@ -3,6 +3,7 @@ hl.bind(vars.mainMod .. " + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/n
 hl.bind(vars.mainMod .. " + E", hl.dsp.exec_cmd(vars.fileManager))
 hl.bind(vars.mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(vars.mainMod .. " + R", hl.dsp.exec_cmd(vars.menu))
+hl.bind("SUPER + O", hl.dsp.global("quickshell:launcherToggle"))
 hl.bind(vars.mainMod .. " + L", hl.dsp.exec_cmd("hyprlock"))
 hl.bind(vars.mainMod .. " + C", hl.dsp.window.close())
 hl.bind(vars.mainMod .. " + PRINT", hl.dsp.exec_cmd("hyprshot -m window"))

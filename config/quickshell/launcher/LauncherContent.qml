@@ -19,12 +19,12 @@ Rectangle {
 		const entry = filtered[idx]
 		if (entry) entry.execute()
 		launched()
-	}
-
-	width: 480
-	height: 360
+	  }
+	
+	height: 300
+	width: 400
 	radius: Style.bar.radius
-	color: Qt.rgba(Colors.base.base.r, Colors.base.base.g, Colors.base.base.b, 0.95)
+	color: Qt.rgba(Colors.base.base.r, Colors.base.base.g, Colors.base.base.b, Colors.base.opacity)
 	border.color: Colors.base.border
 	border.width: Style.border.width
 

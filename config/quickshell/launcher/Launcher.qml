@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
@@ -8,14 +9,27 @@ Scope {
 
 	property bool launcherVisible: false
 
-	// `qs -c <config> ipc call launcher toggle/open/close`
-	// Bind this to a Hyprland keybind, e.g.:
-	//   bind = SUPER, R, exec, qs ipc call launcher toggle
+	function toggle() {
+		launcherVisible = !launcherVisible
+	}
+
+	// Manual/scripted trigger, compositor-independent:
+	//   qs -c <config> ipc call launcher toggle/open/close
+	// Handy for testing from a terminal regardless of how the keybind fires.
 	IpcHandler {
 		target: "launcher"
-		function toggle(): void { launcherScope.launcherVisible = !launcherScope.launcherVisible }
+		function toggle(): void { launcherScope.toggle() }
 		function open(): void { launcherScope.launcherVisible = true }
 		function close(): void { launcherScope.launcherVisible = false }
+	}
+
+	// Hyprland-native trigger, no process spawn per press. appid defaults
+	// to "quickshell", so this registers as "quickshell:launcherToggle".
+	// Bind it with:
+	//   bindd = SUPER, R, Toggle launcher, global, quickshell:launcherToggle
+	GlobalShortcut {
+		name: "launcherToggle"
+		onPressed: launcherScope.toggle()
 	}
 
 	// TODO: wrap this in Variants { model: Quickshell.screens }, same as
