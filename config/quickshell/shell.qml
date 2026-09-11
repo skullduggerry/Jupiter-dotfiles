@@ -1,7 +1,9 @@
+// shell.qml
 import Quickshell
 import "./bar"
 import "./launcher"
-Scope{
-  Bar{}
-  Launcher{}
+
+Scope {
+    Bar {}
+    Launcher {}
 }
