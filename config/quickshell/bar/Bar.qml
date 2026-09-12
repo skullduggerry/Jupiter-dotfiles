@@ -11,7 +11,7 @@ Scope {
         model: Quickshell.screens
 
         PanelWindow {
-            required property var modelData
+            required property ShellScreen modelData
             screen: modelData
             WlrLayershell.namespace: "quickshell:bar"
 
@@ -30,7 +30,7 @@ Scope {
             exclusiveZone: Style.bar.height + Style.bar.topGap
             color: Colors.base.panel
 
-            BarContent {}
+            BarContent { screen: modelData }
         }
     }
 }

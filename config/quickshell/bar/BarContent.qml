@@ -1,9 +1,16 @@
 // bar/BarContent.qml
 import QtQuick
+import Quickshell
 import "../style"
 import "./widgets"
 
 Rectangle {
+    id: root
+
+    // Forwarded from Bar.qml's PanelWindow.screen so per-widget popups and
+    // the workspace widget can filter to this bar's own monitor.
+    required property ShellScreen screen
+
     anchors.fill: parent
     anchors.margins: 1
     radius: Style.bar.radius
@@ -11,12 +18,13 @@ Rectangle {
     border.color: Colors.base.border
     border.width: Style.border.width
 
-    // TODO(Phase 2): workspaces widget goes here.
     Row {
         id: left
         anchors { left: parent.left; verticalCenter: parent.verticalCenter }
         anchors.leftMargin: Style.bar.padding
         spacing: Style.bar.spacing
+
+        WorkspaceWidget { screen: root.screen }
     }
 
     Row {
@@ -30,7 +38,12 @@ Rectangle {
         anchors { right: parent.right; verticalCenter: parent.verticalCenter }
         anchors.rightMargin: Style.bar.padding
         spacing: Style.bar.spacing
-        BluetoothWidget {}
+
+        SystemTrayWidget {}
+        VolumeWidget {}
+        WifiWidget { screen: root.screen }
+        BluetoothWidget { screen: root.screen }
         BatteryWidget {}
+        PowerWidget { screen: root.screen }
     }
 }

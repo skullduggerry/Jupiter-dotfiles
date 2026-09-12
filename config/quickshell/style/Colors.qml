@@ -27,4 +27,29 @@ QtObject {
         readonly property color critical: "red"
         readonly property color charging: "#4caf50"
     }
+
+    // Wi-Fi connection state, consumed by WifiWidget.
+    readonly property QtObject wifi: QtObject {
+        readonly property color connected: "blue"
+        readonly property color disconnected: "#646464"
+    }
+
+    // Volume/mute state, consumed by VolumeWidget.
+    readonly property QtObject volume: QtObject {
+        readonly property color normal: "white"
+        readonly property color muted: "orange"
+    }
+
+    // Hyprland workspace pips, consumed by WorkspaceWidget.
+    readonly property QtObject workspaces: QtObject {
+        readonly property color active: "white"
+        readonly property color inactive: "#646464"
+    }
+
+    // Power/session menu, consumed by PowerWidget. "danger" marks
+    // destructive actions (reboot/shutdown) apart from lock/logout.
+    readonly property QtObject power: QtObject {
+        readonly property color normal: "white"
+        readonly property color danger: "red"
+    }
 }

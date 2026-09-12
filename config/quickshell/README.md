@@ -17,6 +17,14 @@ See `PROJECT_STRUCTURE.md` for the file layout and conventions, and
   configured as `JetBrainsMono Nerd Font` in `style/Style.qml`
 - `UPower` running, for `Quickshell.Services.UPower` (battery widget)
 - `BlueZ` running, for `Quickshell.Bluetooth` (Bluetooth widget)
+- `NetworkManager` running, for `Quickshell.Networking` (Wi-Fi widget) —
+  it's currently the only backend that module supports
+- `PipeWire` running, for `Quickshell.Services.Pipewire` (volume widget)
+- A tray-item-emitting DBus session (most apps that put icons in a tray
+  already do this) for `Quickshell.Services.SystemTray`
+- A screen locker such as `hyprlock` or `swaylock`, for the power menu's
+  "Lock" action — there's no native Quickshell lock screen yet (see
+  `TODO.md` Phase 4)
 
 ## Running
 

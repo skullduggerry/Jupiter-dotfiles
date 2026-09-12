@@ -14,17 +14,45 @@
 - [x] Indentation standardized to 4 spaces project-wide (mixed tabs/spaces
       before); `.editorconfig` added to enforce it going forward.
 
-## Phase 2 — Round out the bar
-- [ ] Workspaces widget for the empty `left` Row in `BarContent.qml`, using
-      `Quickshell.Hyprland` (already imported in `Launcher.qml`, unused there).
-- [ ] Bluetooth popup: connect/disconnect, pairing state (the `pairing` color
-      in `Colors.qml` is defined but still unused).
-- [ ] Bluetooth popup: click-outside-to-close (needs a fullscreen transparent
-      catcher window, same trick as the launcher's dimmed backdrop).
-- [ ] Network/Wi-Fi widget + popup: SSID, signal strength, connect/disconnect list.
-- [ ] Volume/audio widget (Pipewire via Quickshell services).
-- [ ] System tray (`Quickshell.Services.SystemTray`).
-- [ ] Power/session menu (lock/logout/suspend/shutdown).
+## Phase 2 — Round out the bar ✅ done this pass
+- [x] Workspaces widget (`bar/widgets/WorkspaceWidget.qml`) for the `left` Row
+      in `BarContent.qml`, using `Quickshell.Hyprland` (`Hyprland.workspaces`,
+      `Hyprland.monitorFor()`, `HyprlandWorkspace.activate()`). Filters to the
+      bar's own monitor via a `screen` property threaded down from
+      `Bar.qml` → `BarContent.qml`.
+- [x] Bluetooth popup: connect/disconnect, pairing state. Uses
+      `BluetoothDevice.connect()/disconnect()/pair()`; the `pairing` color in
+      `Colors.qml` is now consumed for not-yet-paired devices.
+- [x] Bluetooth popup: click-outside-to-close, via new shared
+      `bar/widgets/WidgetPopup.qml` (fullscreen transparent catcher window,
+      same trick as the launcher's dimmed backdrop — now reused by Wi-Fi and
+      the power menu too instead of being re-implemented per widget).
+- [x] Network/Wi-Fi widget + popup (`bar/widgets/WifiWidget.qml`): SSID list,
+      signal strength, connect/disconnect, via the new `Quickshell.Networking`
+      module (`Networking`, `WifiDevice`, `WifiNetwork`). Connecting to a
+      network that needs a new PSK isn't wired up (see note below).
+- [x] Volume/audio widget (`bar/widgets/VolumeWidget.qml`), via
+      `Quickshell.Services.Pipewire` — click to mute, scroll to adjust.
+- [x] System tray (`bar/widgets/SystemTrayWidget.qml`), via
+      `Quickshell.Services.SystemTray` — left click activates, right click
+      (or a menu-only item) opens its context menu.
+- [x] Power/session menu (`bar/widgets/PowerWidget.qml`): lock/logout/
+      suspend/reboot/shutdown.
+
+  Notes / follow-ups from this pass:
+  - "Lock" shells out to `hyprlock` (`Quickshell.execDetached(["hyprlock"])`).
+    There's no native Quickshell lock screen yet — that's the Phase 4 "Lock
+    screen" item below — so this is an interim dependency. Swap the command
+    in `PowerWidget.qml` if you use `swaylock` or another locker.
+  - "Logout" runs `Hyprland.dispatch("exit")` (equivalent to
+    `hyprctl dispatch exit`), which quits the compositor.
+  - Wi-Fi networks that require a PSK Quickshell doesn't already know will
+    emit `Network.connectionFailed(NoSecrets)` with no UI to enter one yet —
+    `WifiNetwork.connectWithPsk()` exists for this; wiring up a password
+    prompt is a reasonable Phase 3-ish follow-up.
+  - `Style.qml`/`Colors.qml` gained `popup`, `workspaces`, `wifi`, `volume`,
+    and `power` token groups so the new widgets don't hardcode one-off sizes
+    or colors (see `llm.md` §6).
 
 ## Phase 3 — New features
 

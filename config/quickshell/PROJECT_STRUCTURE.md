@@ -21,8 +21,14 @@ quickshell-config/
 │       ├── qmldir              # Registers each widget + the Time singleton
 │       ├── ClockWidget.qml
 │       ├── Time.qml              # Singleton clock source, feeds ClockWidget
+│       ├── WorkspaceWidget.qml    # Hyprland workspaces (left zone)
 │       ├── BatteryWidget.qml
-│       └── BluetoothWidget.qml
+│       ├── BluetoothWidget.qml    # device list + connect/pair, via WidgetPopup
+│       ├── WifiWidget.qml         # SSID list + connect/disconnect, via WidgetPopup
+│       ├── VolumeWidget.qml       # Pipewire default sink, click-mute/scroll-adjust
+│       ├── SystemTrayWidget.qml   # Quickshell.Services.SystemTray icons
+│       ├── PowerWidget.qml        # lock/logout/suspend/reboot/shutdown, via WidgetPopup
+│       └── WidgetPopup.qml        # shared click-outside-to-close popup shell
 │
 └── launcher/                  # App launcher (overlay, toggled by shortcut/IPC)
     ├── qmldir                 # Registers Launcher, LauncherContent
@@ -55,6 +61,17 @@ versioning (`1.0`) meaningful if this ever needs a bump later.
 - **Any spacing/size/radius/padding/font value** → `style/Style.qml`, grouped the same way.
 - **A new bar widget** → `bar/widgets/`, registered in `bar/widgets/qmldir`, added to
   the appropriate `Row` in `BarContent.qml`.
+- **A widget-attached popup/dropdown** (device list, menu, ...) → wrap it in
+  `bar/widgets/WidgetPopup.qml` rather than hand-rolling another fullscreen
+  catcher window. Give it a distinct `namespaceSuffix` (e.g. `"wifi-popup"`)
+  so compositor window rules can still target it individually, and put your
+  content as its default-property children — see `BluetoothWidget.qml`,
+  `WifiWidget.qml`, or `PowerWidget.qml` for the pattern.
+- **A widget that needs to know which monitor it's on** (for
+  `Hyprland.monitorFor()`, or so its `WidgetPopup` opens on the correct
+  screen) → add a `required property ShellScreen screen`, and pass
+  `screen: root.screen` down from `BarContent.qml`, which gets it from
+  `Bar.qml`'s `PanelWindow.screen` (see `WorkspaceWidget.qml`).
 - **A new top-level surface** (popup, panel, overlay) → its own folder at the project
   root, following the `launcher/` pattern: a `Scope` or `PanelWindow` file plus a
   content file, registered in its own `qmldir`.

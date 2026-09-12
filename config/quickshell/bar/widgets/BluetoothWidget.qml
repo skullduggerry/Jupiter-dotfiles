@@ -1,12 +1,16 @@
 // bar/widgets/BluetoothWidget.qml
 import QtQuick
 import Quickshell
-import Quickshell.Wayland
 import Quickshell.Bluetooth
 import "../../style"
 
 Item {
     id: root
+
+    // Passed down from BarContent.qml so the popup opens on the correct
+    // monitor in multi-monitor setups (see WidgetPopup.qml / Bar.qml).
+    required property ShellScreen screen
+
     implicitWidth: row.implicitWidth + 16
     implicitHeight: Style.bar.height
 
@@ -37,78 +41,83 @@ Item {
         onClicked: btPopup.visible = !btPopup.visible
     }
 
-    // Minimal read-only device list. This is what was crashing before —
-    // btPopup was referenced by the MouseArea above but never defined.
-    // Connect/disconnect actions and pairing flow are Phase 2 work, once
-    // the exact Quickshell.Bluetooth device API to call is confirmed.
-    // No click-outside-to-close yet either; closing currently requires
-    // clicking the widget again.
-    PanelWindow {
+    // Device list with connect/disconnect/pair actions. Click-outside-to-
+    // close and the popup chrome now live in the shared WidgetPopup
+    // component (see bar/widgets/WidgetPopup.qml) instead of being
+    // hand-rolled per widget.
+    WidgetPopup {
         id: btPopup
-        visible: false
+        screen: root.screen
+        namespaceSuffix: "bt-popup"
+        popupWidth: Style.popup.width
+        popupHeight: Math.min(Style.popup.maxHeight, deviceList.contentHeight + Style.bar.padding * 2)
 
-        WlrLayershell.namespace: "quickshell:bt-popup"
-        WlrLayershell.layer: WlrLayer.Overlay
-
-        anchors {
-            top: true
-            right: true
-        }
-        margins {
-            top: Style.bar.topGap + Style.bar.height + 4
-            right: Style.bar.sideGap
-        }
-
-        implicitWidth: 220
-        implicitHeight: Math.min(260, deviceList.contentHeight + Style.bar.padding * 2)
-        color: "transparent"
-
-        Rectangle {
+        ListView {
+            id: deviceList
             anchors.fill: parent
-            radius: Style.bar.radius
-            color: Qt.rgba(Colors.base.base.r, Colors.base.base.g, Colors.base.base.b, Colors.base.opacity)
-            border.color: Colors.base.border
-            border.width: Style.border.width
+            anchors.margins: Style.bar.padding
+            clip: true
+            model: Bluetooth.devices
+            visible: count > 0
 
-            ListView {
-                id: deviceList
-                anchors.fill: parent
-                anchors.margins: Style.bar.padding
-                clip: true
-                model: Bluetooth.devices
-                visible: count > 0
+            delegate: Row {
+                id: deviceRow
+                required property BluetoothDevice modelData
 
-                delegate: Row {
-                    width: deviceList.width
-                    height: 28
-                    spacing: Style.widgets.spacing
+                width: deviceList.width
+                height: Style.popup.itemHeight
+                spacing: Style.widgets.spacing
 
-                    Text {
-                        text: modelData.connected ? "󰂱" : "󰂯"
-                        color: modelData.connected ? Colors.bluetooth.connected : Colors.text.base
-                        font.family: Style.text.font
-                        font.pixelSize: Style.text.size
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
+                Text {
+                    text: deviceRow.modelData.connected ? "󰂱"
+                        : deviceRow.modelData.paired ? "󰂯"
+                        : "󰂲"
+                    color: deviceRow.modelData.connected ? Colors.bluetooth.connected
+                        : deviceRow.modelData.paired ? Colors.text.base
+                        : Colors.bluetooth.pairing
+                    font.family: Style.text.font
+                    font.pixelSize: Style.text.size
+                    anchors.verticalCenter: parent.verticalCenter
+                }
 
-                    Text {
-                        text: modelData.name
-                        color: Colors.text.base
-                        font.family: Style.text.font
-                        font.pixelSize: Style.text.size
-                        anchors.verticalCenter: parent.verticalCenter
+                Text {
+                    text: deviceRow.modelData.name
+                    color: Colors.text.base
+                    font.family: Style.text.font
+                    font.pixelSize: Style.text.size
+                    elide: Text.ElideRight
+                    width: deviceRow.width - 90
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Text {
+                    text: deviceRow.modelData.connected ? "Disconnect"
+                        : deviceRow.modelData.paired ? "Connect"
+                        : "Pair"
+                    color: Colors.base.border
+                    font.family: Style.text.font
+                    font.pixelSize: Style.text.size - 2
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            if (deviceRow.modelData.connected) deviceRow.modelData.disconnect()
+                            else if (deviceRow.modelData.paired) deviceRow.modelData.connect()
+                            else deviceRow.modelData.pair()
+                        }
                     }
                 }
             }
+        }
 
-            Text {
-                visible: deviceList.count === 0
-                anchors.centerIn: parent
-                text: "No devices found"
-                color: Colors.base.border
-                font.family: Style.text.font
-                font.pixelSize: Style.text.size
-            }
+        Text {
+            visible: deviceList.count === 0
+            anchors.centerIn: parent
+            text: "No devices found"
+            color: Colors.base.border
+            font.family: Style.text.font
+            font.pixelSize: Style.text.size
         }
     }
 }
