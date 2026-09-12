@@ -42,7 +42,7 @@ Item {
                 border.color: Colors.workspaces.active
 
                 Behavior on width {
-                    NumberAnimation { duration: 120 }
+                    NumberAnimation { duration: Style.animation.normal }
                 }
 
                 MouseArea {

@@ -16,12 +16,21 @@ QtObject {
         readonly property int width: 1
     }
 
+    // Shared metrics for the individual bar widgets. `padding` is the
+    // breathing room each widget adds around its own content row, so a
+    // widget's implicit width is `content + padding * 2`.
     readonly property QtObject widgets: QtObject {
         readonly property int spacing: 4
+        readonly property int padding: 8
+        readonly property int iconSize: 22
     }
 
     readonly property QtObject text: QtObject {
         readonly property int size: 13
+        // Nerd Font glyphs render a little small next to the label text at
+        // the same pixel size, so icons get their own step.
+        readonly property int iconSize: 15
+        readonly property int smallSize: 11
         readonly property string font: "JetBrainsMono Nerd Font"
     }
 
@@ -31,8 +40,15 @@ QtObject {
     // one-off width/row-height.
     readonly property QtObject popup: QtObject {
         readonly property int width: 240
+        readonly property int minHeight: 60
         readonly property int maxHeight: 280
         readonly property int itemHeight: 28
+        // Vertical gap between the bottom of the bar and the popup.
+        readonly property int gap: 4
+        // Width reserved for a row's leading glyph and its trailing inline
+        // action ("Connect"/"Disconnect"/"Pair"), so the middle label knows
+        // how much room is left to elide into.
+        readonly property int rowIconWidth: 16
     }
 
     // Hyprland workspace pips in the bar's left zone.
@@ -40,5 +56,19 @@ QtObject {
         readonly property int size: 10
         readonly property int activeWidth: 22
         readonly property int spacing: 6
+    }
+
+    readonly property QtObject launcher: QtObject {
+        readonly property int width: 400
+        readonly property int height: 300
+        readonly property int inputHeight: 32
+        readonly property int rowHeight: 40
+        readonly property int rowPadding: 6
+        readonly property int iconSize: 24
+    }
+
+    readonly property QtObject animation: QtObject {
+        readonly property int fast: 80
+        readonly property int normal: 120
     }
 }

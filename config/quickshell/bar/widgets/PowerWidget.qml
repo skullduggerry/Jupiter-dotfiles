@@ -14,7 +14,7 @@ Item {
 
     required property ShellScreen screen
 
-    implicitWidth: icon.implicitWidth + 16
+    implicitWidth: icon.implicitWidth + Style.widgets.padding * 2
     implicitHeight: Style.bar.height
 
     Text {
@@ -23,7 +23,7 @@ Item {
         text: "⏻"
         color: Colors.power.normal
         font.family: Style.text.font
-        font.pixelSize: Style.text.size + 2
+        font.pixelSize: Style.text.iconSize
     }
 
     MouseArea {

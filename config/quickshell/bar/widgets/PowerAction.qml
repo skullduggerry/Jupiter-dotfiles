@@ -15,7 +15,7 @@ Rectangle {
     width: parent ? parent.width : implicitWidth
     height: Style.popup.itemHeight
     radius: Style.bar.radius / 2
-    color: area.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
+    color: area.containsMouse ? Colors.base.hover : "transparent"
 
     Text {
         anchors.centerIn: parent

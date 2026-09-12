@@ -14,7 +14,7 @@ Rectangle {
     anchors.fill: parent
     anchors.margins: 1
     radius: Style.bar.radius
-    color: Qt.rgba(Colors.base.base.r, Colors.base.base.g, Colors.base.base.b, Colors.base.opacity)
+    color: Colors.base.surface
     border.color: Colors.base.border
     border.width: Style.border.width
 

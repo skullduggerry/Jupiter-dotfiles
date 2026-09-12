@@ -18,7 +18,7 @@ Item {
     }
 
     visible: ready
-    implicitWidth: visible ? row.implicitWidth + 16 : 0
+    implicitWidth: visible ? row.implicitWidth + Style.widgets.padding * 2 : 0
     implicitHeight: Style.bar.height
 
     readonly property string icon: {
@@ -28,7 +28,7 @@ Item {
         return "\uf026"                                     // volume-off
     }
 
-    function adjust(delta) {
+    function adjust(delta: real) {
         if (!ready) return
         sink.audio.muted = false
         sink.audio.volume = Math.max(0, Math.min(1, sink.audio.volume + delta))
@@ -43,7 +43,7 @@ Item {
             text: root.icon
             color: root.muted ? Colors.volume.muted : Colors.volume.normal
             font.family: Style.text.font
-            font.pixelSize: Style.text.size + 2
+            font.pixelSize: Style.text.iconSize
             anchors.verticalCenter: parent.verticalCenter
         }
 

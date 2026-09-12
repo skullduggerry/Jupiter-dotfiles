@@ -34,7 +34,7 @@ PanelWindow {
 
     property int popupWidth: Style.popup.width
     property int popupHeight: Style.popup.maxHeight
-    property int contentTopMargin: Style.bar.topGap + Style.bar.height + 4
+    property int contentTopMargin: Style.bar.topGap + Style.bar.height + Style.popup.gap
     property int contentRightMargin: Style.bar.sideGap
 
     visible: false
@@ -67,7 +67,7 @@ PanelWindow {
         width: root.popupWidth
         height: root.popupHeight
         radius: Style.bar.radius
-        color: Qt.rgba(Colors.base.base.r, Colors.base.base.g, Colors.base.base.b, Colors.base.opacity)
+        color: Colors.base.surface
         border.color: Colors.base.border
         border.width: Style.border.width
         clip: true

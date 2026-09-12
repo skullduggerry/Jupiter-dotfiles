@@ -2,8 +2,11 @@
 
 ```
 quickshell-config/
-├── shell.qml                  # Entry point — loads Bar and Launcher scopes
+├── shell.qml                  # Entry point — loads Bar and Launcher scopes;
+│                              #   carries //@ pragma UseQApplication (tray menus)
 ├── .editorconfig              # Enforces 4-space indent, no tabs
+├── .qmlls.ini                 # Presence enables quickshell's QML LSP support
+│                              #   (quickshell rewrites it as a symlink; gitignored)
 ├── PROJECT_STRUCTURE.md        # This file
 ├── README.md                  # Setup + dependencies
 ├── TODO.md                    # Roadmap, grouped by phase
@@ -28,6 +31,7 @@ quickshell-config/
 │       ├── VolumeWidget.qml       # Pipewire default sink, click-mute/scroll-adjust
 │       ├── SystemTrayWidget.qml   # Quickshell.Services.SystemTray icons
 │       ├── PowerWidget.qml        # lock/logout/suspend/reboot/shutdown, via WidgetPopup
+│       ├── PowerAction.qml        # one hoverable row of the power menu
 │       └── WidgetPopup.qml        # shared click-outside-to-close popup shell
 │
 └── launcher/                  # App launcher (overlay, toggled by shortcut/IPC)
@@ -75,3 +79,50 @@ versioning (`1.0`) meaningful if this ever needs a bump later.
 - **A new top-level surface** (popup, panel, overlay) → its own folder at the project
   root, following the `launcher/` pattern: a `Scope` or `PanelWindow` file plus a
   content file, registered in its own `qmldir`.
+
+## Reading Quickshell service models
+
+Almost every Quickshell service hands you an **`ObjectModel`**, not a QML
+`ListModel`: `Bluetooth.devices`, `Networking.devices`, `SystemTray.items`,
+`NetworkDevice.networks`, `UPower.devices`, `Hyprland.workspaces`, ...
+
+Two ways to use one, and only two:
+
+```qml
+// 1. Directly as a view's model — the delegate gets `modelData`.
+ListView {
+    model: Bluetooth.devices
+    delegate: Row { required property BluetoothDevice modelData; ... }
+}
+
+// 2. From JS, through `values` — a plain list.
+readonly property bool anyConnected: Bluetooth.devices.values.some(d => d.connected)
+```
+
+There is **no `count`** and **no `get(i)`** on the model. Reaching for them is
+the single most expensive mistake in this codebase's history, because it does
+not throw: `.count` evaluates to `undefined`, `i < undefined` is `false`, the
+loop body never runs, and the binding quietly settles on its default value.
+Three widgets shipped broken this way and the log was completely clean — see
+`TODO.md` Phase 2.5.
+
+`ListView.count` / `Repeater.count` are unrelated and perfectly fine; those are
+properties of the *view*, not of the model.
+
+More generally: before using any Quickshell property or method, check it
+against the installed type definitions rather than guessing from the name.
+
+```sh
+grep -rn '"propertyName"' /usr/lib/qt6/qml/Quickshell/**/*.qmltypes
+```
+
+Those files list every property, method, signal and enum the installed version
+actually exposes, and they match the running binary — which the online docs may
+not, if the installed version has moved on.
+
+## Units that aren't what they look like
+
+- `UPowerDevice.percentage` is a **0.0–1.0 ratio**, not 0–100 (quickshell
+  scales UPower's wire value by 0.01). Multiply by 100 before displaying.
+- `WifiNetwork.signalStrength` is likewise **0.0–1.0**.
+- `PwNodeAudio.volume` is **0.0–1.0**.

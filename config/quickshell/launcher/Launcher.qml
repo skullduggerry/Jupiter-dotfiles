@@ -39,7 +39,6 @@ Scope {
     PanelWindow {
         id: window
         visible: launcherScope.launcherVisible
-        onVisibleChanged: if (visible) content.reset()
 
         WlrLayershell.namespace: "quickshell:launcher"
         WlrLayershell.layer: WlrLayer.Overlay
@@ -59,11 +58,20 @@ Scope {
             onClicked: launcherScope.launcherVisible = false
         }
 
-        LauncherContent {
+        // Built only while the launcher is actually open. Creating it eagerly
+        // meant every shell start scanned the desktop entries and rendered an
+        // icon for each one into a window nobody was looking at (llm.md §15).
+        // Each open therefore gets a fresh, already-empty content instance.
+        Loader {
             id: content
             anchors.centerIn: parent
-            onLaunched: launcherScope.launcherVisible = false
-            onCancelled: launcherScope.launcherVisible = false
+            active: launcherScope.launcherVisible
+            onLoaded: content.item.reset()
+
+            sourceComponent: LauncherContent {
+                onLaunched: launcherScope.launcherVisible = false
+                onCancelled: launcherScope.launcherVisible = false
+            }
         }
     }
 }
