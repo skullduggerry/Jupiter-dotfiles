@@ -7,7 +7,10 @@ SystemUsageWidget 1.0 SystemUsageWidget.qml
 UsageMeter 1.0 UsageMeter.qml
 WifiWidget 1.0 WifiWidget.qml
 VolumeWidget 1.0 VolumeWidget.qml
+NotificationWidget 1.0 NotificationWidget.qml
 SystemTrayWidget 1.0 SystemTrayWidget.qml
+TrayMenu 1.0 TrayMenu.qml
+TrayMenuItem 1.0 TrayMenuItem.qml
 PowerWidget 1.0 PowerWidget.qml
 PowerAction 1.0 PowerAction.qml
 WidgetPopup 1.0 WidgetPopup.qml

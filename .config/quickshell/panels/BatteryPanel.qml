@@ -1,12 +1,4 @@
 // panels/BatteryPanel.qml
-//
-// What the bar's battery pill can't say in two digits: how long it has left,
-// what it's drawing, and how worn the cell is.
-//
-// The design sketches this dropdown as an empty rectangle, so the contents
-// are chosen here from what UPowerDevice actually exposes — everything below
-// is a real property of the display device, and anything the device doesn't
-// report is left out rather than shown as a zero.
 import QtQuick
 import Quickshell.Services.UPower
 import "../style"
@@ -39,8 +31,6 @@ Item {
         }
     }
 
-    // UPower reports these in seconds, and reports 0 when it has no estimate
-    // yet — a freshly plugged-in laptop takes a minute to produce one.
     function durationLabel(seconds: real): string {
         if (seconds <= 0) return "—"
         const hours = Math.floor(seconds / 3600)
@@ -96,8 +86,6 @@ Item {
                 value: root.stateLabel(root.device.state)
             }
 
-            // Only one of the two estimates is meaningful at a time, and
-            // neither is while the battery is full.
             BatteryDetail {
                 label: root.charging ? "Until full" : "Remaining"
                 visible: root.device.state !== UPowerDeviceState.FullyCharged
@@ -106,16 +94,11 @@ Item {
 
             BatteryDetail {
                 label: "Power draw"
-                // changeRate is in watts, signed by direction; the label
-                // above already says which way it is going.
                 value: Math.abs(root.device.changeRate).toFixed(1) + " W"
             }
 
             BatteryDetail {
                 label: "Capacity"
-                // Health is what's left of the cell's design capacity. Not
-                // every battery reports it, and a fabricated 100% would be
-                // worse than an absent row.
                 visible: root.device.healthSupported
                 value: Math.round(root.device.healthPercentage) + "%"
             }

@@ -21,14 +21,6 @@ Item {
             font.pixelSize: Style.text.size
             anchors.verticalCenter: parent.verticalCenter
         }
-
-        Text {
-            text: Time
-            color: Colors.text.muted
-            font.family: Style.text.font
-            font.pixelSize: Style.text.smallSize
-            anchors.verticalCenter: parent.verticalCenter
-        }
     }
 
     MouseArea {

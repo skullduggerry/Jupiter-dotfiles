@@ -7,17 +7,11 @@ import "../../style"
 Item {
     id: root
 
-    // Passed down from BarContent.qml so the popup opens on the correct
-    // monitor in multi-monitor setups (see WidgetPopup.qml / Bar.qml).
     required property ShellScreen screen
 
     implicitWidth: row.implicitWidth + Style.widgets.padding * 2
     implicitHeight: Style.bar.height
 
-    // Is at least one device currently connected? Bluetooth.devices is a
-    // Quickshell ObjectModel, whose contents are reached through `values`.
-    // The old `devices.count` / `devices.get(i)` loop read undefined and so
-    // never ran — the icon was stuck on "disconnected" no matter what.
     readonly property bool connected: Bluetooth.devices.values.some(device => device.connected)
 
     Row {
@@ -39,10 +33,6 @@ Item {
         onClicked: btPopup.visible = !btPopup.visible
     }
 
-    // Device list with connect/disconnect/pair actions. Click-outside-to-
-    // close and the popup chrome now live in the shared WidgetPopup
-    // component (see bar/widgets/WidgetPopup.qml) instead of being
-    // hand-rolled per widget.
     WidgetPopup {
         id: btPopup
         screen: root.screen
@@ -90,7 +80,6 @@ Item {
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
                     elide: Text.ElideRight
-                    // Whatever the glyph and the inline action don't use.
                     width: deviceRow.width - deviceIcon.width - deviceAction.width - deviceRow.spacing * 2
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -108,8 +97,6 @@ Item {
 
                     MouseArea {
                         anchors.fill: parent
-                        // A pairing attempt is already in flight; let it finish
-                        // or be cancelled from the system's agent.
                         enabled: !deviceRow.modelData.pairing
                         onClicked: {
                             if (deviceRow.modelData.connected) deviceRow.modelData.disconnect()

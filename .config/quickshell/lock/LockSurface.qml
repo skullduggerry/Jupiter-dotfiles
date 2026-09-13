@@ -1,9 +1,4 @@
 // lock/LockSurface.qml
-//
-// One monitor's lock surface: the clock, the password field, and whatever
-// PAM had to say about the last attempt. Lock.qml instantiates one of these
-// per screen; they all read and write the same buffer in LockService, so
-// typing on either monitor shows up on both.
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
@@ -15,9 +10,6 @@ WlSessionLockSurface {
 
     color: Colors.lock.background
 
-    // Nothing else on the surface competes for the keyboard, so the field
-    // takes focus as soon as the compositor hands this surface the input it
-    // reserves for a lock.
     Component.onCompleted: passwordInput.forceActiveFocus()
 
     Column {
@@ -80,21 +72,13 @@ WlSessionLockSurface {
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
                 echoMode: TextInput.Password
-                // Wider than the font's own asterisk, and the same mark the
-                // dots under a calendar day use.
                 passwordCharacter: "●"
-                // PAM already has this attempt; letting it be edited would
-                // only change a buffer that has been sent.
                 readOnly: LockService.authenticating
                 clip: true
 
                 onTextChanged: LockService.password = passwordInput.text
                 onAccepted: LockService.submit()
 
-                // The other monitor's field is the same buffer. A Binding
-                // rather than a plain `text:` assignment because typing here
-                // writes to `text` directly, which would break an ordinary
-                // binding the first time a key was pressed.
                 Binding {
                     target: passwordInput
                     property: "text"
@@ -113,8 +97,6 @@ WlSessionLockSurface {
             }
         }
 
-        // Reserves its line whether or not there's a failure to report, so
-        // the field doesn't jump up the screen between attempts.
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             width: Style.lock.fieldWidth
@@ -127,8 +109,6 @@ WlSessionLockSurface {
         }
     }
 
-    // Who the password belongs to, in the corner rather than the middle:
-    // useful on a shared machine, noise in the centre of the screen.
     Text {
         anchors {
             bottom: parent.bottom

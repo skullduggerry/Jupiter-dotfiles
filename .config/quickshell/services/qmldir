@@ -3,5 +3,6 @@ singleton CalendarService 1.0 CalendarService.qml
 singleton DropdownState 1.0 DropdownState.qml
 singleton LauncherHistory 1.0 LauncherHistory.qml
 singleton LockService 1.0 LockService.qml
+singleton NotificationService 1.0 NotificationService.qml
 singleton SystemUsage 1.0 SystemUsage.qml
 singleton Time 1.0 Time.qml

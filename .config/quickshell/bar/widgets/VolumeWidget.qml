@@ -11,8 +11,6 @@ Item {
     readonly property bool muted: ready && sink.audio.muted
     readonly property real volume: ready ? sink.audio.volume : 0
 
-    // Binds the default sink so Pipewire keeps its audio properties
-    // populated (and writable) rather than only lazily resolved.
     PwObjectTracker {
         objects: root.sink ? [root.sink] : []
     }
@@ -22,10 +20,10 @@ Item {
     implicitHeight: Style.bar.height
 
     readonly property string icon: {
-        if (!ready || muted || volume <= 0) return "\uf6a9" // volume-xmark
-        if (volume > 0.66) return "\uf028"                  // volume-high
-        if (volume > 0.33) return "\uf027"                  // volume-low
-        return "\uf026"                                     // volume-off
+        if (!ready || muted || volume <= 0) return "\uf6a9"
+        if (volume > 0.66) return "\uf028"
+        if (volume > 0.33) return "\uf027"
+        return "\uf026"
     }
 
     function adjust(delta: real) {

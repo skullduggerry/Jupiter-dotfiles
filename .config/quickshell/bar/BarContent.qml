@@ -36,7 +36,8 @@ Rectangle {
         anchors.rightMargin: Style.bar.padding
         spacing: Style.bar.spacing
 
-        SystemTrayWidget {}
+        NotificationWidget { screen: root.screen }
+        SystemTrayWidget { screen: root.screen }
         BrightnessWidget {}
         VolumeWidget {}
         WifiWidget { screen: root.screen }

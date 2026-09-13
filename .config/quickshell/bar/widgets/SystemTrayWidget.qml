@@ -1,5 +1,6 @@
 // bar/widgets/SystemTrayWidget.qml
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
@@ -8,13 +9,13 @@ import "../../style"
 Item {
     id: root
 
-    // Quickshell's ObjectModel exposes its contents as `values` (a JS list);
-    // it has no `count`/`get()` the way a QML ListModel does. Reading a
-    // nonexistent `count` silently yielded `undefined`, so this widget used
-    // to evaluate `undefined > 0` and hide itself permanently.
-    readonly property int itemCount: SystemTray.items.values.length
+    required property ShellScreen screen
 
-    visible: itemCount > 0
+    readonly property var hiddenIds: ["nm-applet", "blueman"]
+
+    readonly property var items: SystemTray.items.values.filter(item => !root.hiddenIds.includes(item.id))
+
+    visible: root.items.length > 0
     implicitWidth: visible ? row.implicitWidth : 0
     implicitHeight: Style.bar.height
 
@@ -24,51 +25,55 @@ Item {
         spacing: Style.widgets.spacing
 
         Repeater {
-            model: SystemTray.items
+            model: root.items
 
-            delegate: Item {
+            delegate: Rectangle {
                 id: trayIcon
                 required property SystemTrayItem modelData
 
-                implicitWidth: Style.widgets.iconSize
-                implicitHeight: Style.widgets.iconSize
-
-                // Opens the item's DBusMenu just below the icon. `display()`
-                // wants the Quickshell window (QsWindow.window), not the
-                // underlying QQuickWindow, and coordinates relative to it,
-                // which QsWindow.itemRect() already reports.
-                function showMenu() {
-                    const rect = trayIcon.QsWindow.itemRect(trayIcon)
-                    trayIcon.modelData.display(trayIcon.QsWindow.window, rect.x, rect.y + rect.height)
+                function open() {
+                    if (trayIcon.modelData.hasMenu) trayMenu.openAt(trayIcon.modelData.menu, trayIcon)
+                    else trayIcon.modelData.secondaryActivate()
                 }
 
+                implicitWidth: Style.widgets.iconSize + Style.tray.itemPadding * 2
+                implicitHeight: trayIcon.implicitWidth
+                radius: Style.popup.rowRadius
+                color: area.containsMouse ? Colors.base.hover : "transparent"
+
                 IconImage {
-                    anchors.fill: parent
-                    // Without an explicit size the Image briefly has none, so
-                    // sourceSize is 0x0 and Qt rasterizes themed SVG icons at
-                    // their natural size — which logs a flood of
-                    // "qt.svg.draw: The requested buffer size is too big".
+                    id: icon
+                    anchors.centerIn: parent
                     implicitSize: Style.widgets.iconSize
                     source: trayIcon.modelData.icon
+                    visible: false
+                }
+
+                MultiEffect {
+                    anchors.fill: icon
+                    source: icon
+                    saturation: trayIcon.modelData.status === Status.NeedsAttention ? 0 : Style.tray.saturation
+                    opacity: trayIcon.modelData.status === Status.Passive ? Style.tray.passiveOpacity : 1
                 }
 
                 MouseArea {
+                    id: area
                     anchors.fill: parent
+                    hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                     onClicked: (mouse) => {
-                        if (mouse.button === Qt.MiddleButton) {
-                            trayIcon.modelData.secondaryActivate()
-                        } else if (mouse.button === Qt.RightButton) {
-                            if (trayIcon.modelData.hasMenu) trayIcon.showMenu()
-                            else trayIcon.modelData.secondaryActivate()
-                        } else if (trayIcon.modelData.onlyMenu) {
-                            if (trayIcon.modelData.hasMenu) trayIcon.showMenu()
-                        } else {
-                            trayIcon.modelData.activate()
-                        }
+                        if (mouse.button === Qt.MiddleButton) trayIcon.modelData.secondaryActivate()
+                        else if (mouse.button === Qt.RightButton || trayIcon.modelData.onlyMenu) trayIcon.open()
+                        else trayIcon.modelData.activate()
                     }
+                    onWheel: (wheel) => trayIcon.modelData.scroll(wheel.angleDelta.y, false)
                 }
             }
         }
+    }
+
+    TrayMenu {
+        id: trayMenu
+        screen: root.screen
     }
 }

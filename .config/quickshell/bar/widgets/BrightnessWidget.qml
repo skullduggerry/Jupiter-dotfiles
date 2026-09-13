@@ -1,12 +1,4 @@
 // bar/widgets/BrightnessWidget.qml
-//
-// Display backlight, as the one glyph the waybar config used for it: a circle
-// that fills from empty to full, no percentage. The ramp below is that
-// config's `backlight.format-icons` verbatim, so this reads exactly as it did
-// there.
-//
-// Scrolling adjusts it, which is the same gesture the volume widget uses.
-// Hidden entirely when the machine has no backlight to speak of.
 import QtQuick
 import "../../services"
 import "../../style"
@@ -16,7 +8,6 @@ Item {
 
     readonly property var ramp: ["", "", "", "", "", "", "", "", ""]
 
-    // Holds the service on for this widget's lifetime; nothing else reads it.
     Binding {
         target: Brightness
         property: "active"

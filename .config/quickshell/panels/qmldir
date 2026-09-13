@@ -1,5 +1,7 @@
 BatteryDetail 1.0 BatteryDetail.qml
 BatteryPanel 1.0 BatteryPanel.qml
 CalendarPanel 1.0 CalendarPanel.qml
+NotificationEntry 1.0 NotificationEntry.qml
+NotificationPanel 1.0 NotificationPanel.qml
 WifiPanel 1.0 WifiPanel.qml
 WorkspacePanel 1.0 WorkspacePanel.qml

@@ -1,7 +1,6 @@
 // launcher/LauncherContent.qml
 import QtQuick
 import Quickshell
-import Quickshell.Widgets
 import "../services"
 import "../style"
 
@@ -19,8 +18,6 @@ Rectangle {
 
     function launch(idx: int) {
         const entry = root.filtered[idx]
-        // Nothing matched the query — keep the launcher open rather than
-        // dismissing it as though something had been started.
         if (!entry) return
         LauncherHistory.record(entry.execString)
         entry.execute()
@@ -33,16 +30,10 @@ Rectangle {
     color: Colors.base.surface
     border.color: Colors.base.border
     border.width: Style.border.width
-
-    // Every visible .desktop entry, most-launched first and alphabetical
-    // within a tie — so a fresh install still reads as an alphabetical list
-    // and drifts towards what actually gets used.
     property var allApps: {
         const entries = [...DesktopEntries.applications.values]
         return entries.filter(e => e.name).sort(LauncherHistory.compare)
     }
-
-    // recomputes automatically whenever searchInput.text changes
     property var filtered: {
         const q = searchInput.text.trim().toLowerCase()
         if (q === "") return root.allApps
@@ -106,41 +97,6 @@ Rectangle {
                         anchors.fill: parent
                         anchors.margins: Style.launcher.rowPadding
                         spacing: Style.widgets.spacing
-
-                        Item {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: Style.launcher.iconSize
-                            height: Style.launcher.iconSize
-
-                            IconImage {
-                                id: appIcon
-                                anchors.fill: parent
-                                // Explicit size from the start; otherwise the
-                                // Image loads at sourceSize 0x0 and Qt
-                                // rasterizes scalable icons (hicolor ships
-                                // plenty of SVGs) at their natural size.
-                                implicitSize: Style.launcher.iconSize
-                                // `true` makes iconPath return "" rather than an
-                                // unresolvable url, so status stays Null and the
-                                // glyph below takes over.
-                                source: Quickshell.iconPath(result.modelData.icon, true)
-                                visible: status === Image.Ready
-                            }
-
-                            // Entries whose icon the theme can't resolve (or a
-                            // system with no icon theme configured at all) get a
-                            // generic glyph from the Nerd Font the rest of the
-                            // shell already requires, instead of an empty gap.
-                            Text {
-                                anchors.centerIn: parent
-                                visible: !appIcon.visible
-                                text: "󰘔"
-                                color: Colors.text.muted
-                                font.family: Style.text.font
-                                font.pixelSize: Style.launcher.iconSize
-                            }
-                        }
-
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: result.modelData.name

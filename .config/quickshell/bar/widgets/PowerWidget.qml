@@ -1,7 +1,4 @@
 // bar/widgets/PowerWidget.qml
-//
-// Session actions menu. "Lock" raises the shell's own lock surface through
-// LockService rather than spawning hyprlock — see lock/Lock.qml.
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland

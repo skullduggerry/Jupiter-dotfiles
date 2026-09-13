@@ -1,7 +1,4 @@
 // bar/widgets/PowerAction.qml
-//
-// One row in the power/session menu (see PowerWidget.qml): a label plus a
-// hover state, firing `activated()` on click.
 import QtQuick
 import "../../style"
 

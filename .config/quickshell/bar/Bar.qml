@@ -1,9 +1,7 @@
 // bar/Bar.qml
 import Quickshell
 import QtQuick
-import QtQuick.Layouts
 import Quickshell.Wayland
-import "./widgets"
 import "../style"
 
 Scope {

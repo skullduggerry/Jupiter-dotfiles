@@ -1,3 +1,4 @@
+require("modules.env")
 require("modules.keybinds")
 require("modules.monitors")
 require("modules.session")
