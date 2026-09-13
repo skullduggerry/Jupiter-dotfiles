@@ -2,13 +2,14 @@
 
 ```
 quickshell-config/
-├── shell.qml                  # Entry point — loads Bar, Dropdown and Launcher;
+├── shell.qml                  # Entry point — loads Bar, Dropdown, Launcher, Lock;
 │                              #   carries //@ pragma UseQApplication (tray menus)
 ├── .editorconfig              # Enforces 4-space indent, no tabs
 ├── .qmlls.ini                 # Presence enables quickshell's QML LSP support
 │                              #   (quickshell rewrites it as a symlink; gitignored)
 ├── PROJECT_STRUCTURE.md        # This file
 ├── README.md                  # Setup + dependencies
+├── FEATURES.md                # Everything the shell does, surface by surface
 ├── TODO.md                    # Roadmap, grouped by phase
 │
 ├── style/                     # Theming singletons, imported everywhere via "../style" / "../../style"
@@ -21,52 +22,86 @@ quickshell-config/
 │   ├── Bar.qml                  # PanelWindow, one per screen (Quickshell.screens)
 │   ├── BarContent.qml           # Left/center/right Row layout
 │   └── widgets/                # Individual bar widgets
-│       ├── qmldir              # Registers each widget + the Time singleton
+│       ├── qmldir              # Registers each widget
 │       ├── ClockWidget.qml        # time + date, click opens the calendar zone
-│       ├── Time.qml              # Singleton clock source, feeds ClockWidget
-│       ├── WorkspaceWidget.qml    # Hyprland workspaces (left zone)
-│       ├── BatteryWidget.qml
+│       ├── WorkspaceWidget.qml    # workspace dots + the workspace dropdown
+│       ├── BatteryWidget.qml      # charge pill + the battery dropdown
 │       ├── BluetoothWidget.qml    # device list + connect/pair, via WidgetPopup
 │       ├── WifiWidget.qml         # bar glyph + WidgetPopup holding WifiPanel
-│       ├── WifiPanel.qml          # the network list itself, incl. the PSK prompt;
-│       │                          #   shared with the dropdown's right zone
+│       ├── SystemUsageWidget.qml  # the two load ramps, next to the workspaces
+│       ├── UsageMeter.qml         # one of them: a circle that fills
+│       ├── BrightnessWidget.qml   # backlight ramp, scroll to adjust
+│       ├── BarSeparator.qml       # hairline between groups of widgets
 │       ├── VolumeWidget.qml       # Pipewire default sink, click-mute/scroll-adjust
 │       ├── SystemTrayWidget.qml   # Quickshell.Services.SystemTray icons
 │       ├── PowerWidget.qml        # lock/logout/suspend/reboot/shutdown, via WidgetPopup
 │       ├── PowerAction.qml        # one hoverable row of the power menu
-│       └── WidgetPopup.qml        # shared click-outside-to-close popup shell
+│       └── WidgetPopup.qml        # shared popup shell: anchors under its own
+│                                  #   widget, closes on Escape or outside click
+│
+├── panels/                    # Panel content shared between surfaces: each of
+│   │                          #   these is opened both from a bar widget and
+│   │                          #   from a zone of the swipe dropdown
+│   ├── qmldir                 # Registers the panels below
+│   ├── BatteryPanel.qml         # state, time left, draw, health
+│   ├── BatteryDetail.qml        # one label/value row of it
+│   ├── CalendarPanel.qml        # month grid + agenda
+│   ├── WifiPanel.qml            # network list, incl. the PSK prompt
+│   └── WorkspacePanel.qml       # workspace tiles
 │
 ├── services/                  # Shared singletons: data sources and the state
 │   │                          #   that more than one surface reads
-│   ├── qmldir                 # Registers CalendarService and DropdownState
+│   ├── qmldir                 # Registers the singletons below
+│   ├── Brightness.qml           # backlight level, from sysfs
 │   ├── CalendarService.qml      # Nextcloud events, via the helper below
 │   ├── nextcloud-calendar.py    # CalDAV client (stdlib only), run via Process
-│   └── DropdownState.qml        # Which dropdown zone is open, and where
+│   ├── DropdownState.qml        # Which dropdown zone is open, and where
+│   ├── LauncherHistory.qml      # launch counts, persisted under statePath
+│   ├── LockService.qml          # Lock state + the PAM conversation
+│   ├── SystemUsage.qml          # CPU/memory sampler, read from /proc
+│   └── Time.qml                 # Clock source: bar, month grid, lock screen
 │
 ├── dropdown/                  # The three-finger-swipe dropdown
-│   ├── qmldir                 # Registers Dropdown and the zone panels
-│   ├── Dropdown.qml             # Scope: IpcHandler + one overlay PanelWindow
-│   │                          #   that swaps content by zone
-│   ├── WorkspacePanel.qml       # left zone: workspaces + their windows
-│   └── CalendarPanel.qml        # middle zone: month grid + agenda
-│                              #   (right zone reuses bar/widgets/WifiPanel)
+│   ├── qmldir                 # Registers Dropdown
+│   └── Dropdown.qml             # Scope: IpcHandler + one overlay PanelWindow
+│                              #   that swaps panels/ content by zone
 │
-└── launcher/                  # App launcher (overlay, toggled by shortcut/IPC)
-    ├── qmldir                 # Registers Launcher, LauncherContent
-    ├── Launcher.qml             # Scope: visibility state, IpcHandler, GlobalShortcut
-    └── LauncherContent.qml      # Search input + filtered app ListView
+├── launcher/                  # App launcher (overlay, toggled by shortcut/IPC)
+│   ├── qmldir                 # Registers Launcher, LauncherContent
+│   ├── Launcher.qml             # Scope: visibility state, IpcHandler,
+│   │                            #   GlobalShortcut, follows the focused monitor
+│   └── LauncherContent.qml      # Search input + filtered app ListView
+│
+└── lock/                      # Session lock (replaces hyprlock)
+    ├── qmldir                 # Registers Lock, LockSurface
+    ├── Lock.qml                 # Scope: WlSessionLock + IpcHandler + GlobalShortcut
+    └── LockSurface.qml          # One monitor's surface: clock, password field
 ```
 
 ## Which module may import which
 
 `style/` and `services/` are leaves: they import nothing from this project.
-`bar/` and `dropdown/` import both, and `dropdown/` additionally imports
-`bar/widgets` for `WifiPanel`.
+`panels/` imports those two and nothing else. `bar/`, `dropdown/`, `launcher/`
+and `lock/` sit on top and may import any of the three.
 
-Nothing in `bar/` may import `dropdown/`. That's why `DropdownState` lives in
-`services/` — the bar's clock opens the calendar zone, and if that state sat
-next to the window it drives, `bar/widgets` and `dropdown/` would import each
-other in a circle. Shared state goes down into `services/`, never sideways.
+That is the whole graph, and it is a DAG on purpose. Nothing in `bar/` may
+import `dropdown/` or `lock/`:
+
+- **Shared *state* goes down into `services/`.** `DropdownState` and
+  `LockService` live there because the bar's clock opens the calendar zone and
+  the bar's power menu raises the lock — if that state sat next to the windows
+  it drives, `bar/widgets` would import `dropdown/` and `lock/` while they
+  imported it back.
+- **Shared *content* goes into `panels/`.** A panel is the inside of a
+  dropdown with no opinion about which surface shows it. All four are opened
+  from two places: a bar widget's `WidgetPopup` and a zone of the gesture
+  dropdown. `WifiPanel` used to live in `bar/widgets` for this reason and
+  `dropdown/` reached sideways into it; once three panels were shared, they
+  got a module instead.
+
+`Time` is in `services/` for the same reason, even though it started life next
+to the clock widget: the bar, the calendar's month grid and the lock screen
+all read it, and a singleton three surfaces share is a service, not a widget.
 
 ## The `qmldir` convention
 
@@ -96,9 +131,10 @@ versioning (`1.0`) meaningful if this ever needs a bump later.
 - **A widget-attached popup/dropdown** (device list, menu, ...) → wrap it in
   `bar/widgets/WidgetPopup.qml` rather than hand-rolling another fullscreen
   catcher window. Give it a distinct `namespaceSuffix` (e.g. `"wifi-popup"`)
-  so compositor window rules can still target it individually, and put your
-  content as its default-property children — see `BluetoothWidget.qml`,
-  `WifiWidget.qml`, or `PowerWidget.qml` for the pattern.
+  so compositor window rules can still target it individually, set
+  `anchorItem: root` so it opens under its own widget, and put your content as
+  its default-property children — see `BluetoothWidget.qml`, `WifiWidget.qml`,
+  or `PowerWidget.qml` for the pattern.
 - **A widget that needs to know which monitor it's on** (for
   `Hyprland.monitorFor()`, or so its `WidgetPopup` opens on the correct
   screen) → add a `required property ShellScreen screen`, and pass
@@ -107,11 +143,19 @@ versioning (`1.0`) meaningful if this ever needs a bump later.
 - **A new top-level surface** (popup, panel, overlay) → its own folder at the project
   root, following the `launcher/` pattern: a `Scope` or `PanelWindow` file plus a
   content file, registered in its own `qmldir`.
-- **A new dropdown zone** → a panel in `dropdown/`, registered in its `qmldir`,
+- **A panel shown by more than one surface** → `panels/`, registered in its
+  `qmldir`, importing only `services/` and `style/`. Give it the same two
+  properties a dropdown zone declares (below) and both surfaces can size it.
+- **A new dropdown zone** → a panel in `panels/`, registered in its `qmldir`,
   plus a zone name and a third of the monitor in `services/DropdownState.qml`
-  and a `Component` in `Dropdown.qml`. A zone panel declares
-  `readonly property bool wantsKeyboard`, which is what lets the shell raise
-  keyboard focus only for a panel that has something to type into.
+  and a `Component` in `Dropdown.qml`. A zone panel declares two properties,
+  which together are the whole contract:
+  - `readonly property bool wantsKeyboard` — lets the shell raise keyboard
+    focus only for a panel that has something to type into;
+  - `readonly property int preferredHeight` — the height its content adds up
+    to, which `Dropdown.qml` clamps to `Style.dropdown.minHeight`/`maxHeight`.
+    Compute it from intrinsic sizes (`contentHeight`, `implicitHeight`) and
+    never from the panel's own `height`, which would be a layout loop.
 - **Anything fetched from outside the shell** (a network service, a command) →
   a singleton in `services/`, with the talking done by a helper script run
   through `Process` rather than in QML. Keep credentials in the environment or
@@ -187,6 +231,60 @@ anywhere in a signature — parameter or return. So
   grid does 42 lookups instead of 42 list scans;
 - the only files that need `void` are the two with an `IpcHandler`, and those
   are excluded from linting (see README).
+
+## Full-screen overlays and the exclusive zone
+
+`WidgetPopup`, `Dropdown` and `Launcher` are all one full-screen transparent
+window with the real panel positioned inside it. Two things follow from that,
+and both were once got wrong:
+
+- The compositor already hands such a window **the screen minus every
+  exclusive zone**, so its y=0 is below the bar, not at the top of the screen.
+  A top margin that adds the bar's height back counts it twice —
+  `Style.popup.topMargin` is just the gap for this reason.
+- The window's x=0 is the screen's left edge, while an item measured with
+  `QsWindow.itemRect()` is in *its own* window's frame. The bar's window starts
+  `Style.bar.sideGap` in, and `QsWindow` exposes no absolute position, so that
+  token is what reconciles the two.
+
+## Keyboard focus on an overlay
+
+`WlrKeyboardFocus.OnDemand` is not enough on its own. An on-demand layer
+surface is given focus when the user interacts with *that surface*, and these
+open from a click on the bar or a touchpad gesture — neither of which is a
+click on the overlay. Without focus, `Keys.onEscapePressed` never fires.
+
+`HyprlandFocusGrab` is what makes the compositor hand focus over and give it
+back on close. Pair it with a `FocusScope` around the content, so that a child
+input (the Wi-Fi password field) releasing focus leaves it on the scope rather
+than nowhere, and Escape still arrives.
+
+One grab supersedes another, so this also means only one overlay is open at a
+time — opening a second popup closes the first.
+
+## FileView is asynchronous unless you make it otherwise
+
+Three bugs in a row came from this, so it is worth stating plainly.
+
+- `path` starts a **load as soon as it is set**, and `blockLoading` /
+  `blockAllReads` are only pushed into the underlying object when `text()` or
+  `data()` is called. Setting the path and reading in the same tick reads
+  nothing — and a `FileView` asked for content it has not loaded returns `""`
+  rather than complaining.
+- A QML singleton is built on **first use**, so its first use is in the same
+  tick as its construction. `LauncherHistory` reads its file from
+  `Component.onCompleted` for exactly this reason: without it, the first
+  launch of a session wrote an empty adapter over a file full of real counts.
+- Never read a `FileView` from a property change handler for something its
+  `path` depends on. A handler runs *before* the bindings that depend on that
+  property are re-evaluated, so the view's path is still the old one.
+  `Brightness` reads from a timer, which fires a tick later, instead.
+- The working shape for a file that changes under you is
+  `reload()` then `text()`, with `blockAllReads: true` — see
+  `SystemUsage.sampleCpu()`. Do not also call it from `onLoaded`: `reload()`
+  fires `loaded`, and the pair recurses until the stack gives out.
+- `watchChanges` does nothing for **sysfs**. Those attributes support `poll()`
+  on an open descriptor, not the inotify events `QFileSystemWatcher` wants.
 
 ## Units that aren't what they look like
 

@@ -1,12 +1,11 @@
 // bar/widgets/PowerWidget.qml
 //
-// Session actions menu. Lock shells out to an external lock utility
-// (hyprlock by default) since this project doesn't have a native
-// Quickshell lock screen yet (see TODO.md Phase 4); swap the command
-// below if you use swaylock or another locker instead.
+// Session actions menu. "Lock" raises the shell's own lock surface through
+// LockService rather than spawning hyprlock — see lock/Lock.qml.
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
+import "../../services"
 import "../../style"
 
 Item {
@@ -34,6 +33,7 @@ Item {
     WidgetPopup {
         id: powerPopup
         screen: root.screen
+        anchorItem: root
         namespaceSuffix: "power-popup"
         popupWidth: Style.popup.width
         popupHeight: actions.implicitHeight + Style.bar.padding * 2
@@ -47,8 +47,8 @@ Item {
             PowerAction {
                 label: "Lock"
                 onActivated: {
-                    Quickshell.execDetached(["hyprlock"])
                     powerPopup.visible = false
+                    LockService.lock()
                 }
             }
             PowerAction {

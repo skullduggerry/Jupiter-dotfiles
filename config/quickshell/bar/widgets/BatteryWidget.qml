@@ -1,15 +1,23 @@
 // bar/widgets/BatteryWidget.qml
+//
+// The battery as the design draws it: an outlined pill whose inner fill is
+// the charge, with the percentage centred on top of it — rather than a glyph
+// plus a number. Clicking it opens the battery dropdown.
 import QtQuick
+import Quickshell
 import Quickshell.Services.UPower
+import "../../panels"
 import "../../style"
 
 Item {
     id: root
 
+    required property ShellScreen screen
+
     readonly property UPowerDevice device: UPower.displayDevice
 
     visible: device.isLaptopBattery
-    implicitWidth: visible ? row.implicitWidth + Style.widgets.padding * 2 : 0
+    implicitWidth: visible ? Style.battery.width + Style.widgets.padding * 2 : 0
     implicitHeight: Style.bar.height
 
     // UPowerDevice.percentage is a 0.0-1.0 ratio (energy / energyCapacity),
@@ -25,44 +33,76 @@ Item {
         || device.state === UPowerDeviceState.PendingCharge
     readonly property bool full: device.state === UPowerDeviceState.FullyCharged
 
-    // Font Awesome battery glyphs (bundled in most Nerd Fonts alongside the
-    // Material Design set used in BluetoothWidget). Swap for nf-md-battery-*
-    // codepoints if you want the two widgets to share one icon family.
-    readonly property string icon: {
-        if (charging) return "\uf0e7"   // bolt
-        if (percent >= 80) return "\uf240"  // battery full
-        if (percent >= 55) return "\uf241"  // battery three-quarters
-        if (percent >= 30) return "\uf242"  // battery half
-        if (percent >= 15) return "\uf243"  // battery quarter
-        return "\uf244"                 // battery empty
-    }
-
-    readonly property color iconColor: {
+    readonly property color levelColor: {
         if (charging || full) return Colors.battery.charging
         if (percent <= 15) return Colors.battery.critical
         if (percent <= 30) return Colors.battery.low
         return Colors.battery.normal
     }
 
-    Row {
-        id: row
-        anchors.centerIn: parent
-        spacing: Style.widgets.spacing
+    Rectangle {
+        id: pill
 
-        Text {
-            text: root.icon
-            color: root.iconColor
-            font.family: Style.text.font
-            font.pixelSize: Style.text.iconSize
-            anchors.verticalCenter: parent.verticalCenter
+        anchors.centerIn: parent
+        width: Style.battery.width
+        height: Style.battery.height
+        radius: Style.battery.radius
+        color: "transparent"
+        border.width: Style.border.width
+        border.color: Colors.base.border
+
+        // The charge itself. Inset all round so it never touches the
+        // outline, and clipped to the pill's rounded corners by matching the
+        // radius rather than by a clip, which would soften the whole thing.
+        Rectangle {
+            anchors {
+                left: parent.left
+                top: parent.top
+                bottom: parent.bottom
+                margins: Style.battery.inset
+            }
+            width: Math.max(height, (parent.width - Style.battery.inset * 2) * root.device.percentage)
+            radius: Style.battery.radius - Style.battery.inset
+            color: root.levelColor
+            opacity: Colors.base.opacity
+
+            Behavior on width {
+                NumberAnimation { duration: Style.animation.normal }
+            }
         }
 
         Text {
-            text: root.percent + "%"
+            anchors.centerIn: parent
+            // The design shows the bare number; the pill is what says it is a
+            // battery, so a "%" next to it would be the third thing saying so.
+            text: root.charging ? "\uf0e7 " + root.percent : root.percent
             color: Colors.text.base
             font.family: Style.text.font
-            font.pixelSize: Style.text.size
-            anchors.verticalCenter: parent.verticalCenter
+            font.pixelSize: Style.text.smallSize
+        }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        onClicked: batteryPopup.visible = !batteryPopup.visible
+    }
+
+    WidgetPopup {
+        id: batteryPopup
+        screen: root.screen
+        anchorItem: root
+        namespaceSuffix: "battery-popup"
+        popupWidth: Style.dropdown.width
+        popupHeight: Math.max(Style.popup.minHeight,
+                              Math.min(Style.dropdown.maxHeight,
+                                       panel.item ? panel.item.preferredHeight : Style.popup.minHeight))
+
+        Loader {
+            id: panel
+            anchors.fill: parent
+            active: batteryPopup.visible
+
+            sourceComponent: BatteryPanel {}
         }
     }
 }

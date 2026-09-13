@@ -1,12 +1,14 @@
+BarSeparator 1.0 BarSeparator.qml
 BluetoothWidget 1.0 BluetoothWidget.qml
+BrightnessWidget 1.0 BrightnessWidget.qml
 ClockWidget 1.0 ClockWidget.qml
 BatteryWidget 1.0 BatteryWidget.qml
 WorkspaceWidget 1.0 WorkspaceWidget.qml
+SystemUsageWidget 1.0 SystemUsageWidget.qml
+UsageMeter 1.0 UsageMeter.qml
 WifiWidget 1.0 WifiWidget.qml
-WifiPanel 1.0 WifiPanel.qml
 VolumeWidget 1.0 VolumeWidget.qml
 SystemTrayWidget 1.0 SystemTrayWidget.qml
 PowerWidget 1.0 PowerWidget.qml
 PowerAction 1.0 PowerAction.qml
 WidgetPopup 1.0 WidgetPopup.qml
-singleton Time 1.0 Time.qml

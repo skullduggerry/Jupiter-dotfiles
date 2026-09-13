@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Networking
 import Quickshell.Wayland
+import "../../panels"
 import "../../style"
 
 Item {
@@ -63,16 +64,20 @@ Item {
     WidgetPopup {
         id: wifiPopup
         screen: root.screen
+        anchorItem: root
         namespaceSuffix: "wifi-popup"
         popupWidth: Style.popup.width
-        popupHeight: Style.popup.maxHeight
+        // Same content-driven sizing the Bluetooth popup already used, via
+        // the panel's own preferredHeight.
+        popupHeight: Math.max(Style.popup.minHeight,
+                              Math.min(Style.popup.maxHeight, wifiPanel.preferredHeight))
 
-        // Only the password prompt needs the keyboard, and it needs it
-        // reliably: the popup surface maps unfocused, so a compositor that
-        // hands on-demand focus out on map alone would never give this one
-        // focus after the fact. Exclusive is dropped again the moment the
-        // prompt is answered or dismissed.
-        keyboardFocus: wifiPanel.wantsKeyboard ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+        // Every popup already takes focus on demand so Escape closes it. The
+        // password prompt asks for more than that: Exclusive keeps the field
+        // typable even if something else would otherwise win the keyboard,
+        // and is dropped again the moment the prompt is answered or
+        // dismissed.
+        keyboardFocus: wifiPanel.wantsKeyboard ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
 
         WifiPanel {
             id: wifiPanel

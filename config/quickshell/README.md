@@ -2,11 +2,12 @@
 
 A [Quickshell](https://quickshell.org/) desktop shell for Hyprland: a top bar
 (workspaces, clock, tray, volume, Wi-Fi, Bluetooth, battery, power), an app
-launcher, and a three-zone dropdown (workspace overview, calendar, Wi-Fi)
-opened by a three-finger swipe — all built as widget-styled QML.
+launcher, a three-zone dropdown (workspace overview, calendar, Wi-Fi) opened
+by a three-finger swipe, and a session lock screen — all built as
+widget-styled QML.
 
-See `PROJECT_STRUCTURE.md` for the file layout and conventions, and
-`TODO.md` for the current roadmap.
+See `FEATURES.md` for what it all does, `PROJECT_STRUCTURE.md` for the file
+layout and conventions, and `TODO.md` for the current roadmap.
 
 ## Dependencies
 
@@ -37,9 +38,17 @@ See `PROJECT_STRUCTURE.md` for the file layout and conventions, and
   back to a generic Nerd Font glyph in the launcher rather than showing a gap.
   Setting an explicit theme (`QT_QPA_PLATFORMTHEME=gtk3` plus
   `gtk-icon-theme-name=` in `~/.config/gtk-3.0/settings.ini`) widens coverage.
-- A screen locker such as `hyprlock` or `swaylock`, for the power menu's
-  "Lock" action — there's no native Quickshell lock screen yet (see
-  `TODO.md` Phase 4)
+- A working `login` entry in `/etc/pam.d`, for the lock screen. This is the
+  stack `/etc/pam.d/hyprlock` is itself a one-line include of, and `pam_unix`
+  authenticates the calling user through the setuid `unix_chkpwd` helper, so
+  quickshell needs no privileges of its own. Change `LockService.pamConfig` if
+  your distribution wants a different one. `hyprlock` is no longer used by the
+  shell, though it stays perfectly usable by hand
+- `swayosd` for the brightness widget's *writes* — the same
+  `swayosd-client --brightness` the compositor's brightness keys already use,
+  so there is one privileged write path rather than two. Reading the level
+  needs nothing but `/sys/class/backlight`, and the widget hides itself when
+  that directory is empty (a desktop, or a docked laptop with the lid shut)
 - `python3` (standard library only) for `services/nextcloud-calendar.py`,
   the CalDAV helper behind the calendar dropdown. Optional:
   `secret-tool` (libsecret) if you'd rather keep the Nextcloud app password
@@ -54,18 +63,62 @@ qs -c <config-name>
 ```
 
 where `<config-name>` matches however this directory is placed under
-`~/.config/quickshell/`.
+`~/.config/quickshell/` — or just `qs`, if (as here) `~/.config/quickshell` is
+this directory itself.
+
+Hyprland starts it at login from `../hypr/modules/start.lua`, where it
+replaced the `waybar` line. It has to be running for `SUPER+O`, `SUPER+L` and
+the three-finger swipe to do anything, since all three call into it.
+
+`../waybar/` is left in place and still works if you run `waybar` by hand —
+starting both just stacks two bars on each other.
+
+## Lock screen
+
+`SUPER+L`, the bar's power menu, or:
+
+```sh
+qs ipc call lock lock     # lock
+qs ipc call lock locked   # true/false
+```
+
+There is deliberately **no unlock IPC** — only a password unlocks.
+
+Two things worth knowing before you rely on it:
+
+- **A config reload while locked drops the lock.** `LockService.locked` resets
+  when the shell reloads and the `WlSessionLock` binding follows. Editing the
+  shell needs filesystem access, which nobody standing at a locked screen has,
+  so this is a robustness wart rather than a hole — but don't save a QML file
+  over SSH expecting the screen to stay locked.
+- **If quickshell dies while locked**, `ext-session-lock` keeps the session
+  locked with no client left to unlock it. `../hypr/modules/session.lua` turns
+  on `misc:allow_session_lock_restore` so a restarted shell can take the lock
+  back over: switch to a TTY (`Ctrl+Alt+F2`), run `qs`, unlock normally.
+  Without that option the only way back is killing the compositor, which loses
+  the session. The cost of the option is that any process already running as
+  you could replace the lock surface — which needs session access an attacker
+  at a locked screen does not have.
+
+To bind it yourself:
+
+```lua
+hl.bind("SUPER + L", hl.dsp.global("quickshell:lock"))
+```
 
 ## Launcher shortcuts
 
-- **Hyprland bind** (no process spawn per press):
-  ```
-  bindd = SUPER, R, Toggle launcher, global, quickshell:launcherToggle
+- **Hyprland bind** (no process spawn per press) — `SUPER+O`, in
+  `../hypr/modules/keybinds.lua`:
+  ```lua
+  hl.bind("SUPER + O", hl.dsp.global("quickshell:launcherToggle"))
   ```
 - **Manual/scripted, compositor-independent:**
   ```sh
-  qs -c <config-name> ipc call launcher toggle
+  qs ipc call launcher toggle
   ```
+
+The launcher opens on whichever monitor Hyprland reports as focused.
 
 ## Swipe dropdown
 
@@ -117,6 +170,12 @@ export NEXTCLOUD_URL=https://cloud.example.org
 export NEXTCLOUD_USER=your-login
 ```
 
+Note that quickshell is started by Hyprland, not by a login shell, so it
+inherits the *session* environment — `~/.zshrc` only reaches it if you also
+start `qs` from a terminal. For the autostarted instance put these somewhere
+the session picks up (`~/.config/uwsm/env`, `~/.config/environment.d/`, or an
+`hl.env` line in the Hyprland config).
+
 ```sh
 # the password, kept out of your shell profile and out of `ps`
 secret-tool store --label='Nextcloud' service nextcloud username your-login
@@ -141,10 +200,11 @@ is closed.
 ## Validating changes
 
 ```sh
-qmllint -I /usr/lib/qt6/qml $(find . -name '*.qml' ! -name 'Launcher.qml' ! -name 'Dropdown.qml')
+qmllint -I /usr/lib/qt6/qml $(find . -name '*.qml' ! -name 'Launcher.qml' ! -name 'Dropdown.qml' ! -name 'Lock.qml')
 ```
 
-`launcher/Launcher.qml` and `dropdown/Dropdown.qml` are excluded because
+`launcher/Launcher.qml`, `dropdown/Dropdown.qml` and `lock/Lock.qml` are
+excluded because
 qmllint 1.0 crashes (exit 255, no output) on `void` and `var` in a function
 signature, and Quickshell's `IpcHandler` requires annotated functions —
 `function f(): void`. That's a linter bug, not a problem with those files.

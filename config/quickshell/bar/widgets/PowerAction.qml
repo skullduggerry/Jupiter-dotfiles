@@ -14,7 +14,7 @@ Rectangle {
 
     width: parent ? parent.width : implicitWidth
     height: Style.popup.itemHeight
-    radius: Style.bar.radius / 2
+    radius: Style.popup.rowRadius
     color: area.containsMouse ? Colors.base.hover : "transparent"
 
     Text {

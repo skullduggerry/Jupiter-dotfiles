@@ -4,11 +4,26 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
+import "../style"
 
 Scope {
     id: launcherScope
 
     property bool launcherVisible: false
+
+    // The monitor the launcher opens on. Hyprland knows which one the user is
+    // looking at; Quickshell.screens is the list a window can actually be
+    // assigned to, and the two are matched by output name because
+    // HyprlandMonitor carries no ShellScreen of its own.
+    //
+    // This is what the old "wrap it in Variants" note was after: one window
+    // that follows the focus, rather than a launcher on every screen at once
+    // (which is what Variants would give) or one pinned to screens[0].
+    readonly property ShellScreen focusedScreen: {
+        const monitor = Hyprland.focusedMonitor
+        if (monitor === null) return null
+        return Quickshell.screens.find(candidate => candidate.name === monitor.name) || null
+    }
 
     function toggle() {
         launcherVisible = !launcherVisible
@@ -33,12 +48,10 @@ Scope {
         onPressed: launcherScope.toggle()
     }
 
-    // TODO: wrap this in Variants { model: Quickshell.screens }, same as
-    // Bar.qml, once you want it to follow the focused monitor instead of
-    // just the default one.
     PanelWindow {
         id: window
         visible: launcherScope.launcherVisible
+        screen: launcherScope.focusedScreen
 
         WlrLayershell.namespace: "quickshell:launcher"
         WlrLayershell.layer: WlrLayer.Overlay
@@ -50,7 +63,7 @@ Scope {
             left: true
             right: true
         }
-        color: Qt.rgba(0, 0, 0, 0.35)
+        color: Colors.base.scrim
 
         // click the dimmed backdrop to close
         MouseArea {

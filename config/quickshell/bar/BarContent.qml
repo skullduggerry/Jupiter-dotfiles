@@ -25,6 +25,8 @@ Rectangle {
         spacing: Style.bar.spacing
 
         WorkspaceWidget { screen: root.screen }
+        BarSeparator {}
+        SystemUsageWidget {}
     }
 
     Row {
@@ -40,10 +42,11 @@ Rectangle {
         spacing: Style.bar.spacing
 
         SystemTrayWidget {}
+        BrightnessWidget {}
         VolumeWidget {}
         WifiWidget { screen: root.screen }
         BluetoothWidget { screen: root.screen }
-        BatteryWidget {}
+        BatteryWidget { screen: root.screen }
         PowerWidget { screen: root.screen }
     }
 }

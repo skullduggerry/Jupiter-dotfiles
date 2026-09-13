@@ -1,4 +1,9 @@
-// bar/widgets/Time.qml
+// services/Time.qml
+//
+// The shell's clock. Lives in services/ rather than next to the bar's
+// ClockWidget because three unrelated surfaces read it — the bar, the
+// calendar dropdown's month grid (which cell is today) and the lock screen —
+// and services/ is where shared data sources go (PROJECT_STRUCTURE.md).
 pragma Singleton
 
 import Quickshell.Io

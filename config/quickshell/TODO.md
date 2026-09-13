@@ -142,7 +142,7 @@ evaluates to its default. Verified against the installed
       segfaults on any `function f(): void` annotation, and `IpcHandler`
       requires those annotations. Exclude that one file when linting.
 
-## Phase 3 — New features ✅ this pass
+## Phase 3 — New features ✅ earlier pass
 
 ### Nextcloud calendar integration
 - [x] Fetch method: CalDAV against `/remote.php/dav/calendars/<user>/` from
@@ -241,7 +241,8 @@ evaluates to its default. Verified against the installed
   `qs ipc call dropdown openAt` it runs was driven by hand for all three
   zones.
 
-## Phase 4 — Polish
+## Phase 4 — Polish ✅ earlier pass
+
 - [x] Launcher: empty-state message when `filtered` is empty.
 - [x] Launcher: icon fallback when `Quickshell.iconPath` can't resolve — falls
       back to a Nerd Font glyph rather than another theme lookup, because the
@@ -252,20 +253,267 @@ evaluates to its default. Verified against the installed
       `Time.showSeconds` also raises the `SystemClock` precision, and there's
       no reason to wake the shell sixty times a minute unless something is
       actually displaying the digit.
-- [ ] Lock screen.
-- [ ] `WidgetPopup` anchors every popup to the top-right of the screen, so the
-      Bluetooth, Wi-Fi and power dropdowns all open in the same place rather
-      than under the icon that opened them. Threading the owning item through
-      and offsetting from it would fix this; left alone for now because it's
-      cosmetic and crosses a window boundary (the popup is a separate
-      `PanelWindow` from the bar). The swipe dropdown already places itself
-      per zone (`dropdown/Dropdown.qml`), so there's a shape to copy.
-- [ ] `WidgetPopup` defaults to `WlrKeyboardFocus.None`, so popups still can't
-      be dismissed with Escape — only by clicking outside. The property is no
-      longer hardcoded (see Phase 3), so a popup that wants Escape can now ask
-      for focus; nothing does yet, because holding focus for a click-driven
-      menu would steal it from whatever the user was typing in.
-- [ ] The dropdown's Wi-Fi and workspace zones sit in a panel sized for the
-      month grid, so a short network list leaves empty space below it. Either
-      let a zone panel declare a preferred height, or accept one geometry for
-      all three (which is what it does now, deliberately).
+
+### Lock screen
+- [x] Native `WlSessionLock` in `lock/`, authenticating through
+      `Quickshell.Services.Pam` against the `login` pam.d stack — the same one
+      `/etc/pam.d/hyprlock` is a one-line include of. `pam_unix` verifies the
+      calling user through the setuid `unix_chkpwd` helper, so quickshell
+      needs no privileges of its own.
+- [x] State in `services/LockService.qml` rather than next to the window, for
+      the reason `DropdownState` is: the bar's power menu, the compositor's
+      keybind and every monitor's surface all touch it, and `bar/widgets`
+      must not import `lock/`.
+- [x] The typed buffer is shared across monitors through a `Binding` on each
+      field's `text` — a plain `text:` binding breaks on the first keystroke,
+      because typing writes to that property directly.
+- [x] `PowerWidget`'s "Lock" and Hyprland's `SUPER+L` both go through it now;
+      the `hyprlock` exec is gone from both. hyprlock stays installed and can
+      still be run by hand.
+- [x] No IPC unlock, on purpose. `qs ipc call lock lock` locks and
+      `lock locked` reports; only a password unlocks.
+
+  Verified in a nested Hyprland rather than on the live session: the surface
+  maps on every monitor, the field takes active focus, PAM runs the
+  conversation and a wrong password comes back "Incorrect password", the
+  `quickshell:lock` global shortcut fires the lock, and clearing
+  `LockService.locked` drops it. **A successful unlock was not exercised** —
+  that needs the real password.
+
+### Popups under their own widget
+- [x] `WidgetPopup` takes an `anchorItem` and centres on it, clamped to the
+      bar's side margins, instead of every popup opening top-right. Measured
+      with `QsWindow.itemRect()` on open — it's a plain method, not a bindable
+      property — and re-measured when the widget moves, which it does when a
+      tray item appears.
+- [x] The two windows use different coordinate frames (the popup covers the
+      screen; the bar starts `Style.bar.sideGap` in) and `QsWindow` exposes no
+      absolute position, so that token reconciles them.
+- [x] `Style.popup.topMargin` no longer double-counts the bar. A full-screen
+      overlay is already placed below the bar's exclusive zone, so adding the
+      bar's height again left a 55px gap under a 35px bar.
+
+### Escape closes popups
+- [x] `WidgetPopup` and the swipe dropdown both take `WlrKeyboardFocus.OnDemand`
+      while open, wrap their content in a `FocusScope`, and close on
+      `Keys.onEscapePressed`.
+- [x] OnDemand alone is not enough: an on-demand layer surface only gets focus
+      when the user interacts with *it*, and the click that opens a popup
+      lands on the bar. `HyprlandFocusGrab` is what makes the compositor hand
+      focus over — verified by watching `activeFocus` with the grab and
+      without it — and hand it back on close.
+- [x] Side effect worth having: a grab supersedes any grab already out, so
+      opening a second popup closes the first. Popups behave like a menu bar
+      now.
+- [x] The Wi-Fi panel's `Keys.onEscapePressed` leaves the event unaccepted
+      when no prompt is up, so Escape backs out of the prompt first and the
+      surface second.
+
+  The trade-off, which the old note in this file called out: a popup that
+  holds focus interrupts whatever you were typing in. Focus returns on close.
+
+### Zone panels size themselves
+- [x] `preferredHeight` is now part of the zone-panel contract next to
+      `wantsKeyboard`; `Dropdown.qml` clamps it to
+      `Style.dropdown.minHeight`/`maxHeight`. A two-network Wi-Fi list no
+      longer sits in a box sized for a month grid.
+- [x] `WifiWidget`'s popup uses the same number, so the bar's Wi-Fi popup is
+      content-sized too — matching what the Bluetooth popup already did.
+
+### Calendar rework
+- [x] The grid draws only the weeks the month occupies (four to six) instead
+      of a fixed six, which left an entirely out-of-month row under most
+      months.
+- [x] Today keeps an accent ring wherever it is; the selected day is a filled
+      accent circle with inverted text. Before, both were "today" and you
+      couldn't tell them apart.
+- [x] Up to three event dots per day rather than one, hover feedback on days
+      and chevrons, and a `WheelHandler` so scrolling over the grid pages
+      months (a pointer handler, because the per-cell `MouseArea`s would eat a
+      wheel event).
+- [x] An empty day shows **what's coming instead** — the next few events in
+      the fetched window, each labelled with its own date, under a
+      `13 Sep · upcoming` header.
+- [x] The agenda's leading column is fixed-width, so summaries line up instead
+      of stepping in and out with "all day" vs "09:30".
+
+  Exercised against a throwaway local CalDAV server with synthetic events —
+  dots, multi-day events, the agenda and the upcoming list. A live Nextcloud
+  still hasn't been seen.
+
+### Housekeeping
+- [x] `Time` moved from `bar/widgets/` to `services/`. Three surfaces read it
+      now (bar, month grid, lock screen), which is what `services/` is for,
+      and it means `lock/` and `dropdown/` no longer import `bar/widgets` just
+      for a clock.
+- [x] Remaining hard-coded values removed: the launcher's backdrop is
+      `Colors.base.scrim`, its search font `Style.text.largeSize`, and the
+      four `Style.bar.radius / 2` spellings are `Style.popup.rowRadius`.
+- [x] The launcher follows the focused monitor (`Hyprland.focusedMonitor`
+      matched to a `ShellScreen` by output name) rather than always opening on
+      `screens[0]`. That is what the in-code "wrap it in Variants" TODO was
+      after; Variants would have put a launcher on *every* screen.
+- [x] Hyprland: `qs` is autostarted (`modules/start.lua`) — without it the
+      `SUPER+O` and `SUPER+L` global shortcuts and the swipe gesture have
+      nothing to talk to. Blur layer rules for the popups and the dropdown
+      (`styles/layout.lua`), matching the bar's. `misc:allow_session_lock_restore`
+      in a new `modules/session.lua`, so a lock client that dies doesn't
+      strand the session.
+
+## Phase 5 — Loose ends ✅ this pass
+
+- [x] `modules/start.lua` no longer launches waybar; `qs` replaced it rather
+      than joining it. `config/waybar/` is untouched and still works if you
+      run `waybar` by hand — which is how its brightness icon got copied into
+      this shell in the first place.
+- [x] Launcher results are ordered by launch count, alphabetical within a tie.
+      `services/LauncherHistory.qml` persists the counts as JSON under
+      `Quickshell.statePath()` through `FileView` + `JsonAdapter`.
+      **Keyed on `execString`**, because `DesktopEntry` exposes no id of its
+      own on 0.3.1 (`DesktopEntries.byId()` exists, but the entries don't
+      carry one) and `name` moves with the locale.
+- [x] `Colors.qml` has one palette again. `"blue"`, `"red"`, `"purple"` and
+      `"orange"` were plain CSS colour names sitting next to One Dark hexes
+      and reading far harsher than them; there is now a `Colors.accent` group
+      holding One Dark's seven, and every feature colour refers to it.
+- [x] The lock survives a config reload. `LockService.locked` lives in
+      `PersistentProperties` now, so saving a QML file while the screen is
+      locked no longer drops the lock. Reload state is in memory, not on
+      disk, so killing quickshell outright still clears it — which is the
+      escape hatch, and the reason this can't strand a session.
+
+  Three bugs found while testing this lot, all the same shape and all
+  recorded in PROJECT_STRUCTURE.md under "FileView is asynchronous unless you
+  make it otherwise":
+  - `LauncherHistory` wrote an empty adapter over a full file on the first
+    launch of each session, because a QML singleton is built on first use and
+    `blockLoading` is only honoured from `text()`/`data()`. **This destroyed
+    history**, and was only caught by running the test twice.
+  - Two `record()` calls in one tick lost one of them: `writeAdapter()` is
+    asynchronous and a second write started mid-flight resyncs the adapter
+    from the first one's snapshot. Writes are debounced now.
+  - `Brightness` read nothing at all, because it read from
+    `onDeviceChanged` — a property change handler runs before the bindings
+    that depend on it, so the `FileView`'s path was still empty.
+
+  Still open:
+  - [ ] A successful PAM unlock has never been exercised — it needs the real
+        password. Nor has joining a Wi-Fi network that needs one, nor the
+        swipe gesture itself.
+  - [ ] **The brightness widget has never run against a real backlight.**
+        `/sys/class/backlight` is empty on this machine (desktop monitors
+        only), so discovery, parsing and the refresh were verified against a
+        fake sysfs tree in a scratch directory, and `swayosd-client` was
+        never actually invoked.
+  - [ ] The calendar's "upcoming" list only knows about the days the grid
+        fetched, so late in a month it has less to show.
+
+## Phase 6 — The design file, pass 1 ✅ this pass
+
+Working from `Main-Desktop` in Figma. The file is drawn at **2x** — its canvas
+is 2880x1920, which is eDP-1's native mode, and that output runs at `scale = 2`
+— so every figure in it is halved to reach logical pixels. That checks out
+against what was already built: bar height 66→33 (was 35), top gap 16→8
+(exactly what was there), inactive dot 21→10.5 (was 10).
+
+It is also, in the author's words, largely placeholder content with an
+inconsistent design language, so it is a direction rather than a spec.
+
+### Bar
+- [x] Workspaces are dots, not pills, and sized **between** the design and
+      what was there: the design's 10.5 dot growing to 21 on a 31 pitch takes
+      a third of the bar, so this is 8 growing to 16 on a 24 pitch. Each dot
+      sits in a fixed-width cell, so the row stops shifting every dot to the
+      right of the active one when it grows.
+- [x] Three dot states rather than two: active, occupied, empty.
+- [x] CPU and memory meters next to them (`SystemUsageWidget`). The design
+      draws bare percentages; these keep the number small and muted and put a
+      thin fill bar under it, which answers "does this matter" before you have
+      read anything. Amber past 80%.
+- [x] `services/SystemUsage.qml` reads `/proc/stat` and `/proc/meminfo`
+      through `FileView` — verified that `reload()` + `text()` is synchronous
+      on a procfs file before relying on it. CPU is a delta between samples;
+      memory is `MemTotal - MemAvailable`, so page cache isn't counted as
+      used. **This is the only genuine poll in the shell**; nothing signals a
+      kernel counter moving.
+- [x] Battery is the design's outlined pill with the charge as an inner fill
+      and the number on top, rather than a glyph plus a percentage.
+- [x] Bar glyphs scaled down (`text.iconSize` 15→13, tray `widgets.iconSize`
+      22→18). The clock was left at its existing size.
+- [x] **Load meters redesigned** after review: the percentage-over-a-fill-bar
+      version read as clutter. They are one glyph each now — a circle that
+      fills — which is the pattern the waybar config used for `backlight`
+      (`"format": "{icon}"`, a nine-step ramp, no text).
+- [x] A brightness widget joins them, using that waybar ramp verbatim, so the
+      two ramps stay distinguishable: brightness fills like a moon, load fills
+      like a pie.
+- [x] A hairline between the workspace dots and the load ramps
+      (`BarSeparator`). The design file has one — its hidden "Rectangle 6" —
+      and it earns its place, because both groups are circles and without it
+      the left of the bar reads as one undifferentiated row of them.
+
+### Dropdowns
+- [x] The workspace dots open a workspace dropdown: the design's tile grid,
+      each tile outlined and carrying its window count, because a tile that
+      only says "3" can't tell you whether anything is on it. Named
+      workspaces (`special:magic`) elide instead of running into the next
+      tile.
+- [x] The battery pill opens a battery dropdown (`panels/BatteryPanel.qml`):
+      state, time to full/empty, draw, health, model. The design sketches
+      this as an empty rectangle, so the contents are whatever `UPowerDevice`
+      actually exposes — and a row the device doesn't report is omitted
+      rather than shown as a zero (llm.md §14).
+
+### `panels/` — a new module
+- [x] `WifiPanel`, `WorkspacePanel`, `CalendarPanel` and the new
+      `BatteryPanel` are each opened from two surfaces: a bar widget's
+      `WidgetPopup` and a zone of the gesture dropdown. `WifiPanel` used to
+      live in `bar/widgets` with `dropdown/` reaching sideways into it; with
+      four shared panels that stopped scaling, so they have a module of their
+      own that imports only `services/` and `style/`.
+- [x] The dependency graph is now a DAG with two leaves (`style/`,
+      `services/`), one shared layer (`panels/`) and the surfaces on top.
+
+  Deliberately **not** done this pass:
+  - The calendar dropdown was left alone — it is already where it should be.
+  - The clock keeps its existing font and its date. The design makes it much
+    larger and drops the date; the smaller one was kept on request.
+  - Volume, the system tray and the power button stay in the bar. The design
+    has none of them, presumably because they move into its tray flyout —
+    which is a later pass, and removing them before it exists would be a
+    regression.
+  - The notification bell and the tray-expand button are **not** in the bar
+    yet. Both are entry points to panels that don't exist, and two dead icons
+    is worse than two missing ones.
+  - The search box is untouched. It is the most placeholder-looking thing in
+    the file ("Lorem Ipsum Dolores" / "Entry 1"), and moving the working
+    launcher into the bar on the strength of it seemed premature.
+
+## Phase 7 — The rest of the design file
+
+Decided but not started:
+
+- [ ] **Notification centre.** `Quickshell.Services.Notifications` exists
+      (`NotificationServer`, `Notification`, `NotificationAction`,
+      `NotificationUrgency`). **`swaync` currently owns
+      `org.freedesktop.Notifications`** and the two cannot coexist, so this
+      pass has to disable swaync's autostart. Note the design sketches the
+      *centre* but not the popup toast, which also becomes the shell's job.
+- [ ] **Settings app**, as a `FloatingWindow`: theme, accent colour and font,
+      persisted through `FileView` + `JsonAdapter` and applied live. Every
+      widget already reads `Colors.*`/`Style.*`, so making those derive from a
+      config file is contained — but Light mode means authoring a second
+      palette, since every colour today assumes dark.
+- [ ] **Tray flyout**: six quick-toggle tiles. Backends that exist here:
+      `hyprsunset` (Night Light), `power-profiles-daemon` (Power Mode),
+      `rfkill` (Airplane Mode), and DND once the shell owns notifications.
+      **Not installed: `cliphist`** (so Clipboard has no history to read) and
+      **no screen recorder at all** (`wf-recorder`/`wl-screenrec`) — those two
+      tiles need a package first.
+- [ ] **Wallpaper selector app** plus the wallpaper section of the workspace
+      dropdown, over `hyprpaper` IPC, including the design's per-workspace
+      apply.
+- [ ] The bar's notification bell and tray-expand button, once their panels
+      exist.
+- [ ] The search box, if it should replace the fullscreen launcher rather
+      than sit alongside it.

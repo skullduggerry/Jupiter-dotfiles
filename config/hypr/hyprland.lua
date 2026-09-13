@@ -1,5 +1,6 @@
 require("modules.keybinds")
 require("modules.monitors")
+require("modules.session")
 require("modules.start")
 require("modules.vars")
 require("styles.color")

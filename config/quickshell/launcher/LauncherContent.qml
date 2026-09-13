@@ -2,6 +2,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Widgets
+import "../services"
 import "../style"
 
 Rectangle {
@@ -21,6 +22,7 @@ Rectangle {
         // Nothing matched the query — keep the launcher open rather than
         // dismissing it as though something had been started.
         if (!entry) return
+        LauncherHistory.record(entry.execString)
         entry.execute()
         root.launched()
     }
@@ -32,10 +34,12 @@ Rectangle {
     border.color: Colors.base.border
     border.width: Style.border.width
 
-    // every visible .desktop entry — TODO: usage-based ranking later
+    // Every visible .desktop entry, most-launched first and alphabetical
+    // within a tie — so a fresh install still reads as an alphabetical list
+    // and drifts towards what actually gets used.
     property var allApps: {
         const entries = [...DesktopEntries.applications.values]
-        return entries.filter(e => e.name).sort((a, b) => a.name.localeCompare(b.name))
+        return entries.filter(e => e.name).sort(LauncherHistory.compare)
     }
 
     // recomputes automatically whenever searchInput.text changes
@@ -59,7 +63,7 @@ Rectangle {
             width: parent.width
             height: Style.launcher.inputHeight
             color: Colors.text.base
-            font.pixelSize: Style.text.size + 4
+            font.pixelSize: Style.text.largeSize
             font.family: Style.text.font
             focus: true
             clip: true
@@ -95,7 +99,7 @@ Rectangle {
 
                     width: resultsList.width
                     height: Style.launcher.rowHeight
-                    radius: Style.bar.radius / 2
+                    radius: Style.popup.rowRadius
                     color: result.ListView.isCurrentItem ? Colors.base.hover : "transparent"
 
                     Row {

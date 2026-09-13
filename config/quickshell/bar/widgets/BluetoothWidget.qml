@@ -46,6 +46,7 @@ Item {
     WidgetPopup {
         id: btPopup
         screen: root.screen
+        anchorItem: root
         namespaceSuffix: "bt-popup"
         popupWidth: Style.popup.width
         popupHeight: Math.max(Style.popup.minHeight,

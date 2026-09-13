@@ -1,16 +1,15 @@
-// bar/widgets/WifiPanel.qml
+// panels/WifiPanel.qml
 //
 // The Wi-Fi network list: an on/off header, the scanned networks with an
 // inline connect/disconnect action, a password prompt for networks
 // NetworkManager has no stored secret for, and an inline error line.
 //
-// Extracted from WifiWidget's popup content so the gesture dropdown's right
-// zone can show the same list instead of a second copy of it (see
-// dropdown/Dropdown.qml). Everything it needs comes from Networking, so the
-// only thing an owner has to provide is `active`.
+// Lives in panels/ because two surfaces show it: the bar's Wi-Fi widget and
+// the gesture dropdown's right zone. Everything it needs comes from
+// Networking, so the only thing an owner has to provide is `active`.
 import QtQuick
 import Quickshell.Networking
-import "../../style"
+import "../style"
 
 Item {
     id: root
@@ -24,6 +23,18 @@ Item {
     // Raised while the password prompt is up so the owning surface can take
     // keyboard focus only for as long as there's something to type into.
     readonly property bool wantsKeyboard: root.pskNetwork !== null
+
+    // The height this panel's content wants. Both owners clamp it — the bar's
+    // WidgetPopup to the popup range, the dropdown to the dropdown range — so
+    // neither a two-network list nor a twenty-network one gets a box sized for
+    // the other.
+    readonly property int preferredHeight: Style.bar.padding * 2
+        + header.height
+        + Style.border.width
+        + prompt.height
+        + Style.bar.spacing
+        + Math.max(Style.popup.itemHeight, networkList.contentHeight)
+        + status.height
 
     // First Wi-Fi capable device on the system. Multi-adapter Wi-Fi setups
     // aren't handled here, mirroring BluetoothWidget's single-adapter
@@ -64,6 +75,9 @@ Item {
     function dismissPrompt() {
         root.pskNetwork = null
         pskInput.text = ""
+        // Hand focus back to the enclosing focus scope so the next Escape
+        // reaches it rather than being swallowed by a field nobody can see.
+        pskInput.focus = false
     }
 
     function activate(network: WifiNetwork) {
@@ -189,7 +203,18 @@ Item {
                     network.connectWithPsk(pskInput.text)
                     pskInput.text = ""
                 }
-                Keys.onEscapePressed: root.dismissPrompt()
+
+                // Escape backs out of the prompt first and only then out of
+                // the surface holding this panel: with no prompt up there is
+                // nothing here to dismiss, so the event is left unaccepted
+                // and travels on to the popup's own handler.
+                Keys.onEscapePressed: (event) => {
+                    if (root.pskNetwork === null) {
+                        event.accepted = false
+                        return
+                    }
+                    root.dismissPrompt()
+                }
 
                 // The prompt replaces the header's "type a password" hint, so
                 // say whose password this is while the field is empty.
@@ -213,10 +238,13 @@ Item {
         Item {
             id: status
             anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
-            height: statusLabel.visible ? statusLabel.implicitHeight : 0
+            // Carries its own leading gap, so the network list above doesn't
+            // butt up against the failure line.
+            height: statusLabel.visible ? statusLabel.implicitHeight + Style.bar.spacing : 0
 
             Text {
                 id: statusLabel
+                anchors.bottom: parent.bottom
                 width: parent.width
                 visible: root.errorText !== ""
                 text: root.errorText

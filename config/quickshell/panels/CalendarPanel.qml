@@ -1,18 +1,19 @@
-// dropdown/CalendarPanel.qml
+// panels/CalendarPanel.qml
 //
 // Middle zone of the swipe dropdown: a month grid with a dot under every day
-// that has events, plus an agenda for the selected day.
+// that has events, and an agenda underneath it.
 //
 // The grid drives the fetch window: CalendarService is asked for exactly the
-// 42 days on screen, so paging to another month refetches that month and
-// nothing else. `active` is held by a Binding for the panel's lifetime, which
-// is what stops the service polling once the dropdown closes.
+// days on screen, so paging to another month refetches that month and nothing
+// else. `active` is held by a Binding for the panel's lifetime, which is what
+// stops the service polling once the dropdown closes.
+//
+// The grid draws only the weeks the month actually occupies (four to six),
+// and the panel reports the height all of that adds up to, so a short month
+// doesn't leave a blank row and an empty day doesn't leave a blank panel.
 import QtQuick
 import "../services"
 import "../style"
-// The Time singleton lives with the clock widget it was written for; the
-// month grid needs the same live date to know which cell is today.
-import "../bar/widgets"
 
 Item {
     id: root
@@ -20,6 +21,22 @@ Item {
     // Part of the zone-panel contract Dropdown.qml relies on: only the Wi-Fi
     // panel ever needs the keyboard.
     readonly property bool wantsKeyboard: false
+
+    // The other half of that contract. Everything between the panel's own
+    // padding, added up — the grid's row count is part of it, so the panel
+    // shrinks by a row when a month fits in five weeks.
+    readonly property int preferredHeight: Style.bar.padding * 2
+        + header.height
+        + weekdays.height
+        + grid.height
+        + Style.bar.spacing + Style.border.width + Style.bar.spacing
+        + agendaHeader.height
+        + root.agendaHeight
+        + status.height
+
+    // What the agenda list needs, never less than one row so the empty-state
+    // line below it has somewhere to sit.
+    readonly property int agendaHeight: Math.max(Style.popup.itemHeight, agenda.contentHeight)
 
     readonly property date today: Time.now
 
@@ -32,11 +49,19 @@ Item {
     // column either way.
     readonly property int firstDayOfWeek: Qt.locale().firstDayOfWeek
     readonly property int columns: 7
-    readonly property int rows: 6
 
-    // The selected day's events, straight out of the service's grouping.
-    readonly property var selectedEvents:
-        CalendarService.eventsByDay[CalendarService.dayKey(root.selectedDay)] || []
+    // How many week rows this month actually occupies. A 28-day February
+    // starting on the first column needs four; a 31-day month starting on the
+    // last needs six. Drawing a fixed six left an entirely out-of-month row
+    // under most months.
+    readonly property int weekCount: {
+        const year = root.displayedMonth.getFullYear()
+        const month = root.displayedMonth.getMonth()
+        const offset = (new Date(year, month, 1).getDay() - root.firstDayOfWeek + 7) % 7
+        // Day 0 of the next month is the last day of this one.
+        const daysInMonth = new Date(year, month + 1, 0).getDate()
+        return Math.ceil((offset + daysInMonth) / root.columns)
+    }
 
     // Top-left cell of the grid: the start of the week containing the first
     // of the month, which is usually in the previous month.
@@ -45,6 +70,29 @@ Item {
         const offset = (first.getDay() - root.firstDayOfWeek + 7) % 7
         return new Date(first.getFullYear(), first.getMonth(), 1 - offset)
     }
+
+    // The selected day's events, straight out of the service's grouping.
+    readonly property var selectedEvents:
+        CalendarService.eventsByDay[CalendarService.dayKey(root.selectedDay)] || []
+
+    // With nothing on the selected day, the agenda lists what is coming
+    // instead of an empty box. Limited to the fetched window — the same days
+    // the grid shows — so it never claims to know about a month nobody asked
+    // the server for.
+    readonly property bool showingUpcoming: root.selectedEvents.length === 0
+        && root.upcomingEvents.length > 0
+
+    readonly property var upcomingEvents: {
+        const from = new Date(root.selectedDay.getFullYear(),
+                              root.selectedDay.getMonth(),
+                              root.selectedDay.getDate())
+        // CalendarService.events arrives sorted by start.
+        return CalendarService.events
+            .filter(event => event.end > from)
+            .slice(0, Style.calendar.upcomingCount)
+    }
+
+    readonly property var agendaEvents: root.showingUpcoming ? root.upcomingEvents : root.selectedEvents
 
     // Every function whose value is used in a binding carries its return
     // type: the QML engine treats an unannotated one as returning void and
@@ -59,9 +107,22 @@ Item {
             && left.getDate() === right.getDate()
     }
 
+    // How many dots a day's cell draws, capped so a busy day doesn't spill
+    // out of a 42px column.
+    function dotCount(day: date): int {
+        const events = CalendarService.eventsByDay[CalendarService.dayKey(day)]
+        if (events === undefined) return 0
+        return Math.min(events.length, Style.calendar.maxDots)
+    }
+
     function shiftMonth(months: int) {
         root.displayedMonth = new Date(root.displayedMonth.getFullYear(),
                                        root.displayedMonth.getMonth() + months, 1)
+    }
+
+    function showToday() {
+        root.displayedMonth = new Date(root.today.getFullYear(), root.today.getMonth(), 1)
+        root.selectedDay = root.today
     }
 
     // Ask the service for precisely the days the grid shows.
@@ -74,7 +135,7 @@ Item {
     Binding {
         target: CalendarService
         property: "rangeEnd"
-        value: root.dayAt(root.columns * root.rows)
+        value: root.dayAt(root.columns * root.weekCount)
     }
 
     // Held only while this panel exists; the service goes quiet again when
@@ -97,49 +158,53 @@ Item {
             Text {
                 id: previousMonth
                 anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-                text: "" // chevron-left
-                color: Colors.text.muted
+                text: "" // chevron-left
+                color: previousArea.containsMouse ? Colors.text.base : Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
                 width: Style.popup.rowIconWidth
                 horizontalAlignment: Text.AlignLeft
 
                 MouseArea {
+                    id: previousArea
                     anchors.fill: parent
+                    hoverEnabled: true
                     onClicked: root.shiftMonth(-1)
                 }
             }
 
             // Also the way back to the current month, which is otherwise a
-            // lot of chevron clicks away.
+            // lot of chevron clicks away — so it highlights on hover like the
+            // button it is.
             Text {
                 anchors.centerIn: parent
                 text: Qt.formatDate(root.displayedMonth, "MMMM yyyy")
-                color: Colors.text.base
+                color: monthArea.containsMouse ? Colors.calendar.today : Colors.text.base
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
 
                 MouseArea {
+                    id: monthArea
                     anchors.fill: parent
-                    onClicked: {
-                        root.displayedMonth = new Date(root.today.getFullYear(), root.today.getMonth(), 1)
-                        root.selectedDay = root.today
-                    }
+                    hoverEnabled: true
+                    onClicked: root.showToday()
                 }
             }
 
             Text {
                 id: nextMonth
                 anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                text: "" // chevron-right
-                color: Colors.text.muted
+                text: "" // chevron-right
+                color: nextArea.containsMouse ? Colors.text.base : Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
                 width: Style.popup.rowIconWidth
                 horizontalAlignment: Text.AlignRight
 
                 MouseArea {
+                    id: nextArea
                     anchors.fill: parent
+                    hoverEnabled: true
                     onClicked: root.shiftMonth(1)
                 }
             }
@@ -173,16 +238,23 @@ Item {
         Grid {
             id: grid
             anchors { top: weekdays.bottom; left: parent.left; right: parent.right }
-            height: root.rows * Style.calendar.rowHeight
+            height: root.weekCount * Style.calendar.rowHeight
             columns: root.columns
-            rows: root.rows
+            rows: root.weekCount
 
             readonly property real cellWidth: width / root.columns
 
-            Repeater {
-                model: root.columns * root.rows
+            // Scrolling over the month pages it, which beats aiming at a
+            // 16px chevron. A pointer handler rather than a MouseArea because
+            // every cell already has one of those and would eat the event.
+            WheelHandler {
+                onWheel: (event) => root.shiftMonth(event.angleDelta.y > 0 ? -1 : 1)
+            }
 
-                delegate: Rectangle {
+            Repeater {
+                model: root.columns * root.weekCount
+
+                delegate: Item {
                     id: cell
                     required property int index
 
@@ -190,39 +262,66 @@ Item {
                     readonly property bool inMonth: cell.day.getMonth() === root.displayedMonth.getMonth()
                     readonly property bool isToday: root.sameDay(cell.day, root.today)
                     readonly property bool selected: root.sameDay(cell.day, root.selectedDay)
-                    readonly property bool hasEvents:
-                        CalendarService.eventsByDay[CalendarService.dayKey(cell.day)] !== undefined
+                    readonly property int dots: root.dotCount(cell.day)
 
                     width: grid.cellWidth
                     height: Style.calendar.rowHeight
-                    radius: Style.bar.radius / 2
-                    color: cell.selected ? Colors.base.hover : "transparent"
-                    border.width: cell.isToday ? Style.border.width : 0
-                    border.color: Colors.calendar.today
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: cell.day.getDate()
-                        // Days spilling in from the neighbouring months stay
-                        // legible but clearly secondary.
-                        color: cell.inMonth ? Colors.text.base : Colors.text.muted
-                        font.family: Style.text.font
-                        font.pixelSize: Style.text.size
-                    }
 
                     Rectangle {
+                        id: highlight
+
                         anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.bottom: parent.bottom
-                        anchors.bottomMargin: Style.border.width * 2
-                        visible: cell.hasEvents
-                        width: Style.calendar.dotSize
-                        height: Style.calendar.dotSize
+                        anchors.top: parent.top
+                        width: Style.calendar.daySize
+                        height: Style.calendar.daySize
                         radius: width / 2
-                        color: Colors.calendar.event
+                        color: cell.selected ? Colors.calendar.selected
+                            : dayArea.containsMouse ? Colors.base.hover
+                            : "transparent"
+                        // Today keeps a ring even when it isn't the selected
+                        // day, so the grid always says where "now" is.
+                        border.width: cell.isToday && !cell.selected ? Style.border.width : 0
+                        border.color: Colors.calendar.today
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: cell.day.getDate()
+                            // Days spilling in from the neighbouring months
+                            // stay legible but clearly secondary.
+                            color: cell.selected ? Colors.text.inverted
+                                : cell.isToday ? Colors.calendar.today
+                                : cell.inMonth ? Colors.text.base
+                                : Colors.text.muted
+                            font.family: Style.text.font
+                            font.pixelSize: Style.text.size
+                        }
+                    }
+
+                    // One dot per event, up to maxDots — enough to tell a
+                    // free day from a full one without reading the agenda.
+                    Row {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: highlight.bottom
+                        height: Style.calendar.dotRowHeight
+                        spacing: Style.calendar.dotSpacing
+
+                        Repeater {
+                            model: cell.dots
+
+                            delegate: Rectangle {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: Style.calendar.dotSize
+                                height: Style.calendar.dotSize
+                                radius: width / 2
+                                color: cell.inMonth ? Colors.calendar.event : Colors.text.muted
+                            }
+                        }
                     }
 
                     MouseArea {
+                        id: dayArea
                         anchors.fill: parent
+                        hoverEnabled: true
                         onClicked: root.selectedDay = cell.day
                     }
                 }
@@ -242,14 +341,22 @@ Item {
             height: Style.popup.itemHeight
 
             Text {
+                id: agendaTitle
                 anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-                text: Qt.formatDate(root.selectedDay, "dddd d MMMM")
+                // Says plainly when the rows below belong to days other than
+                // the selected one.
+                text: root.showingUpcoming
+                    ? Qt.formatDate(root.selectedDay, "d MMM") + " · upcoming"
+                    : Qt.formatDate(root.selectedDay, "dddd d MMMM")
                 color: Colors.text.base
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
+                elide: Text.ElideRight
+                width: parent.width - agendaState.width - Style.widgets.spacing
             }
 
             Text {
+                id: agendaState
                 anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                 // Only the fetch state worth reacting to gets a word here;
                 // "ok" needs none, since the agenda below says it all.
@@ -273,10 +380,14 @@ Item {
         Item {
             id: status
             anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
-            height: statusLabel.visible ? statusLabel.implicitHeight : 0
+            // Carries its own leading gap so the agenda above doesn't butt up
+            // against it, and so preferredHeight accounts for that gap
+            // without the panel adding a second margin of its own.
+            height: statusLabel.visible ? statusLabel.implicitHeight + Style.bar.spacing : 0
 
             Text {
                 id: statusLabel
+                anchors.bottom: parent.bottom
                 width: parent.width
                 visible: CalendarService.message !== ""
                 text: CalendarService.message
@@ -297,7 +408,7 @@ Item {
                 right: parent.right
             }
             clip: true
-            model: root.selectedEvents
+            model: root.agendaEvents
             visible: count > 0
 
             delegate: Row {
@@ -310,12 +421,19 @@ Item {
 
                 Text {
                     id: eventTime
-                    text: agendaRow.modelData.allDay
-                        ? "all day"
+                    // An upcoming row belongs to some other day, so it says
+                    // which one; a row on the selected day only needs a time.
+                    text: root.showingUpcoming
+                        ? Qt.formatDateTime(agendaRow.modelData.start,
+                                            agendaRow.modelData.allDay ? "ddd d" : "ddd d HH:mm")
+                        : agendaRow.modelData.allDay ? "all day"
                         : Qt.formatDateTime(agendaRow.modelData.start, "HH:mm")
                     color: Colors.calendar.event
                     font.family: Style.text.font
                     font.pixelSize: Style.text.smallSize
+                    // Fixed, so the summaries line up into a column rather
+                    // than stepping in and out with the label's length.
+                    width: root.showingUpcoming ? Style.calendar.upcomingTimeWidth : Style.calendar.agendaTimeWidth
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
