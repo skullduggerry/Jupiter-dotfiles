@@ -3,6 +3,7 @@ ClockWidget 1.0 ClockWidget.qml
 BatteryWidget 1.0 BatteryWidget.qml
 WorkspaceWidget 1.0 WorkspaceWidget.qml
 WifiWidget 1.0 WifiWidget.qml
+WifiPanel 1.0 WifiPanel.qml
 VolumeWidget 1.0 VolumeWidget.qml
 SystemTrayWidget 1.0 SystemTrayWidget.qml
 PowerWidget 1.0 PowerWidget.qml

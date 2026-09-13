@@ -30,7 +30,7 @@ Rectangle {
     Row {
         anchors { horizontalCenter: parent.horizontalCenter; verticalCenter: parent.verticalCenter }
         spacing: Style.bar.spacing
-        ClockWidget {}
+        ClockWidget { screen: root.screen }
     }
 
     Row {

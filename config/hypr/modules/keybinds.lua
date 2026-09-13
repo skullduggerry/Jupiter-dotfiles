@@ -50,3 +50,20 @@ hl.gesture({
 })
 
 
+-- Three-finger swipe down opens the quickshell dropdown for whichever third
+-- of the monitor the pointer is over: left = workspaces, middle = calendar,
+-- right = Wi-Fi. Hyprland gesture actions accept Lua callbacks, so this needs
+-- no external gesture daemon (libinput-gestures/fusuma): the pointer position
+-- comes from hl.get_cursor_pos() and the shell decides the zone from it (see
+-- config/quickshell/services/DropdownState.qml).
+hl.gesture({
+	fingers = 3,
+	direction = "down",
+	action = {
+		finish = function()
+			local pos = hl.get_cursor_pos()
+			hl.exec_cmd(string.format("qs ipc call dropdown openAt %d %d",
+				math.floor(pos.x), math.floor(pos.y)))
+		end,
+	},
+})

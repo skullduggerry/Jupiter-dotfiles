@@ -8,9 +8,11 @@
 
 import Quickshell
 import "./bar"
+import "./dropdown"
 import "./launcher"
 
 Scope {
     Bar {}
+    Dropdown {}
     Launcher {}
 }

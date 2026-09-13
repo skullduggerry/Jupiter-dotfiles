@@ -60,6 +60,14 @@ QtObject {
         readonly property color inactive: "#646464"
     }
 
+    // Calendar dropdown, consumed by CalendarPanel. `today` rings the
+    // current day in the month grid; `event` is the dot under a day that
+    // has events, and the accent on an agenda row's time.
+    readonly property QtObject calendar: QtObject {
+        readonly property color today: "#61afef"
+        readonly property color event: "#61afef"
+    }
+
     // Power/session menu, consumed by PowerWidget. "danger" marks
     // destructive actions (reboot/shutdown) apart from lock/logout.
     readonly property QtObject power: QtObject {

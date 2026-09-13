@@ -39,7 +39,7 @@
   - "Logout" runs `Hyprland.dispatch("exit")` (equivalent to
     `hyprctl dispatch exit`), which quits the compositor.
 
-## Phase 2.5 — Correctness pass ✅ this pass
+## Phase 2.5 — Correctness pass ✅ earlier pass
 
 Several widgets from Phase 2 were shipped but never actually worked. The
 common cause was an API assumption that fails **silently** rather than
@@ -142,47 +142,104 @@ evaluates to its default. Verified against the installed
       segfaults on any `function f(): void` annotation, and `IpcHandler`
       requires those annotations. Exclude that one file when linting.
 
-## Phase 3 — New features
+## Phase 3 — New features ✅ this pass
 
 ### Nextcloud calendar integration
-- [ ] Decide fetch method: Nextcloud CalDAV endpoint
-      (`/remote.php/dav/calendars/...`) via `Quickshell.Io.Process`, polling
-      on an interval — same pattern as `Time.qml`'s singleton.
-- [ ] Parse the CalDAV/ICS response — likely a small helper script
-      (Python/curl + ical parser) invoked through `Process`, rather than
-      parsing raw CalDAV XML in QML.
-- [ ] `CalendarService` singleton exposing upcoming events as a model.
-- [ ] Calendar dropdown UI (month grid + agenda list) — becomes the
-      **middle**-zone content for the swipe gesture below.
-- [ ] Store Nextcloud credentials securely — env var or system keyring via a
-      helper script, not plaintext in QML.
+- [x] Fetch method: CalDAV against `/remote.php/dav/calendars/<user>/` from
+      `services/nextcloud-calendar.py`, run through `Quickshell.Io.Process`.
+      PROPFIND to list the user's VEVENT collections, then one
+      `calendar-query` REPORT per calendar with a `time-range` filter.
+- [x] Parse the response in the helper, not in QML — but with the standard
+      library only (`urllib` + `ElementTree` + a small RFC 5545 unfolder), as
+      neither `icalendar` nor `caldav` is installed and a time-range query
+      needs very little of either. **Recurrence is expanded server-side**
+      (RFC 4791 `<C:expand/>`), so nothing here interprets an `RRULE`.
+- [x] `services/CalendarService.qml` singleton. Its contract with the helper
+      is one JSON object on stdout — `{"status": "ok"|"unconfigured"|"error",
+      ...}` — so a missing config or a dead server is a state the panel can
+      display rather than an exception.
+- [x] Calendar dropdown UI (`dropdown/CalendarPanel.qml`): month grid with a
+      dot under every day that has events, click a day for its agenda, click
+      the month name to jump back to today. It's the middle zone of the swipe
+      dropdown below, and what the bar's clock opens.
+- [x] Credentials never reach QML: `NEXTCLOUD_URL` / `NEXTCLOUD_USER` from the
+      environment, and the app password from the session keyring via
+      `secret-tool` (`NEXTCLOUD_APP_PASSWORD` also works). See README.
+
+  Notes from that pass:
+  - The fetch window is exactly the 42 days the grid shows, so paging months
+    refetches that month and nothing else, and the dots never lie about a day
+    that wasn't fetched.
+  - Against llm.md §15, the service does **nothing at all** while no calendar
+    surface is open: `active` (held by a `Binding` for the panel's lifetime)
+    gates both the first fetch and the 15-minute refresh.
+  - Events are grouped into `eventsByDay` once per fetch instead of being
+    filtered per cell — 42 lookups rather than 42 scans of the event list.
+  - **Untested against a real Nextcloud.** The request building, both
+    responses, the ICS parsing and every error path were exercised against a
+    local fake CalDAV server and synthetic ICS; a live server's exact dialect
+    hasn't been seen. Run the helper on its own first (README) — it prints
+    what it found or what went wrong.
 
 ### Wi-Fi password prompt
-- [ ] `WifiNetwork.connectWithPsk(psk)` exists; the popup currently only
-      *reports* that a PSK is needed. Add a `TextInput` row that appears when
-      `connectionFailed(NoSecrets)` fires (or when `!network.known` and
-      `security !== WifiSecurityType.Open`).
-      Note this needs `WlrKeyboardFocus.OnDemand` on the popup —
-      `WidgetPopup` currently hardcodes `None` since nothing needed typing.
+- [x] `bar/widgets/WifiPanel.qml` now has a `TextInput` row that appears
+      either when `connectionFailed(NoSecrets)` comes back or, better, *before*
+      connecting to a network that isn't `known` and whose security wants a
+      PSK — no point waiting for a failure that's already predictable.
+      Enter joins with `connectWithPsk()`, Escape dismisses.
+- [x] `WidgetPopup` gained a `keyboardFocus` property (still `None` by
+      default) instead of hardcoding it. The Wi-Fi popup raises it while, and
+      only while, the prompt is up.
+- [x] It raises it to **`Exclusive`, not `OnDemand`**: the popup surface maps
+      unfocused and only later asks for focus, so a compositor that hands
+      on-demand focus out when a layer surface maps would never give this one
+      focus at all. Exclusive is dropped again the moment the prompt is
+      answered or dismissed, and a click outside still closes the popup.
+- [x] Enterprise networks (EAP/LEAP, WPA3 Suite-B 192) get an honest "needs
+      <type> credentials (not supported)" rather than a password box that
+      couldn't work: `WifiNetwork` only exposes `connectWithPsk()`, and those
+      modes need an identity and usually a certificate.
+
+  Not exercised: actually joining a network that needs a password. There was
+  no such network to hand, so the prompt has been driven only as far as the
+  `connectWithPsk()` call.
 
 ### Three-finger swipe-down → zone-based dropdowns
-- [ ] Quickshell/QML doesn't read raw touchpad gestures itself, and
-      Hyprland's native gesture support is workspace-swipe-only (not
-      position-aware custom actions) — need an external gesture daemon:
-      `libinput-gestures` or `fusuma` (simpler config).
-- [ ] Gesture daemon detects 3-finger swipe-down + reports pointer X position
-      at gesture start.
-- [ ] Daemon shells out to `qs -c <config> ipc call <target> <action>` —
-      reuse the exact `IpcHandler` pattern already in `Launcher.qml`.
-- [ ] New `IpcHandler` (e.g. `target: "dropdown"`) with a function like
-      `openAt(x: real)` that decides the zone (left third = workspaces,
-      middle third = calendar, right third = wifi) and toggles the right popup.
-- [ ] One shared "dropdown shell" `PanelWindow` (same overlay pattern as
-      `Launcher.qml`) that swaps its content component based on which zone
-      triggered it, instead of three separate windows.
-- [ ] Zone boundaries relative to *monitor width*, not global coordinates —
-      for multi-monitor setups (`Bar.qml` already handles `Quickshell.screens`,
-      so the pattern to follow exists).
+- [x] **No gesture daemon needed.** The note below about Hyprland being
+      workspace-swipe-only predates the 0.49 gesture rework: on the 0.56.2
+      installed here, `hl.gesture` takes an `action` *callback table*
+      (`start`/`update`/`end`/`finish`), and `hl.get_cursor_pos()` returns
+      `{x, y}` in the same logical layout coordinates the shell sees. All
+      three were verified against the running compositor rather than assumed,
+      so `libinput-gestures`/`fusuma` was dropped from the plan entirely.
+- [x] The gesture lives in `../hypr/modules/keybinds.lua` next to the
+      existing horizontal workspace swipe, and shells out to
+      `qs ipc call dropdown openAt <x> <y>` — one process per gesture, and
+      only on the gesture.
+- [x] `IpcHandler { target: "dropdown" }` in `dropdown/Dropdown.qml`, with
+      `openAt(x, y)`, `open(zone)` and `close()`, following the exact
+      `IpcHandler` pattern already in `Launcher.qml`.
+- [x] One shared overlay `PanelWindow` that swaps content by zone through a
+      `Loader`, built per open and destroyed on close.
+- [x] Zone boundaries are thirds of **the monitor the pointer is on** —
+      `DropdownState.screenAt()` finds it from `Quickshell.screens` (a plain
+      QML list, not an `ObjectModel`), and the thirds are measured inside it.
+- [x] The right zone shows the bar's own `WifiPanel` rather than a second
+      copy of the network list, which is why that panel was extracted.
+- [x] The left zone is a workspace overview (`dropdown/WorkspacePanel.qml`):
+      the workspaces on that monitor with their window titles. Clicking a
+      workspace activates it; clicking a window calls the toplevel's own
+      `wayland.activate()` rather than building a `focuswindow address:`
+      dispatcher string.
+- [x] The dropdown opens under the zone that triggered it — left zone against
+      the left edge, middle centred, right against the right edge — which is
+      the Phase 4 complaint below, fixed for this surface at least.
+
+  Not exercised: the swipe itself. There's no way to inject a touchpad
+  gesture from a shell, so the Lua block was verified to load without config
+  errors and its callback shape probed live, and the
+  `qs ipc call dropdown openAt` it runs was driven by hand for all three
+  zones.
 
 ## Phase 4 — Polish
 - [x] Launcher: empty-state message when `filtered` is empty.
@@ -190,13 +247,25 @@ evaluates to its default. Verified against the installed
       back to a Nerd Font glyph rather than another theme lookup, because the
       failure mode here is usually "no icon theme configured at all" (see
       README).
-- [ ] Clock: seconds/date display, click → open calendar dropdown (Phase 3).
+- [x] Clock: date next to the time, and a click opens the calendar dropdown
+      on that monitor. Seconds are a one-line switch rather than the default:
+      `Time.showSeconds` also raises the `SystemClock` precision, and there's
+      no reason to wake the shell sixty times a minute unless something is
+      actually displaying the digit.
 - [ ] Lock screen.
 - [ ] `WidgetPopup` anchors every popup to the top-right of the screen, so the
       Bluetooth, Wi-Fi and power dropdowns all open in the same place rather
       than under the icon that opened them. Threading the owning item through
       and offsetting from it would fix this; left alone for now because it's
       cosmetic and crosses a window boundary (the popup is a separate
-      `PanelWindow` from the bar).
-- [ ] `WidgetPopup` sets `WlrKeyboardFocus.None`, so popups can't be dismissed
-      with Escape — only by clicking outside.
+      `PanelWindow` from the bar). The swipe dropdown already places itself
+      per zone (`dropdown/Dropdown.qml`), so there's a shape to copy.
+- [ ] `WidgetPopup` defaults to `WlrKeyboardFocus.None`, so popups still can't
+      be dismissed with Escape — only by clicking outside. The property is no
+      longer hardcoded (see Phase 3), so a popup that wants Escape can now ask
+      for focus; nothing does yet, because holding focus for a click-driven
+      menu would steal it from whatever the user was typing in.
+- [ ] The dropdown's Wi-Fi and workspace zones sit in a panel sized for the
+      month grid, so a short network list leaves empty space below it. Either
+      let a zone panel declare a preferred height, or accept one geometry for
+      all three (which is what it does now, deliberately).

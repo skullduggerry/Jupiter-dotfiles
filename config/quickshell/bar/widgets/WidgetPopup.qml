@@ -34,14 +34,21 @@ PanelWindow {
 
     property int popupWidth: Style.popup.width
     property int popupHeight: Style.popup.maxHeight
-    property int contentTopMargin: Style.bar.topGap + Style.bar.height + Style.popup.gap
+    property int contentTopMargin: Style.popup.topMargin
     property int contentRightMargin: Style.bar.sideGap
+
+    // Popups are keyboard-transparent by default: they're click-driven, and
+    // an Overlay-layer window holding focus would steal it from whatever the
+    // user was typing in. A popup that actually needs typing raises this
+    // while, and only while, its input is up — see WifiWidget, which uses
+    // Exclusive, and why.
+    property int keyboardFocus: WlrKeyboardFocus.None
 
     visible: false
 
     WlrLayershell.namespace: "quickshell:" + root.namespaceSuffix
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: root.keyboardFocus
 
     anchors {
         top: true

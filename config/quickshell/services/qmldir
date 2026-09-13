@@ -1,0 +1,2 @@
+singleton CalendarService 1.0 CalendarService.qml
+singleton DropdownState 1.0 DropdownState.qml
