@@ -10,8 +10,7 @@ Any changes in the dotfiles can then simply be pushed and reused upon reinstall,
 | Folder | Description |
 |---|---|
 | **hypr** | Hyprland window manager configuration — keybinds, monitor setup, window rules, autostart. |
-| **quickshell** | Quickshell-based shell setup — bar, OSD, and other UI components, replacing Waybar/SwayOSD/etc. |
-| **waybar** | Waybar configuration (legacy/fallback bar, being phased out in favor of Quickshell). |
+| **quickshell** | Quickshell-based shell setup — bar, OSD, and other UI components.|
 | **swayosd** | Temporary on-screen display for volume/brightness, will also be replaced by Quickshell. |
 | **kitty** | Terminal emulator configuration, including wallust-generated color integration. |
 | **wallust** | Color palette generation from wallpaper, templated out to other configs (e.g. kitty). |
