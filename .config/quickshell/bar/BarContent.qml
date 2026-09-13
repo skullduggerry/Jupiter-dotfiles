@@ -6,11 +6,7 @@ import "./widgets"
 
 Rectangle {
     id: root
-
-    // Forwarded from Bar.qml's PanelWindow.screen so per-widget popups and
-    // the workspace widget can filter to this bar's own monitor.
     required property ShellScreen screen
-
     anchors.fill: parent
     anchors.margins: 1
     radius: Style.bar.radius
@@ -25,7 +21,6 @@ Rectangle {
         spacing: Style.bar.spacing
 
         WorkspaceWidget { screen: root.screen }
-        BarSeparator {}
         SystemUsageWidget {}
     }
 

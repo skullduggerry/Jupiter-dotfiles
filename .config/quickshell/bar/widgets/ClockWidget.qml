@@ -1,8 +1,3 @@
-// bar/widgets/ClockWidget.qml
-//
-// Time and date in the bar's centre zone. Clicking it opens the calendar
-// dropdown, which is the same surface the three-finger swipe over the middle
-// of the screen opens (see dropdown/Dropdown.qml).
 import QtQuick
 import Quickshell
 import "../../services"
@@ -10,10 +5,7 @@ import "../../style"
 
 Item {
     id: root
-
-    // Which monitor's dropdown to open; forwarded from BarContent.qml.
     required property ShellScreen screen
-
     implicitWidth: row.implicitWidth + Style.widgets.padding * 2
     implicitHeight: Style.bar.height
 
@@ -31,7 +23,7 @@ Item {
         }
 
         Text {
-            text: Time.date
+            text: Time
             color: Colors.text.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize

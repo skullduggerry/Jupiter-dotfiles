@@ -1,6 +1,6 @@
 local M = {}
 M.terminal = "kitty"
 M.fileManager = "dolphin"
-M.menu = "wofi --show drun"
+M.menu = "quickshell:launcherToggle"
 M.mainMod = "SUPER"
 return M

@@ -2,12 +2,7 @@ local vars = require("modules.vars")
 hl.bind(vars.mainMod .. " + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"))
 hl.bind(vars.mainMod .. " + E", hl.dsp.exec_cmd(vars.fileManager))
 hl.bind(vars.mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
-hl.bind(vars.mainMod .. " + R", hl.dsp.exec_cmd(vars.menu))
-hl.bind("SUPER + O", hl.dsp.global("quickshell:launcherToggle"))
--- The shell's own lock surface (config/quickshell/lock/), registered by
--- quickshell as the global shortcut "quickshell:lock" — same mechanism as the
--- launcher bind above, so there is no process to spawn per press. Replaces
--- the `hyprlock` exec this used to run.
+hl.bind(vars.mainMod .. " + R", hl.dsp.global(vars.menu))
 hl.bind(vars.mainMod .. " + L", hl.dsp.global("quickshell:lock"))
 hl.bind(vars.mainMod .. " + C", hl.dsp.window.close())
 hl.bind(vars.mainMod .. " + PRINT", hl.dsp.exec_cmd("hyprshot -m window"))
