@@ -14,5 +14,5 @@ hl.on("hyprland.start", function()
 	hl.exec_cmd("gnome-keyring-daemon --start --components=secrets,ssh,pkcs11")
 	hl.exec_cmd("~/.config/wallust/apply.sh")
 	hl.exec_cmd("swayosd-server")
-	end	
+	end
 )
