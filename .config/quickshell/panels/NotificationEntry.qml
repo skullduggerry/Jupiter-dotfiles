@@ -1,18 +1,16 @@
-// panels/NotificationEntry.qml
+import "../style"
 import QtQuick
 import Quickshell.Services.Notifications
 import Quickshell.Widgets
-import "../style"
 
 Item {
     id: root
 
     required property Notification modelData
-
-    signal dismissed()
-
     readonly property bool urgent: root.modelData.urgency === NotificationUrgency.Critical
     readonly property string iconSource: root.modelData.image !== "" ? root.modelData.image : root.modelData.appIcon
+
+    signal dismissed()
 
     implicitHeight: body.implicitHeight
 
@@ -28,13 +26,25 @@ Item {
 
             IconImage {
                 id: appIcon
-                anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+
                 visible: root.iconSource !== ""
                 implicitSize: Style.text.smallSize
                 source: root.iconSource
+
+                anchors {
+                    left: parent.left
+                    verticalCenter: parent.verticalCenter
+                }
+
             }
 
             Text {
+                text: root.modelData.appName
+                color: root.urgent ? Colors.notification.urgent : Colors.text.muted
+                font.family: Style.text.font
+                font.pixelSize: Style.text.smallSize
+                elide: Text.ElideRight
+
                 anchors {
                     left: appIcon.visible ? appIcon.right : parent.left
                     leftMargin: appIcon.visible ? Style.widgets.spacing : 0
@@ -42,32 +52,36 @@ Item {
                     rightMargin: Style.widgets.spacing
                     verticalCenter: parent.verticalCenter
                 }
-                text: root.modelData.appName
-                color: root.urgent ? Colors.notification.urgent : Colors.text.muted
-                font.family: Style.text.font
-                font.pixelSize: Style.text.smallSize
-                elide: Text.ElideRight
+
             }
 
             Text {
                 id: closeButton
-                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+
                 text: ""
                 color: closeArea.containsMouse ? Colors.text.base : Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
 
+                anchors {
+                    right: parent.right
+                    verticalCenter: parent.verticalCenter
+                }
+
                 MouseArea {
                     id: closeArea
+
                     anchors.fill: parent
                     anchors.margins: -Style.widgets.spacing
                     hoverEnabled: true
                     onClicked: {
-                        root.modelData.dismiss()
-                        root.dismissed()
+                        root.modelData.dismiss();
+                        root.dismissed();
                     }
                 }
+
             }
+
         }
 
         Text {
@@ -102,6 +116,7 @@ Item {
 
                 delegate: Rectangle {
                     id: action
+
                     required property NotificationAction modelData
 
                     width: actionLabel.implicitWidth + Style.bar.padding * 2
@@ -113,6 +128,7 @@ Item {
 
                     Text {
                         id: actionLabel
+
                         anchors.centerIn: parent
                         text: action.modelData.text
                         color: Colors.text.base
@@ -122,15 +138,21 @@ Item {
 
                     MouseArea {
                         id: actionArea
+
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: {
-                            action.modelData.invoke()
-                            root.dismissed()
+                            action.modelData.invoke();
+                            root.dismissed();
                         }
                     }
+
                 }
+
             }
+
         }
+
     }
+
 }

@@ -1,4 +1,3 @@
-// launcher/LauncherContent.qml
 import QtQuick
 import Quickshell
 import "../services"

@@ -1,12 +1,10 @@
-// bar/widgets/UsageMeter.qml
-import QtQuick
 import "../../style"
+import QtQuick
 
 Item {
     id: root
 
     required property real value
-
     readonly property var ramp: ["󰄰", "󰪞", "󰪟", "󰪠", "󰪡", "󰪢", "󰪣", "󰪤", "󰪥"]
 
     implicitWidth: Style.text.iconSize + Style.widgets.spacing
@@ -19,4 +17,5 @@ Item {
         font.family: Style.text.font
         font.pixelSize: Style.text.iconSize
     }
+
 }

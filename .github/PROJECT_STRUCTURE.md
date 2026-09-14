@@ -19,14 +19,17 @@ config/quickshell/
 │                          DropdownState, LauncherHistory, LockService,
 │                          NotificationService, SystemUsage, Time.
 ├── panels/                Panel content shown by more than one surface:
-│                          BatteryPanel (+BatteryDetail), CalendarPanel,
-│                          NotificationPanel (+NotificationEntry), WifiPanel,
-│                          WorkspacePanel.
+│                          AudioPanel, BatteryPanel (+BatteryDetail),
+│                          BluetoothPanel, BrightnessPanel, CalendarPanel,
+│                          NotificationPanel (+NotificationEntry), PanelSlider,
+│                          WifiPanel, WorkspacePanel.
 ├── bar/                   Bar.qml (PanelWindow per screen) + BarContent.qml,
 │   └── widgets/           one file per widget, plus WidgetPopup.qml (the
-│                          shared dropdown shell), PowerAction.qml, and
+│                          shared dropdown shell), QuickPager.qml (the swipeable
+│                          quick-settings dropdown), PowerAction.qml, and
 │                          TrayMenu.qml + TrayMenuItem.qml.
-├── dropdown/              Dropdown.qml — one overlay for all three swipe zones.
+├── dropdown/              Dropdown.qml — one overlay for all three swipe zones
+│                          (workspaces, calendar, quick settings).
 ├── notifications/         Toasts.qml (the popup stack window) + Toast.qml.
 ├── launcher/              Launcher.qml (scope/IPC/shortcut) + LauncherContent.qml.
 └── lock/                  Lock.qml (WlSessionLock) + LockSurface.qml (per monitor).
@@ -50,9 +53,18 @@ Nothing in `bar/` may import `dropdown/` or `lock/`.
 
 ## Conventions
 
-- **No comments in the QML.** The code is kept comment-free by choice; prose
-  explanation belongs in these docs, not next to the code. The only comments
-  are the `// path/File.qml` header on line 1 and `//@ pragma` directives.
+- **Formatting is `qmlformat`, i.e. the official Qt QML conventions** — member
+  ordering (id, properties, signals, functions, object properties, children),
+  semicolons in functions and expressions, grouped property notation. Run
+  `scripts/check.sh --fix`; the pre-commit hook does it for staged files. The
+  earlier house style (a `// path/File.qml` header on line 1, no comments, blank
+  lines between property groups) was dropped: it was a stand-in for a real
+  standard and it fought the formatter, which relocates such headers below the
+  imports.
+- **`pragma` stays on line 1.** qmlformat sorts pragmas below the imports;
+  Quickshell's docs say to put `pragma Singleton` at the top of the file, and
+  Quickshell outranks Qt in this project's documentation order, so
+  `scripts/hoist-pragmas.py` puts it back after formatting. Both forms load.
 - Every imported folder has a `qmldir` declaring its types explicitly
   (`BluetoothWidget 1.0 BluetoothWidget.qml`, `singleton Time 1.0 Time.qml`).
   Required for `pragma Singleton`; done everywhere else for consistency.
@@ -67,6 +79,7 @@ Nothing in `bar/` may import `dropdown/` or `lock/`.
 | A spacing/size/radius/font value | `style/Style.qml`, same grouping |
 | A bar widget | `bar/widgets/` + its `qmldir` + a `Row` in `BarContent.qml` |
 | A widget dropdown | wrap it in `WidgetPopup` — never hand-roll another catcher window |
+| A quick-settings page | a panel in `panels/` + a `page*` index and `Component` in `QuickPager` |
 | A panel shown by two surfaces | `panels/`, importing only `services/` and `style/` |
 | A new swipe zone | a panel, a zone name in `DropdownState`, a `Component` in `Dropdown.qml` |
 | Anything fetched from outside | a `services/` singleton, with a helper script run through `Process` |
@@ -78,8 +91,15 @@ and gets it passed down from `BarContent.qml`, which gets it from `Bar.qml`'s
 `PanelWindow.screen`.
 
 `WidgetPopup` usage: set `anchorItem: root` so it opens under its own widget, a
-distinct `namespaceSuffix` so compositor rules can target it, and put content as
-default-property children. See `BluetoothWidget.qml` or `PowerWidget.qml`.
+distinct `namespaceSuffix`, and put content as default-property children. See
+`PowerWidget.qml`.
+
+**The suffix must end in `-popup`.** The frosted-glass backdrop is not drawn by
+quickshell at all — it is a Hyprland layer rule in
+`config/hypr/styles/layout.lua` matching `^quickshell:.*-popup$`. A popup named
+anything else renders as a flat translucent panel next to blurred ones, with
+nothing in the quickshell log to explain it. `quicksettings-popup` was briefly
+`quick-pager` and lost its blur exactly this way.
 
 The calendar panel drives `CalendarService`'s fetch window from the month it
 displays, plus `Style.calendar.upcomingLookahead` days past the last visible
@@ -100,6 +120,71 @@ contract:
 Credentials never reach QML. `nextcloud-calendar.py` reads them from the
 environment or the keyring itself.
 
+## The quick-settings pager
+
+Battery, Wi-Fi, Bluetooth, Audio and Brightness do **not** own popups. The pages
+live in `panels/QuickSettingsPanel.qml`, which is shown by two surfaces: the bar,
+through the thin `QuickPager` wrapper that `BarContent` owns per screen, and the
+right zone of the three-finger dropdown. Adding a page means a panel in
+`panels/`, a `page*` index and a `Component` in `QuickSettingsPanel`.
+
+Paging is a **two-finger swipe**, i.e. horizontal wheel events, not a drag.
+Measured on this touchpad, one swipe is ~83 wheel events summing to ~17500 of
+`angleDelta.x`, so a per-event threshold is useless -- at the original step of
+120 a single swipe advanced 146 pages. `QuickSettingsPanel` therefore commits
+**one page per gesture**: it pages once when travel crosses
+`Style.pager.swipeStep`, then ignores the rest until `swipeIdle` (180ms of no
+wheel) marks the gesture finished.
+
+**The dismiss-on-click is delayed, and a wheel event cancels it.** A two-finger
+swipe on this touchpad delivers a tap *click* before the scroll -- confirmed by
+logging: `backdrop CLICKED` landed first, then 83 wheel events arrived at a
+popup that had already closed. So the popup and the dropdown both start a
+`Style.popup.dismissDelay` timer instead of hiding immediately, and any wheel
+stops it. Both the backdrop click and `HyprlandFocusGrab.onCleared` go through
+that timer; routing only one of them still closed instantly.
+
+Wheel is handled **only** on the popup's full-screen backdrop, never on the
+panel, which is what makes the pointer's position irrelevant. Any `Flickable`
+inside a page must therefore set `flickableDirection: Flickable.VerticalFlick`,
+or it swallows the horizontal wheel before the backdrop sees it -- the Wi-Fi and
+Bluetooth device lists both do.
+`PathView.interactive` is off precisely so a one-finger drag belongs to whatever
+is under it — the volume and brightness sliders — instead of dragging the pager
+out from under them. `WidgetPopup` re-emits wheel from its full-screen backdrop
+as `wheeled()`, which is what lets the pager respond wherever the pointer is
+rather than only over the panel itself.
+
+It is a `PathView`, not a `ListView`, because it wraps: swiping left from the
+first page lands on the last, so no page is more than two swipes away. There is
+no `SwipeView` because nothing in this project imports `QtQuick.Controls`, and
+that is worth keeping.
+
+**`PathView` spacing is path length divided by `pathItemCount`, not the delegate
+width.** With `pathItemCount: 3` the path must be three page-widths long
+(`-width` to `width * 2`) or the pages overlap and you see two panels drawn on
+top of each other. A path of `-width/2` to `width * 1.5` spaces them two thirds
+of a page apart and looks like a rendering bug.
+
+`cacheItemCount` keeps all five delegates alive so a page keeps its state while
+you swipe past it. That means a panel is constructed whether or not it is
+showing, so anything expensive must be gated on being the current page —
+`WifiPanel.active` is bound to `root.visible && pages.currentIndex === pageWifi`
+so scanning only runs while it is on screen.
+
+## Icons
+
+Bar icons are monochrome, on the three tones in `Colors.icon`: `active` (white)
+for something that wants attention, `inactive` for the resting state, `disabled`
+for off or unavailable. State that used to be carried by hue is carried by the
+glyph instead — the Wi-Fi ramp, the battery fill, the notification count.
+
+**The Font Awesome range of the Nerd Font is not covered by `Style.text.font`.**
+`\uf028` (speaker) rendered as an empty box in the bar for a long time. The
+Material Design range (`U+F0000`+) does render: bluetooth `U+F00B1`, wifi
+`U+F0928`, brightness `U+F00DF`, volume `U+F057E`. Prefer it for new icons, and
+check a new glyph actually draws before assuming the codepoint is wrong.
+
 ## The system tray
 
 Three things about it are deliberate.
@@ -118,12 +203,23 @@ busctl --user get-property org.kde.StatusNotifierWatcher /StatusNotifierWatcher 
 busctl --user get-property <bus> <path> org.kde.StatusNotifierItem Id
 ```
 
-**Icons are desaturated to match the bar**, through a `MultiEffect` over the
-`IconImage`. `Style.tray.saturation` is MultiEffect's scale, so `-1` is
-greyscale and `0` leaves the artwork alone — flip that token to get full colour
-back. The source `IconImage` is `visible: false`, which is the documented Qt
-pattern: a `ShaderEffectSource` renders a hidden item. An item whose SNI status
-is `NeedsAttention` gets its colour back; a `Passive` one is dimmed.
+**Icons are tinted to a single tone to match the bar**, through a `MultiEffect`
+over the `IconImage`. `Style.tray.colorization` is the one knob: `1` repaints
+every icon in `Colors.icon.*` whatever its artwork, `0` leaves it alone.
+
+Do **not** put `saturation` back alongside it. MultiEffect applies saturation
+*after* colorization, so the previous `saturation: -1` stripped the tint out
+again and colorization looked like it did nothing at all — including with
+`colorizationColor` forced to pure red. That cost three round trips to diagnose.
+
+Colorization neutralises hue but does not flatten luminance, so a dark
+filled-disc icon still reads heavier than line art. Flattening that too would
+need an alpha-as-mask `ShaderEffect` and a `qsb` build step.
+
+The source `IconImage` is `visible: false`, which is the documented Qt pattern:
+a `ShaderEffectSource` renders a hidden item. An item whose SNI status is
+`NeedsAttention` gets the brighter `Colors.icon.active`; a `Passive` one is
+dimmed.
 
 **Menus are rendered in QML, not as platform menus.** `TrayMenu` is a
 `WidgetPopup` driven by `QsMenuOpener`, so a tray menu looks like every other
@@ -295,11 +391,31 @@ read `/usr/lib/qt6/qml/Quickshell/Widgets/*.qml` directly.
 ## Validating a change
 
 ```bash
-qmllint -I /usr/lib/qt6/qml $(find . -name '*.qml' ! -name 'Launcher.qml' ! -name 'Dropdown.qml' ! -name 'Lock.qml')
+scripts/check.sh          # verify everything
+scripts/check.sh --fix    # format first, then verify
+scripts/install-hooks.sh  # once per clone: pre-commit + pre-push
 ```
 
-The three exclusions are the linter's `void`/`var` crash, not a problem with
-those files.
+`check.sh` runs formatting, the `.editorconfig` whitespace rules, qmllint,
+qmldir completeness, the `-popup` namespace rule the blur depends on, a
+repo-wide Nerd Font glyph count against HEAD, python/lua/shell parsing, the
+greeter compositor config, and `tests/`. The pre-commit hook formats staged QML
+and re-stages it; pre-push runs the suite without modifying anything.
+
+**Two constructs defeat the Qt tooling**, and files using them are skipped
+automatically rather than listed by name:
+
+- a `: void` return type — crashes qmllint (exit 255, silently) *and* makes
+  qmlformat exit non-zero with empty output. `Dropdown`, `Launcher` and `Lock`
+  need it for their `IpcHandler` functions.
+- the spread operator `...` — qmlformat only. `NotificationService` and
+  `LauncherContent` use it.
+
+Underneath, qmllint is still:
+
+```bash
+qmllint -I /usr/lib/qt6/qml $(find . -name '*.qml' ! -name 'Launcher.qml' ! -name 'Dropdown.qml' ! -name 'Lock.qml')
+```
 
 Quickshell hot-reloads on a **content** change to any loaded file, not just
 `shell.qml`. `touch` alone does nothing — an identical file is not a change — so
@@ -332,6 +448,7 @@ A wrong Quickshell API can fail **silently** — see the `ObjectModel` note abov
 qs ipc call launcher toggle
 qs ipc call dropdown openAt 904 740    # zone from a pointer position
 qs ipc call dropdown open calendar     # a zone by name
+qs ipc call dropdown open quicksettings
 qs ipc call lock lock                  # no unlock IPC exists, by design
 qs ipc call lock locked
 ```

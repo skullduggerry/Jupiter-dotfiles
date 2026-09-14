@@ -1,7 +1,12 @@
+AudioPanel 1.0 AudioPanel.qml
 BatteryDetail 1.0 BatteryDetail.qml
 BatteryPanel 1.0 BatteryPanel.qml
+BluetoothPanel 1.0 BluetoothPanel.qml
+BrightnessPanel 1.0 BrightnessPanel.qml
 CalendarPanel 1.0 CalendarPanel.qml
 NotificationEntry 1.0 NotificationEntry.qml
 NotificationPanel 1.0 NotificationPanel.qml
+PanelSlider 1.0 PanelSlider.qml
+QuickSettingsPanel 1.0 QuickSettingsPanel.qml
 WifiPanel 1.0 WifiPanel.qml
 WorkspacePanel 1.0 WorkspacePanel.qml

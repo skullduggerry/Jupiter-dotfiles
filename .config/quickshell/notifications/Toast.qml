@@ -1,18 +1,15 @@
-// notifications/Toast.qml
-import QtQuick
-import Quickshell.Services.Notifications
 import "../panels"
 import "../services"
 import "../style"
+import QtQuick
+import Quickshell.Services.Notifications
 
 Rectangle {
     id: root
 
     required property Notification modelData
-
     readonly property int notificationId: root.modelData.id
     readonly property bool urgent: root.modelData.urgency === NotificationUrgency.Critical
-
     required property int timeout
 
     implicitHeight: entry.implicitHeight + Style.bar.padding * 2
@@ -29,14 +26,17 @@ Rectangle {
 
     NotificationEntry {
         id: entry
+
+        modelData: root.modelData
+        onDismissed: NotificationService.hidePopup(root.notificationId)
+
         anchors {
             left: parent.left
             right: parent.right
             top: parent.top
             margins: Style.bar.padding
         }
-        modelData: root.modelData
-        onDismissed: NotificationService.hidePopup(root.notificationId)
+
     }
 
     MouseArea {
@@ -44,4 +44,5 @@ Rectangle {
         z: -1
         onClicked: NotificationService.hidePopup(root.notificationId)
     }
+
 }

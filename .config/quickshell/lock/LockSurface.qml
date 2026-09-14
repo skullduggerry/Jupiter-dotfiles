@@ -1,16 +1,50 @@
-// lock/LockSurface.qml
-import QtQuick
-import Quickshell
-import Quickshell.Wayland
 import "../services"
 import "../style"
+import QtQuick
+import QtQuick.Effects
+import Quickshell
+import Quickshell.Wayland
 
 WlSessionLockSurface {
     id: root
 
-    color: Colors.lock.background
+    property bool engaged: false
 
+    color: Colors.lock.background
     Component.onCompleted: passwordInput.forceActiveFocus()
+
+    Image {
+        id: wallpaper
+
+        anchors.fill: parent
+        source: Style.lock.wallpaper
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        visible: false
+    }
+
+    MultiEffect {
+        anchors.fill: parent
+        source: wallpaper
+        visible: wallpaper.status === Image.Ready
+        autoPaddingEnabled: false
+        blurEnabled: true
+        blurMax: Style.lock.blurMax
+        blur: root.engaged ? Style.lock.blurAmount : 0
+
+        Behavior on blur {
+            NumberAnimation {
+                duration: Style.animation.slow
+            }
+
+        }
+
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        color: Colors.lock.scrim
+    }
 
     Column {
         anchors.centerIn: parent
@@ -41,25 +75,37 @@ WlSessionLockSurface {
             border.width: Style.border.width
             border.color: LockService.authenticating ? Colors.lock.busy : Colors.lock.fieldBorder
 
-            Behavior on border.color {
-                ColorAnimation { duration: Style.animation.normal }
-            }
-
             Text {
                 id: fieldIcon
+
+                text: LockService.authenticating ? "󰔟" : "󰌾"
+                color: LockService.authenticating ? Colors.lock.busy : Colors.text.muted
+                font.family: Style.text.font
+                font.pixelSize: Style.text.iconSize
+
                 anchors {
                     left: parent.left
                     leftMargin: Style.bar.padding
                     verticalCenter: parent.verticalCenter
                 }
-                text: LockService.authenticating ? "󰔟" : "󰌾"
-                color: LockService.authenticating ? Colors.lock.busy : Colors.text.muted
-                font.family: Style.text.font
-                font.pixelSize: Style.text.iconSize
+
             }
 
             TextInput {
                 id: passwordInput
+
+                color: Colors.text.base
+                font.family: Style.text.font
+                font.pixelSize: Style.text.size
+                echoMode: TextInput.Password
+                passwordCharacter: "●"
+                readOnly: LockService.authenticating
+                clip: true
+                Keys.onPressed: (event) => {
+                    root.engaged = true;
+                }
+                onTextChanged: LockService.password = passwordInput.text
+                onAccepted: LockService.submit()
 
                 anchors {
                     left: fieldIcon.right
@@ -68,16 +114,6 @@ WlSessionLockSurface {
                     rightMargin: Style.bar.padding
                     verticalCenter: parent.verticalCenter
                 }
-                color: Colors.text.base
-                font.family: Style.text.font
-                font.pixelSize: Style.text.size
-                echoMode: TextInput.Password
-                passwordCharacter: "●"
-                readOnly: LockService.authenticating
-                clip: true
-
-                onTextChanged: LockService.password = passwordInput.text
-                onAccepted: LockService.submit()
 
                 Binding {
                     target: passwordInput
@@ -94,7 +130,16 @@ WlSessionLockSurface {
                     font.pixelSize: Style.text.size
                     verticalAlignment: Text.AlignVCenter
                 }
+
             }
+
+            Behavior on border.color {
+                ColorAnimation {
+                    duration: Style.animation.normal
+                }
+
+            }
+
         }
 
         Text {
@@ -107,17 +152,21 @@ WlSessionLockSurface {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
         }
+
     }
 
     Text {
+        text: Quickshell.env("USER")
+        color: Colors.text.muted
+        font.family: Style.text.font
+        font.pixelSize: Style.text.smallSize
+
         anchors {
             bottom: parent.bottom
             horizontalCenter: parent.horizontalCenter
             bottomMargin: Style.bar.padding * 2
         }
-        text: Quickshell.env("USER")
-        color: Colors.text.muted
-        font.family: Style.text.font
-        font.pixelSize: Style.text.smallSize
+
     }
+
 }

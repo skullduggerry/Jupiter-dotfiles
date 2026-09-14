@@ -1,9 +1,8 @@
-// bar/widgets/PowerWidget.qml
+import "../../services"
+import "../../style"
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
-import "../../services"
-import "../../style"
 
 Item {
     id: root
@@ -15,9 +14,10 @@ Item {
 
     Text {
         id: icon
+
         anchors.centerIn: parent
         text: "⏻"
-        color: Colors.power.normal
+        color: Colors.icon.active
         font.family: Style.text.font
         font.pixelSize: Style.text.iconSize
     }
@@ -29,6 +29,7 @@ Item {
 
     WidgetPopup {
         id: powerPopup
+
         screen: root.screen
         anchorItem: root
         namespaceSuffix: "power-popup"
@@ -37,6 +38,7 @@ Item {
 
         Column {
             id: actions
+
             anchors.fill: parent
             anchors.margins: Style.bar.padding
             spacing: Style.widgets.spacing
@@ -44,40 +46,47 @@ Item {
             PowerAction {
                 label: "Lock"
                 onActivated: {
-                    powerPopup.visible = false
-                    LockService.lock()
+                    powerPopup.visible = false;
+                    LockService.lock();
                 }
             }
+
             PowerAction {
                 label: "Logout"
                 onActivated: {
-                    Hyprland.dispatch("exit")
-                    powerPopup.visible = false
+                    Hyprland.dispatch("exit");
+                    powerPopup.visible = false;
                 }
             }
+
             PowerAction {
                 label: "Suspend"
                 onActivated: {
-                    Quickshell.execDetached(["systemctl", "suspend"])
-                    powerPopup.visible = false
+                    Quickshell.execDetached(["systemctl", "suspend"]);
+                    powerPopup.visible = false;
                 }
             }
+
             PowerAction {
                 label: "Reboot"
                 labelColor: Colors.power.danger
                 onActivated: {
-                    Quickshell.execDetached(["systemctl", "reboot"])
-                    powerPopup.visible = false
+                    Quickshell.execDetached(["systemctl", "reboot"]);
+                    powerPopup.visible = false;
                 }
             }
+
             PowerAction {
                 label: "Shutdown"
                 labelColor: Colors.power.danger
                 onActivated: {
-                    Quickshell.execDetached(["systemctl", "poweroff"])
-                    powerPopup.visible = false
+                    Quickshell.execDetached(["systemctl", "poweroff"]);
+                    powerPopup.visible = false;
                 }
             }
+
         }
+
     }
+
 }

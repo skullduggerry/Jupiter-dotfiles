@@ -1,0 +1,3 @@
+singleton GreeterService 1.0 GreeterService.qml
+GreeterChoice 1.0 GreeterChoice.qml
+GreeterSurface 1.0 GreeterSurface.qml

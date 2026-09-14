@@ -329,8 +329,9 @@ After implementation:
 
 Inspect the complete diff.
 Check QML syntax and imports.
-Run available QML/QMLLS validation.
-Run the project's available tests/checks.
+Run `scripts/check.sh` from the repo root. It is the project's validation:
+formatting, whitespace, qmllint, qmldir completeness, popup namespaces, glyph
+integrity, python/lua/shell parsing, the greeter config, and tests/.
 Verify that all referenced Quickshell APIs exist.
 Verify that new colors are in Colors.qml.
 Verify that new spacing/sizing/radius values are in Style.qml.

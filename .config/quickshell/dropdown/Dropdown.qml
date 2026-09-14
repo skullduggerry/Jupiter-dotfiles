@@ -1,4 +1,3 @@
-// dropdown/Dropdown.qml
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
@@ -42,12 +41,27 @@ Scope {
         HyprlandFocusGrab {
             windows: [window]
             active: DropdownState.visible
-            onCleared: DropdownState.close()
+            onCleared: dismiss.restart()
+        }
+
+        Timer {
+            id: dismiss
+
+            interval: Style.popup.dismissDelay
+            onTriggered: DropdownState.close()
         }
 
         MouseArea {
             anchors.fill: parent
-            onClicked: DropdownState.close()
+            onClicked: dismiss.restart()
+            onWheel: (wheel) => {
+                dismiss.stop();
+                if (Math.abs(wheel.angleDelta.x) < Math.abs(wheel.angleDelta.y))
+                    return ;
+
+                if (content.item && content.item.swipe)
+                    content.item.swipe(wheel.angleDelta.x);
+            }
         }
 
         FocusScope {
@@ -56,7 +70,7 @@ Scope {
             x: {
                 switch (DropdownState.zone) {
                 case DropdownState.zoneWorkspaces: return Style.bar.sideGap
-                case DropdownState.zoneWifi: return window.width - surface.width - Style.bar.sideGap
+                case DropdownState.zoneQuickSettings: return window.width - surface.width - Style.bar.sideGap
                 default: return (window.width - surface.width) / 2
                 }
             }
@@ -92,7 +106,7 @@ Scope {
                     sourceComponent: {
                         switch (DropdownState.zone) {
                         case DropdownState.zoneWorkspaces: return workspacePanel
-                        case DropdownState.zoneWifi: return wifiPanel
+                        case DropdownState.zoneQuickSettings: return quickSettingsPanel
                         default: return calendarPanel
                         }
                     }
@@ -116,9 +130,9 @@ Scope {
         }
 
         Component {
-            id: wifiPanel
+            id: quickSettingsPanel
 
-            WifiPanel {
+            QuickSettingsPanel {
                 active: DropdownState.visible
             }
         }

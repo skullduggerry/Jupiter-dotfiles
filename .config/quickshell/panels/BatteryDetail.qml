@@ -1,6 +1,5 @@
-// panels/BatteryDetail.qml
-import QtQuick
 import "../style"
+import QtQuick
 
 Item {
     id: root
@@ -12,16 +11,21 @@ Item {
     height: visible ? Style.popup.itemHeight : 0
 
     Text {
-        anchors { left: parent.left; verticalCenter: parent.verticalCenter }
         text: root.label
         color: Colors.text.muted
         font.family: Style.text.font
         font.pixelSize: Style.text.smallSize
+
+        anchors {
+            left: parent.left
+            verticalCenter: parent.verticalCenter
+        }
+
     }
 
     Text {
         id: value
-        anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+
         text: root.value
         color: Colors.text.base
         font.family: Style.text.font
@@ -29,5 +33,12 @@ Item {
         elide: Text.ElideRight
         width: Math.min(implicitWidth, root.width / 2)
         horizontalAlignment: Text.AlignRight
+
+        anchors {
+            right: parent.right
+            verticalCenter: parent.verticalCenter
+        }
+
     }
+
 }

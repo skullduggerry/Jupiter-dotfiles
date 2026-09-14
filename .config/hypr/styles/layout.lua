@@ -36,12 +36,6 @@ hl.layer_rule({
     blur = true,
     no_anim = true,
 })
-
--- The bar's dropdowns get the same treatment as the bar itself: they use the
--- same translucent surface colour, so without this they read as flat grey
--- panels next to a blurred bar. Both are full-screen transparent windows with
--- the panel drawn inside them, hence ignore_alpha — it keeps the blur to the
--- panel and off the transparent rest of the surface.
 hl.layer_rule({
     name = "qs-popup-blur",
     match = { namespace = "^quickshell:.*-popup$" },

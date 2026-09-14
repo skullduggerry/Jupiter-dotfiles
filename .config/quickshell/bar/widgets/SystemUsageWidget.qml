@@ -1,7 +1,6 @@
-// bar/widgets/SystemUsageWidget.qml
-import QtQuick
 import "../../services"
 import "../../style"
+import QtQuick
 
 Row {
     id: root
@@ -14,6 +13,12 @@ Row {
         value: true
     }
 
-    UsageMeter { value: SystemUsage.cpu }
-    UsageMeter { value: SystemUsage.memory }
+    UsageMeter {
+        value: SystemUsage.cpu
+    }
+
+    UsageMeter {
+        value: SystemUsage.memory
+    }
+
 }

@@ -1,32 +1,36 @@
-// bar/widgets/TrayMenuItem.qml
+import "../../style"
 import QtQuick
 import Quickshell
 import Quickshell.Widgets
-import "../../style"
 
 Item {
     id: root
 
     required property QsMenuEntry modelData
-
-    signal activated()
-
     readonly property bool checkable: root.modelData.buttonType !== QsMenuButtonType.None
     readonly property bool checked: root.modelData.checkState === Qt.Checked
-
     readonly property string checkGlyph: {
         if (root.modelData.buttonType === QsMenuButtonType.RadioButton)
-            return root.checked ? "" : ""
-        return root.checked ? "" : ""
+            return root.checked ? "" : "";
+
+        return root.checked ? "" : "";
     }
+
+    signal activated()
 
     height: root.modelData.isSeparator ? Style.bar.spacing : Style.popup.itemHeight
 
     Rectangle {
-        anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }
         visible: root.modelData.isSeparator
         height: Style.border.width
         color: Colors.base.border
+
+        anchors {
+            left: parent.left
+            right: parent.right
+            verticalCenter: parent.verticalCenter
+        }
+
     }
 
     Rectangle {
@@ -37,9 +41,14 @@ Item {
 
         Item {
             id: lead
-            anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+
             width: Style.popup.rowIconWidth
             height: lead.width
+
+            anchors {
+                left: parent.left
+                verticalCenter: parent.verticalCenter
+            }
 
             IconImage {
                 anchors.fill: parent
@@ -56,9 +65,16 @@ Item {
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
             }
+
         }
 
         Text {
+            text: root.modelData.text
+            color: root.modelData.enabled ? Colors.text.base : Colors.text.muted
+            font.family: Style.text.font
+            font.pixelSize: Style.text.size
+            elide: Text.ElideRight
+
             anchors {
                 left: lead.right
                 leftMargin: Style.widgets.spacing
@@ -66,16 +82,12 @@ Item {
                 rightMargin: Style.widgets.spacing
                 verticalCenter: parent.verticalCenter
             }
-            text: root.modelData.text
-            color: root.modelData.enabled ? Colors.text.base : Colors.text.muted
-            font.family: Style.text.font
-            font.pixelSize: Style.text.size
-            elide: Text.ElideRight
+
         }
 
         Text {
             id: chevron
-            anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+
             visible: root.modelData.hasChildren
             width: chevron.visible ? Style.popup.rowIconWidth : 0
             text: ""
@@ -83,14 +95,23 @@ Item {
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
             horizontalAlignment: Text.AlignRight
+
+            anchors {
+                right: parent.right
+                verticalCenter: parent.verticalCenter
+            }
+
         }
 
         MouseArea {
             id: area
+
             anchors.fill: parent
             hoverEnabled: true
             enabled: root.modelData.enabled
             onClicked: root.activated()
         }
+
     }
+
 }

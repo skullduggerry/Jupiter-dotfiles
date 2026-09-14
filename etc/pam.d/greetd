@@ -1,0 +1,30 @@
+#%PAM-1.0
+
+# greetd's own stack, plus the gnome-keyring lines SDDM used to provide.
+#
+# Without these the login keyring stays locked after boot: greetd authenticates
+# through PAM but nothing hands the password to gnome-keyring, so ~/.local/
+# share/keyrings/login.keyring is never unlocked and anything reading secrets
+# (nextcloud-calendar.py's secret-tool lookup, nm-applet, ssh keys) comes up
+# empty. /etc/pam.d/sddm carried the same three lines.
+#
+# Every added line is `optional` and prefixed with `-`, so a missing or failing
+# pam_gnome_keyring can never block a login. If this file is ever wrong anyway,
+# a TTY (ctrl+alt+F1) authenticates through /etc/pam.d/login and is unaffected.
+#
+# The `password` line SDDM had is deliberately omitted: greetd has no password
+# stack to hang it off, and `passwd` rekeys the keyring through /etc/pam.d/passwd
+# regardless of which display manager is installed.
+#
+# This file is in pacman's backup set, so an upgrade of greetd leaves it alone
+# and drops /etc/pam.d/greetd.pacnew next to it. Diff that after a greetd update.
+
+auth       required     pam_securetty.so
+auth       requisite    pam_nologin.so
+auth       include      system-local-login
+-auth      optional     pam_gnome_keyring.so
+
+account    include      system-local-login
+
+session    include      system-local-login
+-session   optional     pam_gnome_keyring.so    auto_start

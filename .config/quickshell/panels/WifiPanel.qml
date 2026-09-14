@@ -1,77 +1,74 @@
-// panels/WifiPanel.qml
+import "../style"
 import QtQuick
 import Quickshell.Networking
-import "../style"
 
 Item {
     id: root
 
     required property bool active
-
     readonly property bool wantsKeyboard: root.pskNetwork !== null
-
-    readonly property int preferredHeight: Style.bar.padding * 2
-        + header.height
-        + Style.border.width
-        + prompt.height
-        + Style.bar.spacing
-        + Math.max(Style.popup.itemHeight, networkList.contentHeight)
-        + status.height
-
-    readonly property WifiDevice device: Networking.devices.values.find(candidate => candidate.type === DeviceType.Wifi) || null
-
+    readonly property int preferredHeight: Style.bar.padding * 2 + header.height + Style.border.width + prompt.height + Style.bar.spacing + Math.max(Style.popup.itemHeight, networkList.contentHeight) + status.height
+    readonly property WifiDevice device: Networking.devices.values.find((candidate) => {
+        return candidate.type === DeviceType.Wifi;
+    }) || null
     property WifiNetwork pskNetwork: null
-
     property string errorText: ""
 
-    function pskCapable(network: WifiNetwork): bool {
+    function pskCapable(network: WifiNetwork) : bool {
         switch (network.security) {
         case WifiSecurityType.Sae:
         case WifiSecurityType.Wpa2Psk:
         case WifiSecurityType.WpaPsk:
         case WifiSecurityType.StaticWep:
-            return true
+            return true;
         default:
-            return false
+            return false;
         }
     }
 
     function promptForPsk(network: WifiNetwork) {
-        root.errorText = ""
-        root.pskNetwork = network
-        pskInput.text = ""
-        pskInput.forceActiveFocus()
+        root.errorText = "";
+        root.pskNetwork = network;
+        pskInput.text = "";
+        pskInput.forceActiveFocus();
     }
 
     function dismissPrompt() {
-        root.pskNetwork = null
-        pskInput.text = ""
-        pskInput.focus = false
+        root.pskNetwork = null;
+        pskInput.text = "";
+        pskInput.focus = false;
     }
 
     function activate(network: WifiNetwork) {
-        root.errorText = ""
+        root.errorText = "";
         if (network.connected) {
-            network.disconnect()
-            return
+            network.disconnect();
+            return ;
         }
-        if (!network.known && root.pskCapable(network)) root.promptForPsk(network)
-        else network.connect()
+        if (!network.known && root.pskCapable(network))
+            root.promptForPsk(network);
+        else
+            network.connect();
     }
 
     function reportFailure(network: WifiNetwork, reason) {
         if (reason === ConnectionFailReason.NoSecrets) {
             if (root.pskCapable(network)) {
-                root.promptForPsk(network)
-                root.errorText = network.name + ": wrong or missing password"
-                return
+                root.promptForPsk(network);
+                root.errorText = network.name + ": wrong or missing password";
+                return ;
             }
-            root.errorText = network.name + ": needs "
-                + WifiSecurityType.toString(network.security)
-                + " credentials (not supported)"
-            return
+            root.errorText = network.name + ": needs " + WifiSecurityType.toString(network.security) + " credentials (not supported)";
+            return ;
         }
-        root.errorText = network.name + ": " + ConnectionFailReason.toString(reason)
+        root.errorText = network.name + ": " + ConnectionFailReason.toString(reason);
+    }
+
+    onActiveChanged: {
+        if (!root.active) {
+            root.dismissPrompt();
+            root.errorText = "";
+        }
     }
 
     Binding {
@@ -81,95 +78,124 @@ Item {
         when: root.device !== null
     }
 
-    onActiveChanged: if (!root.active) {
-        root.dismissPrompt()
-        root.errorText = ""
-    }
-
     Item {
         anchors.fill: parent
         anchors.margins: Style.bar.padding
 
         Item {
             id: header
-            anchors { top: parent.top; left: parent.left; right: parent.right }
+
             height: Style.popup.itemHeight
 
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+            }
+
             Text {
-                anchors { left: parent.left; verticalCenter: parent.verticalCenter }
                 text: "Wi-Fi"
                 color: Colors.text.base
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
+
+                anchors {
+                    left: parent.left
+                    verticalCenter: parent.verticalCenter
+                }
+
             }
 
             Text {
-                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                text: !Networking.wifiHardwareEnabled ? "Blocked"
-                    : Networking.wifiEnabled ? "On"
-                    : "Off"
+                text: !Networking.wifiHardwareEnabled ? "Blocked" : Networking.wifiEnabled ? "On" : "Off"
                 color: Networking.wifiEnabled ? Colors.wifi.connected : Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
+
+                anchors {
+                    right: parent.right
+                    verticalCenter: parent.verticalCenter
+                }
 
                 MouseArea {
                     anchors.fill: parent
                     enabled: Networking.wifiHardwareEnabled
                     onClicked: Networking.wifiEnabled = !Networking.wifiEnabled
                 }
+
             }
+
         }
 
         Rectangle {
             id: separator
-            anchors { top: header.bottom; left: parent.left; right: parent.right }
+
             height: Style.border.width
             color: Colors.base.border
+
+            anchors {
+                top: header.bottom
+                left: parent.left
+                right: parent.right
+            }
+
         }
 
         Item {
             id: prompt
-            anchors { top: separator.bottom; left: parent.left; right: parent.right }
+
             visible: root.pskNetwork !== null
             height: visible ? Style.popup.itemHeight : 0
 
+            anchors {
+                top: separator.bottom
+                left: parent.left
+                right: parent.right
+            }
+
             Text {
                 id: promptIcon
-                anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+
                 text: "󰌆"
                 color: Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
                 width: Style.popup.rowIconWidth
+
+                anchors {
+                    left: parent.left
+                    verticalCenter: parent.verticalCenter
+                }
+
             }
 
             TextInput {
                 id: pskInput
-                anchors {
-                    left: promptIcon.right
-                    right: parent.right
-                    leftMargin: Style.widgets.spacing
-                    verticalCenter: parent.verticalCenter
-                }
+
                 color: Colors.text.base
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
                 echoMode: TextInput.Password
                 clip: true
-
                 Keys.onReturnPressed: {
-                    const network = root.pskNetwork
-                    root.pskNetwork = null
-                    network.connectWithPsk(pskInput.text)
-                    pskInput.text = ""
+                    const network = root.pskNetwork;
+                    root.pskNetwork = null;
+                    network.connectWithPsk(pskInput.text);
+                    pskInput.text = "";
                 }
-
                 Keys.onEscapePressed: (event) => {
                     if (root.pskNetwork === null) {
-                        event.accepted = false
-                        return
+                        event.accepted = false;
+                        return ;
                     }
-                    root.dismissPrompt()
+                    root.dismissPrompt();
+                }
+
+                anchors {
+                    left: promptIcon.right
+                    right: parent.right
+                    leftMargin: Style.widgets.spacing
+                    verticalCenter: parent.verticalCenter
                 }
 
                 Text {
@@ -182,16 +208,25 @@ Item {
                     elide: Text.ElideRight
                     verticalAlignment: Text.AlignVCenter
                 }
+
             }
+
         }
 
         Item {
             id: status
-            anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
+
             height: statusLabel.visible ? statusLabel.implicitHeight + Style.bar.spacing : 0
+
+            anchors {
+                bottom: parent.bottom
+                left: parent.left
+                right: parent.right
+            }
 
             Text {
                 id: statusLabel
+
                 anchors.bottom: parent.bottom
                 width: parent.width
                 visible: root.errorText !== ""
@@ -201,10 +236,17 @@ Item {
                 font.pixelSize: Style.text.smallSize
                 wrapMode: Text.Wrap
             }
+
         }
 
         ListView {
             id: networkList
+
+            clip: true
+            flickableDirection: Flickable.VerticalFlick
+            model: root.device ? root.device.networks : null
+            visible: count > 0
+
             anchors {
                 top: prompt.bottom
                 bottom: status.top
@@ -212,14 +254,11 @@ Item {
                 right: parent.right
                 topMargin: Style.bar.spacing
             }
-            clip: true
-            model: root.device ? root.device.networks : null
-            visible: count > 0
 
             delegate: Row {
                 id: networkRow
-                required property WifiNetwork modelData
 
+                required property WifiNetwork modelData
                 readonly property bool connected: networkRow.modelData !== null && networkRow.modelData.connected
                 readonly property bool known: networkRow.modelData !== null && networkRow.modelData.known
                 readonly property bool stateChanging: networkRow.modelData !== null && networkRow.modelData.stateChanging
@@ -230,17 +269,17 @@ Item {
                 spacing: Style.widgets.spacing
 
                 Connections {
-                    target: networkRow.modelData
                     function onConnectionFailed(reason) {
-                        root.reportFailure(networkRow.modelData, reason)
+                        root.reportFailure(networkRow.modelData, reason);
                     }
+
+                    target: networkRow.modelData
                 }
 
                 Text {
                     id: networkIcon
-                    text: networkRow.connected ? "󰸞"
-                        : networkRow.known ? "󰤨"
-                        : ""
+
+                    text: networkRow.connected ? "󰸞" : networkRow.known ? "󰤨" : ""
                     color: networkRow.connected ? Colors.wifi.connected : Colors.text.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
@@ -260,9 +299,8 @@ Item {
 
                 Text {
                     id: networkAction
-                    text: networkRow.stateChanging ? "…"
-                        : networkRow.connected ? "Disconnect"
-                        : "Connect"
+
+                    text: networkRow.stateChanging ? "…" : networkRow.connected ? "Disconnect" : "Connect"
                     color: Colors.text.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.smallSize
@@ -273,8 +311,11 @@ Item {
                         enabled: !networkRow.stateChanging
                         onClicked: root.activate(networkRow.modelData)
                     }
+
                 }
+
             }
+
         }
 
         Text {
@@ -285,5 +326,7 @@ Item {
             font.family: Style.text.font
             font.pixelSize: Style.text.size
         }
+
     }
+
 }

@@ -1,12 +1,12 @@
-// bar/widgets/PowerAction.qml
-import QtQuick
 import "../../style"
+import QtQuick
 
 Rectangle {
     id: root
 
     property string label: ""
     property color labelColor: Colors.text.base
+
     signal activated()
 
     width: parent ? parent.width : implicitWidth
@@ -24,8 +24,10 @@ Rectangle {
 
     MouseArea {
         id: area
+
         anchors.fill: parent
         hoverEnabled: true
         onClicked: root.activated()
     }
+
 }

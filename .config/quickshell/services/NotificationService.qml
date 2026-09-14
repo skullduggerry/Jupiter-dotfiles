@@ -1,4 +1,3 @@
-// services/NotificationService.qml
 pragma Singleton
 
 import QtQuick

@@ -1,8 +1,7 @@
-// bar/Bar.qml
-import Quickshell
-import QtQuick
-import Quickshell.Wayland
 import "../style"
+import QtQuick
+import Quickshell
+import Quickshell.Wayland
 
 Scope {
     Variants {
@@ -10,25 +9,31 @@ Scope {
 
         PanelWindow {
             required property ShellScreen modelData
+
             screen: modelData
             WlrLayershell.namespace: "quickshell:bar"
+            implicitHeight: Style.bar.height
+            exclusiveZone: Style.bar.height + Style.bar.bottomGap
+            color: Colors.base.panel
 
             anchors {
                 top: true
                 left: true
                 right: true
             }
+
             margins {
                 top: Style.bar.topGap
                 left: Style.bar.sideGap
                 right: Style.bar.sideGap
             }
 
-            implicitHeight: Style.bar.height
-            exclusiveZone: Style.bar.height + Style.bar.topGap
-            color: Colors.base.panel
+            BarContent {
+                screen: modelData
+            }
 
-            BarContent { screen: modelData }
         }
+
     }
+
 }
