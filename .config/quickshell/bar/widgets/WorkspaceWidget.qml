@@ -27,7 +27,12 @@ Item {
                 id: cell
                 required property HyprlandWorkspace modelData
 
-                visible: root.monitor !== null && cell.modelData.monitor === root.monitor
+                readonly property bool onThisMonitor: cell.modelData !== null && root.monitor !== null
+                    && cell.modelData.monitor === root.monitor
+                readonly property bool workspaceActive: cell.modelData !== null && cell.modelData.active
+                readonly property bool occupied: cell.modelData !== null && cell.modelData.toplevels.values.length > 0
+
+                visible: cell.onThisMonitor
                 width: visible ? Style.workspaces.cellSize : 0
                 height: Style.workspaces.cellSize
 
@@ -35,11 +40,11 @@ Item {
                     id: dot
 
                     anchors.centerIn: parent
-                    width: cell.modelData.active ? Style.workspaces.activeSize : Style.workspaces.size
+                    width: cell.workspaceActive ? Style.workspaces.activeSize : Style.workspaces.size
                     height: width
                     radius: width / 2
-                    color: cell.modelData.active ? Colors.workspaces.active
-                        : cell.modelData.toplevels.values.length > 0 ? Colors.workspaces.occupied
+                    color: cell.workspaceActive ? Colors.workspaces.active
+                        : cell.occupied ? Colors.workspaces.occupied
                         : Colors.workspaces.inactive
 
                     Behavior on width {

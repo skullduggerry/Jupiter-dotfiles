@@ -13,11 +13,7 @@ Rectangle {
     readonly property int notificationId: root.modelData.id
     readonly property bool urgent: root.modelData.urgency === NotificationUrgency.Critical
 
-    readonly property int timeout: {
-        if (root.urgent) return 0
-        if (root.modelData.expireTimeout > 0) return root.modelData.expireTimeout * 1000
-        return Style.notifications.timeout
-    }
+    required property int timeout
 
     implicitHeight: entry.implicitHeight + Style.bar.padding * 2
     radius: Style.bar.radius

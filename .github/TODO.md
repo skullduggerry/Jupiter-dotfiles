@@ -6,8 +6,6 @@ Only what is actually open. Finished phases were removed — `git log` has them.
 
 Built and reviewed, never exercised against the real thing:
 
-- [ ] A successful **PAM unlock** (needs the real password). Failure paths were
-      tested; success was not.
 - [ ] Joining a **Wi-Fi network that needs a PSK** — the prompt, the
       `connectWithPsk()` call, and the wrong-password path.
 - [ ] The **three-finger swipe gesture** itself.
@@ -35,9 +33,12 @@ Built and reviewed, never exercised against the real thing:
 - [ ] **Inline reply** on notifications that offer it. `hasInlineReply` /
       `sendInlineReply()` exist; the capability is deliberately not advertised
       until there is a field to type into.
-- [ ] Toasts appear on the **focused** monitor, following the launcher. A toast
-      that arrives while focus moves will follow it — check that isn't jarring
-      in practice.
+- [ ] Toasts on the **focused** monitor: the mechanism is verified against a
+      `hyprctl output create headless` second screen — the toast moves with
+      focus and back, and the move does *not* restart its expiry timer (a 10s
+      toast still expired at 10.2s across two moves). What is left is the
+      subjective half: it jumps with no transition, so judge that on real
+      dual-monitor hardware.
 - [ ] The design file's **search box**, if it should replace the fullscreen
       launcher rather than sit alongside it.
 

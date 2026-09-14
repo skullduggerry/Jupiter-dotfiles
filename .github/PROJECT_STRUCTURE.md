@@ -146,8 +146,13 @@ easy to get wrong, and the first two are silent:
   `NotificationService.popupIds` holds *ids* and derives the popup list by
   filtering `trackedNotifications`, so a closed notification drops out on its
   own.
-- **`expireTimeout` is in seconds**, not milliseconds — multiply by 1000 for a
-  `Timer.interval`.
+- **`expireTimeout` is in milliseconds** — the same unit `Timer.interval` takes
+  and the same unit the DBus `Notify` call carries, so it is used as-is. This
+  doc claimed seconds for a while and `Toast.qml` multiplied by 1000, which
+  turned every app-specified timeout into 1000x itself: `notify-send -t 2000`
+  stayed up for 33 minutes. Only `-1` ("server decides") should fall through to
+  `Style.notifications.timeout`. Verified by probe: no `-t` expires at 6.2s,
+  `-t 2000` did not expire at all until the conversion was removed.
 - **Every capability except `bodySupported` defaults to false**, and each is
   advertised over DBus, so only turn on what is actually rendered. Currently:
   persistence, body, body-markup, actions, icon-static. Inline reply is *not*
@@ -165,15 +170,26 @@ Critical notifications never auto-expire and keep their colour; right-clicking
 the bar's bell toggles do-not-disturb, which suppresses toasts for everything
 except critical.
 
-**swaync is masked**, since two daemons cannot own the bus name:
+**Whatever else owns the bus name has to be masked**, since two daemons cannot
+hold it at once. Which daemon that is differs per machine — this laptop shipped
+`dunst`, the desktop had `swaync` — so read it off the bus rather than assuming:
 
 ```bash
-systemctl --user mask --now swaync.service     # undo: systemctl --user unmask
+busctl --user call org.freedesktop.DBus /org/freedesktop/DBus \
+    org.freedesktop.DBus GetConnectionUnixProcessID s org.freedesktop.Notifications
 ```
 
-Its unit is `Type=dbus` with `BusName=org.freedesktop.Notifications`, so it is
-DBus-activated and shows as `disabled` while still starting on demand —
-disabling it is not enough, it has to be masked.
+```bash
+systemctl --user mask --now dunst.service     # undo: systemctl --user unmask
+```
+
+Both units are `Type=dbus` with `BusName=org.freedesktop.Notifications`, so they
+are DBus-activated and show as `static`/`disabled` while still starting on
+demand — disabling is not enough, it has to be masked.
+
+The shell needs no restart afterwards. `NotificationService` logs `Registration
+will be attempted again if the active service is unregistered` on startup and
+takes the name the moment the other daemon drops it.
 
 ## Things that have already cost a bug
 
@@ -191,6 +207,25 @@ Reaching for `.count` does not throw: it is `undefined`, `i < undefined` is
 `false`, the loop never runs, and the binding settles on its default. Three
 widgets shipped broken this way with a clean log. (`ListView.count` and
 `Repeater.count` are properties of the *view* and are fine.)
+
+**A delegate outlives its model row.** A view bound *directly* to an
+`ObjectModel` re-evaluates its delegate's bindings with `modelData === null`
+when a row is removed, before destroying the delegate. Every unguarded
+`row.modelData.<property>` then throws — 55 `TypeError`s in five minutes from
+the Wi-Fi list alone, and silently, because a failed binding just keeps its last
+value on screen. Guard once per fact on the delegate root, not at each use site:
+
+```qml
+readonly property bool connected: networkRow.modelData !== null && networkRow.modelData.connected
+```
+
+Signal handlers (`onClicked`, `Connections`) need no guard — they only run while
+the row exists. Delegates over a *derived* list (`.values.filter(...)`) are
+immune: a new JS array identity destroys the delegates outright, with no null
+phase. It is the same split as above — `model:` on the ObjectModel needs the
+guard, `.values` does not. Fixed in `WifiPanel`, `BluetoothWidget` and
+`WorkspaceWidget`; `Bar.qml` is fine because it only passes `modelData` to
+`screen:` without dereferencing it.
 
 **A function whose return value is read from a binding needs a return type.**
 Without one the engine treats it as `void` and logs an error per call site — 42
@@ -266,8 +301,24 @@ qmllint -I /usr/lib/qt6/qml $(find . -name '*.qml' ! -name 'Launcher.qml' ! -nam
 The three exclusions are the linter's `void`/`var` crash, not a problem with
 those files.
 
-Quickshell hot-reloads on save, so the fastest check is usually to save and read
-the log:
+Quickshell hot-reloads on a **content** change to any loaded file, not just
+`shell.qml`. `touch` alone does nothing — an identical file is not a change — so
+never use it to force a reload.
+
+The watches can go stale, though: if the files are replaced underneath a running
+instance (a fresh clone or a `git checkout` of the whole tree while `qs` is up),
+the reload stops firing and edits appear to do nothing. That is how an already
+correct fix can look broken — you re-test and measure the old code. Confirm a
+reload actually happened before concluding anything about a change:
+
+```bash
+qs log -r '*.info=true' -- /run/user/1000/quickshell/by-id/<id>/log.qslog \
+    | grep -c 'Reloading configuration'
+```
+
+If the count did not move, write to `shell.qml` (a real edit, not a `touch`) to
+force one. A failed reload is loud — `Failed to load configuration` plus the
+offending file and line — and leaves the previous config running:
 
 ```bash
 qs log -r '*.debug=true;*.info=true' -- /run/user/1000/quickshell/by-id/<id>/log.qslog
@@ -289,6 +340,12 @@ qs ipc call lock locked
 the three-finger swipe is an `hl.gesture` block calling `dropdown openAt`. All
 in `config/hypr/modules/keybinds.lua`.
 
+Hyprland here is configured in **Lua**, so `hyprctl dispatch` takes a Lua
+expression — `hyprctl dispatch 'hl.dsp.focus({ monitor = "eDP-1" })'`, not
+`hyprctl dispatch focusmonitor eDP-1`. The hyprlang spelling fails with exit 7
+and does nothing. The header comment in `config/hypr/hyprland.lua` has the
+details and the dispatcher list.
+
 ## Runtime facts that affect the code
 
 - **NetworkManager** is the only backend `Quickshell.Networking` supports.
@@ -301,5 +358,7 @@ in `config/hypr/modules/keybinds.lua`.
 - Brightness **writes** go through `swayosd-client`, the same path the
   compositor's brightness keys use; reads come from `/sys/class/backlight`, and
   the widget hides itself when that directory is empty.
-- `swaync` currently owns `org.freedesktop.Notifications`; a shell-owned
-  notification server cannot coexist with it.
+- A DBus-activated notification daemon will silently hold
+  `org.freedesktop.Notifications` unless masked, and a shell-owned notification
+  server cannot coexist with it. Masked here: `dunst`. `swaync` is not installed
+  on this machine.

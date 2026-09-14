@@ -220,6 +220,11 @@ Item {
                 id: networkRow
                 required property WifiNetwork modelData
 
+                readonly property bool connected: networkRow.modelData !== null && networkRow.modelData.connected
+                readonly property bool known: networkRow.modelData !== null && networkRow.modelData.known
+                readonly property bool stateChanging: networkRow.modelData !== null && networkRow.modelData.stateChanging
+                readonly property string networkName: networkRow.modelData !== null ? networkRow.modelData.name : ""
+
                 width: networkList.width
                 height: Style.popup.itemHeight
                 spacing: Style.widgets.spacing
@@ -233,10 +238,10 @@ Item {
 
                 Text {
                     id: networkIcon
-                    text: networkRow.modelData.connected ? "󰸞"
-                        : networkRow.modelData.known ? "󰤨"
+                    text: networkRow.connected ? "󰸞"
+                        : networkRow.known ? "󰤨"
                         : ""
-                    color: networkRow.modelData.connected ? Colors.wifi.connected : Colors.text.muted
+                    color: networkRow.connected ? Colors.wifi.connected : Colors.text.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
                     width: Style.popup.rowIconWidth
@@ -244,7 +249,7 @@ Item {
                 }
 
                 Text {
-                    text: networkRow.modelData.name
+                    text: networkRow.networkName
                     color: Colors.text.base
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
@@ -255,8 +260,8 @@ Item {
 
                 Text {
                     id: networkAction
-                    text: networkRow.modelData.stateChanging ? "…"
-                        : networkRow.modelData.connected ? "Disconnect"
+                    text: networkRow.stateChanging ? "…"
+                        : networkRow.connected ? "Disconnect"
                         : "Connect"
                     color: Colors.text.muted
                     font.family: Style.text.font
@@ -265,7 +270,7 @@ Item {
 
                     MouseArea {
                         anchors.fill: parent
-                        enabled: !networkRow.modelData.stateChanging
+                        enabled: !networkRow.stateChanging
                         onClicked: root.activate(networkRow.modelData)
                     }
                 }

@@ -55,18 +55,23 @@ Item {
                 id: deviceRow
                 required property BluetoothDevice modelData
 
+                readonly property bool connected: deviceRow.modelData !== null && deviceRow.modelData.connected
+                readonly property bool paired: deviceRow.modelData !== null && deviceRow.modelData.paired
+                readonly property bool pairing: deviceRow.modelData !== null && deviceRow.modelData.pairing
+                readonly property string deviceName: deviceRow.modelData !== null ? deviceRow.modelData.name : ""
+
                 width: deviceList.width
                 height: Style.popup.itemHeight
                 spacing: Style.widgets.spacing
 
                 Text {
                     id: deviceIcon
-                    text: deviceRow.modelData.connected ? "󰂱"
-                        : deviceRow.modelData.paired ? "󰂯"
+                    text: deviceRow.connected ? "󰂱"
+                        : deviceRow.paired ? "󰂯"
                         : "󰂲"
-                    color: deviceRow.modelData.pairing ? Colors.bluetooth.pairing
-                        : deviceRow.modelData.connected ? Colors.bluetooth.connected
-                        : deviceRow.modelData.paired ? Colors.text.base
+                    color: deviceRow.pairing ? Colors.bluetooth.pairing
+                        : deviceRow.connected ? Colors.bluetooth.connected
+                        : deviceRow.paired ? Colors.text.base
                         : Colors.text.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
@@ -75,7 +80,7 @@ Item {
                 }
 
                 Text {
-                    text: deviceRow.modelData.name
+                    text: deviceRow.deviceName
                     color: Colors.text.base
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
@@ -86,9 +91,9 @@ Item {
 
                 Text {
                     id: deviceAction
-                    text: deviceRow.modelData.pairing ? "Pairing…"
-                        : deviceRow.modelData.connected ? "Disconnect"
-                        : deviceRow.modelData.paired ? "Connect"
+                    text: deviceRow.pairing ? "Pairing…"
+                        : deviceRow.connected ? "Disconnect"
+                        : deviceRow.paired ? "Connect"
                         : "Pair"
                     color: Colors.text.muted
                     font.family: Style.text.font
@@ -97,10 +102,10 @@ Item {
 
                     MouseArea {
                         anchors.fill: parent
-                        enabled: !deviceRow.modelData.pairing
+                        enabled: !deviceRow.pairing
                         onClicked: {
-                            if (deviceRow.modelData.connected) deviceRow.modelData.disconnect()
-                            else if (deviceRow.modelData.paired) deviceRow.modelData.connect()
+                            if (deviceRow.connected) deviceRow.modelData.disconnect()
+                            else if (deviceRow.paired) deviceRow.modelData.connect()
                             else deviceRow.modelData.pair()
                         }
                     }
