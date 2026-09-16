@@ -26,9 +26,7 @@ Scope {
 
         WlrLayershell.namespace: "quickshell:dropdown"
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: content.item && content.item.wantsKeyboard
-            ? WlrKeyboardFocus.Exclusive
-            : WlrKeyboardFocus.OnDemand
+        WlrLayershell.keyboardFocus: window.visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
         anchors {
             top: true
@@ -69,8 +67,8 @@ Scope {
 
             x: {
                 switch (DropdownState.zone) {
-                case DropdownState.zoneWorkspaces: return Style.bar.sideGap
-                case DropdownState.zoneQuickSettings: return window.width - surface.width - Style.bar.sideGap
+                case DropdownState.zoneWorkspaces: return Style.bar.edgeGap
+                case DropdownState.zoneQuickSettings: return window.width - surface.width - Style.bar.edgeGap
                 default: return (window.width - surface.width) / 2
                 }
             }
@@ -133,7 +131,15 @@ Scope {
             id: quickSettingsPanel
 
             QuickSettingsPanel {
+                id: quickSettings
+
                 active: DropdownState.visible
+                Component.onCompleted: {
+                    const page = quickSettings.pageFor(OsdState.zone);
+                    if (page >= 0 && OsdState.recentlyUsed())
+                        quickSettings.currentIndex = page;
+
+                }
             }
         }
     }

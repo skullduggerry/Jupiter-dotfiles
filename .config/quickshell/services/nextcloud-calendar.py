@@ -13,7 +13,9 @@ script is also usable on its own:
 
     services/nextcloud-calendar.py --start 2026-09-01 --end 2026-10-01 | jq
 
-Configuration comes from the environment, never from QML (TODO.md Phase 3):
+Configuration comes from the environment. The shell's calendar panel sets
+NEXTCLOUD_URL and NEXTCLOUD_USER on this process; the password is never passed
+in, and is read here from the keyring:
 
     NEXTCLOUD_URL           https://cloud.example.org
     NEXTCLOUD_USER          login name
@@ -27,6 +29,12 @@ via secret-tool, so it never appears in a shell profile or a process list:
 Use a Nextcloud *app password* (Settings -> Security -> Devices & sessions),
 not the account password: it can be revoked on its own and skips 2FA.
 
+The calendar home is discovered, not assumed: Nextcloud's is
+/remote.php/dav/calendars/<user id>/, and the user id is not always what you log
+in with. An account provisioned through SSO (Authentik and the like) often has a
+UUID for an id, and Nextcloud accepts an email address at login too. One extra
+PROPFIND for current-user-principal settles it.
+
 Recurring events are expanded by the server (RFC 4791 <C:expand/>), so this
 script never has to interpret an RRULE.
 
@@ -39,6 +47,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import concurrent.futures
 import json
 import os
 import subprocess
@@ -52,19 +61,39 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 DAV = "DAV:"
 CALDAV = "urn:ietf:params:xml:ns:caldav"
-NS = {"d": DAV, "c": CALDAV}
+# Nextcloud stores a calendar's colour under Apple's namespace, which is what
+# every CalDAV client reads it from; there is no DAV: or caldav: equivalent.
+APPLE = "http://apple.com/ns/ical/"
+NS = {"d": DAV, "c": CALDAV, "a": APPLE}
+
+# The per-calendar REPORTs are independent, so overlapping them turns the wall
+# time from the sum into roughly the slowest one. Kept low deliberately: at
+# eight in flight this server started failing TLS handshakes outright, and a
+# fetch that half-fails is worse than one that takes a second longer.
+MAX_PARALLEL_CALENDARS = 4
 
 TIMEOUT_SECONDS = 15
-# Nextcloud's CalDAV collection layout is stable and documented, so the
-# calendar home is addressed directly instead of spending two extra requests
-# on current-user-principal / calendar-home-set discovery.
+# Nextcloud's CalDAV collection layout is stable and documented, so only the
+# principal is discovered; calendar-home-set would be a second extra request
+# for a path this server always spells the same way.
+DAV_ROOT = "/remote.php/dav/"
 CALENDAR_HOME = "/remote.php/dav/calendars/{user}/"
 
+PRINCIPAL_BODY = """<?xml version="1.0" encoding="utf-8"?>
+<d:propfind xmlns:d="DAV:">
+  <d:prop>
+    <d:current-user-principal/>
+  </d:prop>
+</d:propfind>
+"""
+
 PROPFIND_BODY = """<?xml version="1.0" encoding="utf-8"?>
-<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"
+            xmlns:a="http://apple.com/ns/ical/">
   <d:prop>
     <d:resourcetype/>
     <d:displayname/>
+    <a:calendar-color/>
     <c:supported-calendar-component-set/>
   </d:prop>
 </d:propfind>
@@ -132,6 +161,9 @@ def read_config() -> tuple[str, str, str]:
         raise Unconfigured("NEXTCLOUD_URL is not set")
     if not user:
         raise Unconfigured("NEXTCLOUD_USER is not set")
+    if not is_secure(url):
+        # The app password goes out as HTTP Basic auth on every request.
+        raise Unconfigured("NEXTCLOUD_URL must be https://")
 
     password = os.environ.get("NEXTCLOUD_APP_PASSWORD", "")
     if not password:
@@ -141,6 +173,14 @@ def read_config() -> tuple[str, str, str]:
 
 # --------------------------------------------------------------------------
 # CalDAV
+
+
+def is_secure(url: str) -> bool:
+    """https anywhere, or plain http only when it cannot leave the machine."""
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme == "https":
+        return True
+    return parts.scheme == "http" and parts.hostname in ("localhost", "127.0.0.1", "::1")
 
 
 def request(method: str, url: str, auth: str, body: str, depth: str) -> bytes:
@@ -169,9 +209,53 @@ def request(method: str, url: str, auth: str, body: str, depth: str) -> bytes:
         raise Failed(f"{method} {url}: {error.reason}") from None
 
 
-def list_calendars(base: str, user: str, auth: str) -> list[tuple[str, str]]:
-    """Return (href, display name) for every VEVENT collection of `user`."""
-    home = base + CALENDAR_HOME.format(user=urllib.parse.quote(user))
+def principal_id(document: ElementTree.Element) -> str:
+    """The last path segment of current-user-principal, still URL-encoded.
+
+    `<d:current-user-principal><d:href>/remote.php/dav/principals/users/a1b2/`
+    means the account's id is `a1b2`, whatever name was used to log in.
+    """
+    href = document.findtext(".//d:current-user-principal/d:href", default="", namespaces=NS)
+    return href.strip().rstrip("/").rsplit("/", 1)[-1] if href.strip() else ""
+
+
+def calendar_home(base: str, user: str, auth: str) -> str:
+    """Where this account's calendars live, asked rather than assumed."""
+    document = ElementTree.fromstring(
+        request("PROPFIND", base + DAV_ROOT, auth, PRINCIPAL_BODY, "0")
+    )
+    # hrefs come back percent-encoded, so an id taken from one is already safe
+    # to paste into a URL; the login-name fallback is not.
+    name = principal_id(document) or urllib.parse.quote(user)
+    return base + CALENDAR_HOME.format(user=name)
+
+
+def normalise_colour(value: str) -> str:
+    """Reduce what a server stores to the #rrggbb QML can parse.
+
+    Nextcloud writes #rrggbbaa; the alpha is dropped rather than honoured,
+    since a calendar's own transparency is not something the agenda should
+    inherit. Anything unrecognised becomes "" and the panel falls back to its
+    own accent.
+    """
+    text = value.strip()
+    if not text.startswith("#"):
+        return ""
+    digits = text[1:]
+    if not all(character in "0123456789abcdefABCDEF" for character in digits):
+        return ""
+    if len(digits) in (3, 4):
+        digits = "".join(character * 2 for character in digits[:3])
+    elif len(digits) in (6, 8):
+        digits = digits[:6]
+    else:
+        return ""
+    return "#" + digits.lower()
+
+
+def list_calendars(base: str, user: str, auth: str) -> list[tuple[str, str, str]]:
+    """Return (href, display name, colour) for every VEVENT collection of `user`."""
+    home = calendar_home(base, user, auth)
     document = ElementTree.fromstring(request("PROPFIND", home, auth, PROPFIND_BODY, "1"))
 
     calendars = []
@@ -195,7 +279,10 @@ def list_calendars(base: str, user: str, auth: str) -> list[tuple[str, str]]:
             continue
 
         name = response.findtext(".//d:displayname", default="", namespaces=NS)
-        calendars.append((href, name or href.rstrip("/").rsplit("/", 1)[-1]))
+        colour = response.findtext(".//a:calendar-color", default="", namespaces=NS)
+        calendars.append(
+            (href, name or href.rstrip("/").rsplit("/", 1)[-1], normalise_colour(colour))
+        )
     return calendars
 
 
@@ -204,7 +291,15 @@ def home_path(home: str) -> str:
     return urllib.parse.urlsplit(home).path
 
 
-def fetch_events(base: str, href: str, name: str, auth: str, start: datetime, end: datetime) -> list[dict]:
+def fetch_events(
+    base: str,
+    href: str,
+    name: str,
+    colour: str,
+    auth: str,
+    start: datetime,
+    end: datetime,
+) -> list[dict]:
     url = base + href if href.startswith("/") else href
     body = REPORT_BODY.format(start=as_caldav_utc(start), end=as_caldav_utc(end))
     document = ElementTree.fromstring(request("REPORT", url, auth, body, "1"))
@@ -213,7 +308,7 @@ def fetch_events(base: str, href: str, name: str, auth: str, start: datetime, en
     for data in document.findall(".//c:calendar-data", NS):
         if not data.text:
             continue
-        events.extend(parse_ics(data.text, name))
+        events.extend(parse_ics(data.text, name, colour))
     return events
 
 
@@ -330,7 +425,7 @@ def parse_duration(value: str) -> timedelta:
     )
 
 
-def parse_ics(ics: str, calendar_name: str) -> list[dict]:
+def parse_ics(ics: str, calendar_name: str, colour: str = "") -> list[dict]:
     events = []
     current: dict | None = None
 
@@ -342,7 +437,7 @@ def parse_ics(ics: str, calendar_name: str) -> list[dict]:
         if current is None:
             continue
         if name == "END" and content == "VEVENT":
-            event = build_event(current, calendar_name)
+            event = build_event(current, calendar_name, colour)
             if event:
                 events.append(event)
             current = None
@@ -355,7 +450,7 @@ def parse_ics(ics: str, calendar_name: str) -> list[dict]:
     return events
 
 
-def build_event(fields: dict, calendar_name: str) -> dict | None:
+def build_event(fields: dict, calendar_name: str, colour: str = "") -> dict | None:
     if "DTSTART" not in fields:
         return None
     if fields.get("STATUS") == "CANCELLED":
@@ -382,6 +477,9 @@ def build_event(fields: dict, calendar_name: str) -> dict | None:
         "end": end.isoformat(timespec="seconds"),
         "allDay": all_day,
         "calendar": calendar_name,
+        # Empty when the server has no colour for the collection, which the
+        # panel reads as "use the shell accent".
+        "colour": colour,
     }
 
 
@@ -392,7 +490,8 @@ def local_midnight(day: date) -> datetime:
     return datetime.combine(day, time()).astimezone()
 
 
-def collect(start: date, end: date) -> list[dict]:
+def collect(start: date, end: date) -> tuple[list[dict], str]:
+    """Return every event in the window, plus a note about any calendar lost."""
     base, user, password = read_config()
     auth = base64.b64encode(f"{user}:{password}".encode()).decode()
 
@@ -404,11 +503,30 @@ def collect(start: date, end: date) -> list[dict]:
     window_end = local_midnight(end)
 
     events: list[dict] = []
-    for href, name in calendars:
-        events.extend(fetch_events(base, href, name, auth, window_start, window_end))
+    failed: list[str] = []
+    workers = min(MAX_PARALLEL_CALENDARS, len(calendars))
+    # Each worker only reads shared state and urllib opens its own connection
+    # per call, so there is nothing to guard here.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {
+            pool.submit(
+                fetch_events, base, href, name, colour, auth, window_start, window_end
+            ): name
+            for href, name, colour in calendars
+        }
+        for future, name in futures.items():
+            try:
+                events.extend(future.result())
+            except Failed:
+                # One calendar timing out should cost its own events, not the
+                # other eight; the next refresh picks it back up.
+                failed.append(name)
+
+    if len(failed) == len(calendars):
+        raise Failed(f"no calendar could be read ({', '.join(failed)})")
 
     events.sort(key=lambda event: (event["start"], event["summary"]))
-    return events
+    return events, f"could not read {', '.join(failed)}" if failed else ""
 
 
 def main() -> int:
@@ -436,7 +554,7 @@ def main() -> int:
         return 1
 
     try:
-        events = collect(arguments.start, arguments.end)
+        events, warning = collect(arguments.start, arguments.end)
     except Unconfigured as error:
         print(json.dumps({"status": "unconfigured", "message": str(error)}), flush=True)
         return 2
@@ -452,7 +570,7 @@ def main() -> int:
         )
         return 1
 
-    print(json.dumps({"status": "ok", "events": events}), flush=True)
+    print(json.dumps({"status": "ok", "events": events, "message": warning}), flush=True)
     return 0
 
 

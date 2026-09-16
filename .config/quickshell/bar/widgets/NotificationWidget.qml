@@ -19,8 +19,8 @@ Item {
         spacing: Style.widgets.spacing
 
         Text {
-            text: NotificationService.doNotDisturb ? "\uf1f6" : "\uf0f3"
-            color: NotificationService.doNotDisturb ? Colors.icon.disabled : NotificationService.hasCritical ? Colors.icon.active : NotificationService.count > 0 ? Colors.icon.active : Colors.icon.disabled
+            text: NotificationService.doNotDisturb ? "󰂛" : NotificationService.count > 0 ? "󰂚" : "󰂜"
+            color: NotificationService.doNotDisturb ? Colors.icon.disabled : NotificationService.hasCritical ? Colors.notification.urgent : NotificationService.count > 0 ? Colors.icon.active : Colors.icon.disabled
             font.family: Style.text.font
             font.pixelSize: Style.text.iconSize
             anchors.verticalCenter: parent.verticalCenter

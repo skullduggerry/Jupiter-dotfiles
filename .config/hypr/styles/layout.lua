@@ -29,7 +29,6 @@ hl.config(
 )
 
 hl.layer_rule({ name = "waybar-blur",  match = { namespace = "^waybar$" }, blur = true, ignore_alpha = 0.0 })
-hl.layer_rule({ name = "swayosd-blur", match = { namespace = "^swayosd$" }, blur = true, ignore_alpha = 0.0 })
 hl.layer_rule({ name = "qs-bar-blur",  match = { namespace = "^quickshell:bar$" }, blur = true, ignore_alpha = 0.2 })
 hl.layer_rule({
     match = { namespace = "quickshell:launcher" },

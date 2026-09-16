@@ -7,7 +7,6 @@ Item {
     id: root
 
     required property ShellScreen screen
-    readonly property bool wantsKeyboard: false
     readonly property int preferredHeight: Style.bar.padding * 2 + header.height + Style.border.width + Style.bar.spacing + grid.height
     readonly property HyprlandMonitor monitor: root.screen ? Hyprland.monitorFor(root.screen) : null
     readonly property var workspaces: {
@@ -112,7 +111,12 @@ Item {
                     border.color: tile.modelData.active ? Colors.workspaces.active : Colors.base.border
 
                     Text {
-                        width: tile.width - Style.widgets.spacing * 2 - (tileCount.visible ? tileCount.width + Style.widgets.spacing : 0)
+                        id: tileName
+
+                        // matching gutters keep the name centred in the tile whether
+                        // or not the client count is showing
+                        readonly property int gutter: Style.widgets.padding + (tileCount.visible ? tileCount.width + Style.widgets.spacing : 0)
+
                         text: tile.modelData.name
                         color: tile.modelData.active ? Colors.workspaces.active : tile.windowCount > 0 ? Colors.workspaces.occupied : Colors.text.muted
                         font.family: Style.text.font
@@ -122,7 +126,9 @@ Item {
 
                         anchors {
                             left: parent.left
-                            leftMargin: Style.widgets.spacing
+                            right: parent.right
+                            leftMargin: tileName.gutter
+                            rightMargin: tileName.gutter
                             verticalCenter: parent.verticalCenter
                         }
 
@@ -139,7 +145,7 @@ Item {
 
                         anchors {
                             right: parent.right
-                            rightMargin: Style.widgets.spacing
+                            rightMargin: Style.widgets.padding
                             verticalCenter: parent.verticalCenter
                         }
 

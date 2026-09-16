@@ -5,7 +5,6 @@ import Quickshell.Services.UPower
 Item {
     id: root
 
-    readonly property bool wantsKeyboard: false
     readonly property int preferredHeight: Style.bar.padding * 2 + header.height + Style.border.width + Style.bar.spacing + rows.implicitHeight
     readonly property UPowerDevice device: UPower.displayDevice
     readonly property bool charging: root.device.state === UPowerDeviceState.Charging || root.device.state === UPowerDeviceState.PendingCharge

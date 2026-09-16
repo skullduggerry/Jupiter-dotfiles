@@ -5,9 +5,8 @@ import QtQuick
 Item {
     id: root
 
-    readonly property bool wantsKeyboard: false
     readonly property int preferredHeight: Style.bar.padding * 2 + header.height + weekdays.height + grid.height + Style.bar.spacing + Style.border.width + Style.bar.spacing + agendaHeader.height + root.agendaHeight + status.height
-    readonly property int agendaHeight: Math.max(Style.popup.itemHeight, agenda.contentHeight)
+    readonly property int agendaHeight: setup.visible ? setup.implicitHeight + Style.bar.spacing : Math.max(Style.popup.itemHeight, agenda.contentHeight)
     readonly property date today: Time.now
     property date displayedMonth: new Date(root.today.getFullYear(), root.today.getMonth(), 1)
     property date selectedDay: root.today
@@ -43,12 +42,16 @@ Item {
         return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() && left.getDate() === right.getDate();
     }
 
-    function dotCount(day: date) : int {
+    // One dot per event, in the colour its calendar carries on the server;
+    // a calendar with no colour set falls back to the shell accent.
+    function dotColours(day: date) : list {
         const events = CalendarService.eventsByDay[CalendarService.dayKey(day)];
         if (events === undefined)
-            return 0;
+            return [];
 
-        return Math.min(events.length, Style.calendar.maxDots);
+        return events.slice(0, Style.calendar.maxDots).map((event) => {
+            return event.colour || Colors.calendar.event;
+        });
     }
 
     function shiftMonth(months: int) {
@@ -225,7 +228,7 @@ Item {
                     readonly property bool inMonth: cell.day.getMonth() === root.displayedMonth.getMonth()
                     readonly property bool isToday: root.sameDay(cell.day, root.today)
                     readonly property bool selected: root.sameDay(cell.day, root.selectedDay)
-                    readonly property int dots: root.dotCount(cell.day)
+                    readonly property var dots: root.dotColours(cell.day)
 
                     width: grid.cellWidth
                     height: Style.calendar.rowHeight
@@ -262,11 +265,13 @@ Item {
                             model: cell.dots
 
                             delegate: Rectangle {
+                                required property color modelData
+
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: Style.calendar.dotSize
                                 height: Style.calendar.dotSize
                                 radius: width / 2
-                                color: cell.inMonth ? Colors.calendar.event : Colors.text.muted
+                                color: cell.inMonth ? modelData : Colors.text.muted
                             }
 
                         }
@@ -398,11 +403,21 @@ Item {
                 height: Style.popup.itemHeight
                 spacing: Style.widgets.spacing
 
+                Rectangle {
+                    id: marker
+
+                    width: Style.calendar.dotSize
+                    height: Style.calendar.dotSize
+                    radius: width / 2
+                    color: agendaRow.modelData.colour || Colors.calendar.event
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
                 Text {
                     id: eventTime
 
                     text: root.showingUpcoming ? Qt.formatDateTime(agendaRow.modelData.start, agendaRow.modelData.allDay ? "ddd d" : "ddd d HH:mm") : agendaRow.modelData.allDay ? "all day" : Qt.formatDateTime(agendaRow.modelData.start, "HH:mm")
-                    color: Colors.calendar.event
+                    color: Colors.text.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.smallSize
                     width: root.showingUpcoming ? Style.calendar.upcomingTimeWidth : Style.calendar.agendaTimeWidth
@@ -415,7 +430,7 @@ Item {
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
                     elide: Text.ElideRight
-                    width: agendaRow.width - eventTime.width - agendaRow.spacing
+                    width: agendaRow.width - eventTime.width - marker.width - agendaRow.spacing * 2
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
@@ -423,10 +438,24 @@ Item {
 
         }
 
+        CalendarSetup {
+            id: setup
+
+            visible: CalendarService.status === "unconfigured"
+
+            anchors {
+                top: agendaHeader.bottom
+                left: parent.left
+                right: parent.right
+                topMargin: Style.bar.spacing
+            }
+
+        }
+
         Text {
             anchors.centerIn: agenda
-            visible: agenda.count === 0
-            text: CalendarService.status === "unconfigured" ? "Calendar not set up" : CalendarService.status === "error" ? "Calendar unavailable" : CalendarService.loading && CalendarService.events.length === 0 ? "Loading…" : "Nothing scheduled"
+            visible: agenda.count === 0 && !setup.visible
+            text: CalendarService.status === "error" ? "Calendar unavailable" : CalendarService.loading && CalendarService.events.length === 0 ? "Loading…" : "Nothing scheduled"
             color: Colors.text.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.size

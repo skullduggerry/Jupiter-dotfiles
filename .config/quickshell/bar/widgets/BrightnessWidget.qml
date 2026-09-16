@@ -9,7 +9,7 @@ Item {
     readonly property var ramp: ["", "", "", "", "", "", "", "", ""]
 
     visible: Brightness.available
-    implicitWidth: visible ? Style.text.iconSize + Style.widgets.spacing : 0
+    implicitWidth: visible ? icon.implicitWidth + Style.widgets.padding * 2 : 0
     implicitHeight: Style.bar.height
 
     Binding {
@@ -19,6 +19,8 @@ Item {
     }
 
     Text {
+        id: icon
+
         anchors.centerIn: parent
         text: root.ramp[Math.round(Brightness.fraction * (root.ramp.length - 1))]
         color: Colors.icon.active

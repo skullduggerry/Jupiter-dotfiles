@@ -8,6 +8,7 @@ Item {
 
     required property ShellScreen screen
     required property QuickPager pager
+    readonly property bool powered: Bluetooth.defaultAdapter !== null && Bluetooth.defaultAdapter.enabled
     readonly property bool connected: Bluetooth.devices.values.some((device) => {
         return device.connected;
     })
@@ -22,8 +23,8 @@ Item {
         spacing: Style.widgets.spacing
 
         Text {
-            text: root.connected ? "󰂱" : "󰂲"
-            color: root.connected ? Colors.icon.active : Colors.icon.disabled
+            text: !root.powered ? "󰂲" : root.connected ? "󰂱" : "󰂯"
+            color: root.connected ? Colors.icon.active : root.powered ? Colors.icon.inactive : Colors.icon.disabled
             font.family: Style.text.font
             font.pixelSize: Style.text.iconSize
             anchors.verticalCenter: parent.verticalCenter

@@ -1,7 +1,6 @@
 import "../../panels"
 import "../../style"
 import QtQuick
-import Quickshell.Wayland
 
 WidgetPopup {
     id: root
@@ -34,13 +33,11 @@ WidgetPopup {
     namespaceSuffix: "quicksettings-popup"
     popupWidth: Style.pager.width
     popupHeight: Style.pager.height
-    keyboardFocus: settings.wantsKeyboard ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
 
     QuickSettingsPanel {
         id: settings
 
         anchors.fill: parent
-        anchors.margins: Style.bar.padding
         active: root.visible
     }
 

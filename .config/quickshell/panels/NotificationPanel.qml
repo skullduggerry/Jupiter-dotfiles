@@ -5,7 +5,6 @@ import QtQuick
 Item {
     id: root
 
-    readonly property bool wantsKeyboard: false
     readonly property int preferredHeight: Style.bar.padding * 2 + header.height + Style.border.width + Style.bar.spacing + Math.max(Style.popup.itemHeight, entries.contentHeight)
 
     Item {

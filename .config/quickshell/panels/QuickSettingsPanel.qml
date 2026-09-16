@@ -1,3 +1,4 @@
+import "../services"
 import "../style"
 import QtQuick
 
@@ -12,22 +13,77 @@ Item {
     readonly property int pageAudio: 3
     readonly property int pageBrightness: 4
     readonly property int pageCount: 5
-    readonly property bool wantsKeyboard: pages.currentIndex === root.pageWifi
     readonly property int preferredHeight: Style.pager.height
     property real swipeTravel: 0
-    property bool swipeConsumed: false
+    property bool swipePaged: false
+    property bool counted: false
 
+    // The first page of a gesture lands almost at once; holding the swipe keeps
+    // paging, but every page after the first costs a lot more travel, so a flick
+    // moves one page and a long drag walks through several.
     function swipe(deltaX: real) {
         swipeIdle.restart();
         root.swipeTravel += deltaX;
-        if (root.swipeConsumed || Math.abs(root.swipeTravel) < Style.pager.swipeStep)
+        const needed = root.swipePaged ? Style.pager.swipeRepeat : Style.pager.swipeStep;
+        if (Math.abs(root.swipeTravel) < needed)
             return ;
 
-        root.swipeConsumed = true;
         if (root.swipeTravel < 0)
             pages.incrementCurrentIndex();
         else
             pages.decrementCurrentIndex();
+        root.swipeTravel = 0;
+        root.swipePaged = true;
+    }
+
+    // A media key while these panels are already up: turn to that page rather
+    // than changing a value out of sight. `zoneAt` is what's watched, not
+    // `zone`, so a second press of the same key still counts.
+    function followOsd() {
+        if (!root.active)
+            return ;
+
+        const page = root.pageFor(OsdState.zone);
+        if (page >= 0)
+            root.currentIndex = page;
+
+    }
+
+    function pageFor(zone: string) : int {
+        switch (zone) {
+        case OsdState.zoneAudio:
+            return root.pageAudio;
+        case OsdState.zoneBrightness:
+            return root.pageBrightness;
+        default:
+            return -1;
+        }
+    }
+
+    // Tell the OSD that these panels are already on screen. Kept idempotent
+    // because the dropdown's Loader destroys this while `active` is still true.
+    function syncViewer() {
+        if (root.active === root.counted)
+            return ;
+
+        OsdState.viewers += root.active ? 1 : -1;
+        root.counted = root.active;
+    }
+
+    onActiveChanged: root.syncViewer()
+    Component.onCompleted: root.syncViewer()
+    Component.onDestruction: {
+        if (root.counted)
+            OsdState.viewers -= 1;
+
+    }
+
+    Connections {
+        function onZoneAtChanged() {
+            root.followOsd();
+        }
+
+        target: OsdState
     }
 
     Timer {
@@ -36,7 +92,7 @@ Item {
         interval: Style.pager.swipeIdle
         onTriggered: {
             root.swipeTravel = 0;
-            root.swipeConsumed = false;
+            root.swipePaged = false;
         }
     }
 
@@ -52,7 +108,7 @@ Item {
         highlightRangeMode: PathView.StrictlyEnforceRange
         preferredHighlightBegin: 0.5
         preferredHighlightEnd: 0.5
-        highlightMoveDuration: Style.animation.normal
+        highlightMoveDuration: Style.animation.fast
         movementDirection: PathView.Shortest
 
         anchors {
@@ -106,11 +162,12 @@ Item {
     Row {
         id: dots
 
-        height: Style.pager.dotRow
+        height: Style.pager.dotSize
         spacing: Style.pager.dotSpacing
 
         anchors {
             bottom: parent.bottom
+            bottomMargin: Style.bar.padding
             horizontalCenter: parent.horizontalCenter
         }
 
@@ -122,7 +179,6 @@ Item {
 
                 required property int index
 
-                anchors.verticalCenter: parent.verticalCenter
                 width: Style.pager.dotSize
                 height: Style.pager.dotSize
                 radius: width / 2
@@ -130,6 +186,7 @@ Item {
 
                 MouseArea {
                     anchors.fill: parent
+                    anchors.margins: -Style.widgets.spacing
                     onClicked: pages.currentIndex = dot.index
                 }
 

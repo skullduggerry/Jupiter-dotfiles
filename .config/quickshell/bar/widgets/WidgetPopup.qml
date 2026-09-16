@@ -86,10 +86,10 @@ PanelWindow {
         y: root.contentTopMargin
         x: {
             if (root.anchorItem === null)
-                return root.width - root.popupWidth - Style.bar.sideGap;
+                return root.width - root.popupWidth - Style.bar.edgeGap;
 
             const centred = root.anchorCenterX - root.popupWidth / 2;
-            return Math.max(Style.bar.sideGap, Math.min(root.width - root.popupWidth - Style.bar.sideGap, centred));
+            return Math.max(Style.bar.edgeGap, Math.min(root.width - root.popupWidth - Style.bar.edgeGap, centred));
         }
         width: root.popupWidth
         height: root.popupHeight

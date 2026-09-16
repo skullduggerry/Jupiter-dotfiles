@@ -6,7 +6,6 @@ Item {
     id: root
 
     required property bool active
-    readonly property bool wantsKeyboard: root.pskNetwork !== null
     readonly property int preferredHeight: Style.bar.padding * 2 + header.height + Style.border.width + prompt.height + Style.bar.spacing + Math.max(Style.popup.itemHeight, networkList.contentHeight) + status.height
     readonly property WifiDevice device: Networking.devices.values.find((candidate) => {
         return candidate.type === DeviceType.Wifi;

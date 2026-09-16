@@ -47,17 +47,9 @@ Item {
 
         Text {
             text: root.icon
-            color: root.muted ? Colors.icon.disabled : Colors.icon.active
+            color: root.muted ? Colors.icon.disabled : root.volume <= 0 ? Colors.icon.inactive : Colors.icon.active
             font.family: Style.text.font
             font.pixelSize: Style.text.iconSize
-            anchors.verticalCenter: parent.verticalCenter
-        }
-
-        Text {
-            text: Math.round(root.volume * 100) + "%"
-            color: Colors.icon.active
-            font.family: Style.text.font
-            font.pixelSize: Style.text.size
             anchors.verticalCenter: parent.verticalCenter
         }
 

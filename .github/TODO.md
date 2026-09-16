@@ -6,12 +6,18 @@ Only what is actually open. Finished phases were removed — `git log` has them.
 
 Built and reviewed, never exercised against the real thing:
 
-- [ ] Joining a **Wi-Fi network that needs a PSK** — the prompt, the
-      `connectWithPsk()` call, and the wrong-password path.
+- [ ] Joining a **Wi-Fi network that needs a PSK**: `connectWithPsk()` and the
+      wrong-password path. The half in front of them is verified — clicking
+      *Connect* on an unknown network raises the prompt, it takes keystrokes,
+      and Escape dismisses the prompt without closing the dropdown. The rest
+      needs a real association, so it wants a network you own.
 - [ ] The **three-finger swipe gesture** itself.
-- [ ] The **brightness widget against a real backlight**. `/sys/class/backlight`
-      is empty on this machine, so discovery, parsing and the refresh were
-      verified against a fake sysfs tree and `swayosd-client` was never invoked.
+- [ ] How the **two-finger swipe** feels on the real touchpad. It is now
+      driveable from a virtual pointer — a uinput device has to advertise
+      `REL_*WHEEL_HI_RES` for libinput to deliver the events, which is why an
+      earlier attempt concluded wheel could not be injected — so the paging
+      thresholds were tuned against a replay of the measured gesture. Only the
+      feel is unconfirmed.
 
 ## Next features
 

@@ -9,7 +9,7 @@ Rectangle {
     required property ShellScreen screen
 
     anchors.fill: parent
-    anchors.margins: 1
+    anchors.margins: Style.border.width
     radius: Style.bar.radius
     color: Colors.base.surface
     border.color: Colors.base.border

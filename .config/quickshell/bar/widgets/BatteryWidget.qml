@@ -13,59 +13,53 @@ Item {
     readonly property int percent: Math.round(device.percentage * 100)
     readonly property bool charging: device.state === UPowerDeviceState.Charging || device.state === UPowerDeviceState.PendingCharge
     readonly property bool full: device.state === UPowerDeviceState.FullyCharged
+    readonly property var ramp: ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
+    readonly property var chargingRamp: ["󰢟", "󰢜", "󰂆", "󰂇", "󰂈", "󰢝", "󰂉", "󰢞", "󰂊", "󰂋", "󰂅"]
+    readonly property string icon: {
+        const step = Math.round(Math.max(0, Math.min(1, root.device.percentage)) * (root.ramp.length - 1));
+        return root.charging || root.full ? root.chargingRamp[step] : root.ramp[step];
+    }
+    // Colour only carries the states that want acting on, the way the usage
+    // meters on the other side of the bar do.
     readonly property color levelColor: {
-        if (charging || full)
-            return Colors.icon.active;
+        // Charging is already in the glyph, so it needs no colour of its own;
+        // colour is kept for the two states that want doing something about.
+        if (root.charging || root.full)
+            return Colors.battery.normal;
 
-        if (percent <= 15)
-            return Colors.icon.active;
+        if (root.percent <= 10)
+            return Colors.battery.critical;
 
-        return Colors.icon.inactive;
+        if (root.percent <= 20)
+            return Colors.battery.low;
+
+        return Colors.battery.normal;
     }
 
     visible: device.isLaptopBattery
-    implicitWidth: visible ? Style.battery.width + Style.widgets.padding * 2 : 0
+    implicitWidth: visible ? row.implicitWidth + Style.widgets.padding * 2 : 0
     implicitHeight: Style.bar.height
 
-    Rectangle {
-        id: pill
+    Row {
+        id: row
 
         anchors.centerIn: parent
-        width: Style.battery.width
-        height: Style.battery.height
-        radius: Style.battery.radius
-        color: "transparent"
-        border.width: Style.border.width
-        border.color: Colors.base.border
+        spacing: Style.widgets.spacing
 
-        Rectangle {
-            width: Math.max(height, (parent.width - Style.battery.inset * 2) * root.device.percentage)
-            radius: Style.battery.radius - Style.battery.inset
+        Text {
+            text: root.icon
             color: root.levelColor
-            opacity: Colors.base.opacity
-
-            anchors {
-                left: parent.left
-                top: parent.top
-                bottom: parent.bottom
-                margins: Style.battery.inset
-            }
-
-            Behavior on width {
-                NumberAnimation {
-                    duration: Style.animation.normal
-                }
-
-            }
-
+            font.family: Style.text.font
+            font.pixelSize: Style.text.iconSize
+            anchors.verticalCenter: parent.verticalCenter
         }
 
         Text {
-            anchors.centerIn: parent
-            text: root.charging ? "\uf0e7 " + root.percent : root.percent
+            text: root.percent
             color: Colors.text.base
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
+            anchors.verticalCenter: parent.verticalCenter
         }
 
     }

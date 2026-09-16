@@ -3,6 +3,7 @@ import "./dropdown"
 import "./launcher"
 import "./lock"
 import "./notifications"
+import "./osd"
 import Quickshell
 
 Scope {
@@ -19,6 +20,9 @@ Scope {
     }
 
     Toasts {
+    }
+
+    Osd {
     }
 
 }

@@ -113,22 +113,6 @@ PanelWindow {
             border.width: Style.border.width
             border.color: GreeterService.busy ? Colors.lock.busy : Colors.lock.fieldBorder
 
-            Text {
-                id: fieldIcon
-
-                text: GreeterService.busy ? "󰔟" : "󰌾"
-                color: GreeterService.busy ? Colors.lock.busy : Colors.text.muted
-                font.family: Style.text.font
-                font.pixelSize: Style.text.iconSize
-
-                anchors {
-                    left: parent.left
-                    leftMargin: Style.bar.padding
-                    verticalCenter: parent.verticalCenter
-                }
-
-            }
-
             TextInput {
                 id: passwordInput
 
@@ -146,9 +130,9 @@ PanelWindow {
                 onAccepted: GreeterService.submit()
 
                 anchors {
-                    left: fieldIcon.right
+                    left: parent.left
                     right: parent.right
-                    leftMargin: Style.widgets.spacing
+                    leftMargin: Style.bar.padding
                     rightMargin: Style.bar.padding
                     verticalCenter: parent.verticalCenter
                 }

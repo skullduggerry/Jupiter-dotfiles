@@ -4,5 +4,6 @@ singleton DropdownState 1.0 DropdownState.qml
 singleton LauncherHistory 1.0 LauncherHistory.qml
 singleton LockService 1.0 LockService.qml
 singleton NotificationService 1.0 NotificationService.qml
+singleton OsdState 1.0 OsdState.qml
 singleton SystemUsage 1.0 SystemUsage.qml
 singleton Time 1.0 Time.qml

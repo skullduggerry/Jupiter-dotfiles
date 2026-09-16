@@ -4,10 +4,17 @@ import QtQuick
 import Quickshell
 
 QtObject {
+    id: metrics
+
     readonly property QtObject
     bar: QtObject {
+        id: barMetrics
+
         readonly property int height: 35
         readonly property int sideGap: 14
+        // The bar draws its frame one border inside the window it is given, so
+        // anything floating below it lines up on this, not on sideGap.
+        readonly property int edgeGap: barMetrics.sideGap + metrics.border.width
         readonly property int topGap: 8
         readonly property int bottomGap: -2
         readonly property int radius: 10
@@ -18,14 +25,6 @@ QtObject {
     readonly property QtObject
     border: QtObject {
         readonly property int width: 1
-    }
-
-    readonly property QtObject
-    battery: QtObject {
-        readonly property int width: 38
-        readonly property int height: 18
-        readonly property int radius: 6
-        readonly property int inset: 2
     }
 
     readonly property QtObject
@@ -109,8 +108,8 @@ QtObject {
         readonly property int height: 240
         readonly property int dotSize: 6
         readonly property int dotSpacing: 8
-        readonly property int dotRow: 20
         readonly property int swipeStep: 400
+        readonly property int swipeRepeat: 10000
         readonly property int swipeIdle: 180
     }
 

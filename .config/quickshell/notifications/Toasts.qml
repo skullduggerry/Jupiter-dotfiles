@@ -78,7 +78,7 @@ Scope {
 
         margins {
             top: Style.popup.topMargin
-            right: Style.bar.sideGap
+            right: Style.bar.edgeGap
         }
 
         Column {

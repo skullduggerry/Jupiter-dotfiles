@@ -4,6 +4,8 @@ BatteryPanel 1.0 BatteryPanel.qml
 BluetoothPanel 1.0 BluetoothPanel.qml
 BrightnessPanel 1.0 BrightnessPanel.qml
 CalendarPanel 1.0 CalendarPanel.qml
+CalendarSetup 1.0 CalendarSetup.qml
+InputField 1.0 InputField.qml
 NotificationEntry 1.0 NotificationEntry.qml
 NotificationPanel 1.0 NotificationPanel.qml
 PanelSlider 1.0 PanelSlider.qml
