@@ -12,7 +12,8 @@ Item {
     readonly property int pageBluetooth: 2
     readonly property int pageAudio: 3
     readonly property int pageBrightness: 4
-    readonly property int pageCount: 5
+    readonly property int pageToggles: 5
+    readonly property int pageCount: 6
     readonly property int preferredHeight: Style.pager.height
     property real swipeTravel: 0
     property bool swipePaged: false
@@ -149,8 +150,10 @@ Item {
                         return bluetoothPage;
                     case root.pageAudio:
                         return audioPage;
-                    default:
+                    case root.pageBrightness:
                         return brightnessPage;
+                    default:
+                        return togglesPage;
                     }
                 }
             }
@@ -231,6 +234,14 @@ Item {
         id: brightnessPage
 
         BrightnessPanel {
+        }
+
+    }
+
+    Component {
+        id: togglesPage
+
+        TogglesPanel {
         }
 
     }

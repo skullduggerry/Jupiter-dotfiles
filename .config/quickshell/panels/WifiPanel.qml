@@ -279,7 +279,7 @@ Item {
                     id: networkIcon
 
                     text: networkRow.connected ? "󰸞" : networkRow.known ? "󰤨" : ""
-                    color: networkRow.connected ? Colors.wifi.connected : Colors.text.muted
+                    color: Colors.icon.active
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
                     width: Style.popup.rowIconWidth

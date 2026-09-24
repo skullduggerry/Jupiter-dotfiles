@@ -47,7 +47,7 @@ Item {
 
         Text {
             text: root.icon
-            color: root.muted ? Colors.icon.disabled : root.volume <= 0 ? Colors.icon.inactive : Colors.icon.active
+            color: Colors.icon.active
             font.family: Style.text.font
             font.pixelSize: Style.text.iconSize
             anchors.verticalCenter: parent.verticalCenter

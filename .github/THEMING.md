@@ -6,27 +6,74 @@ covers the quickshell shell itself.
 ## The chain
 
 ```
-wallust built-in theme "Oxocarbon-Dark"
+the wallpaper app's Themes page, or apply.sh by hand
         │
-        ▼  config/wallust/apply.sh  ← run at login by modules/start.lua
-   wallust theme Oxocarbon-Dark
+        ▼  config/wallust/apply.sh [--shell-only] THEME | --from IMAGE
+   wallust theme THEME          a built-in
+   wallust cs THEME.json        one of colorschemes/, the repo's own
         │
+        ├─ templates/quickshell.json  → ~/.cache/wallust/quickshell.json          (the shell's palette)
         ├─ templates/kitty.conf       → ~/.config/kitty/colors.conf              (gitignored)
         ├─ templates/nvim.lua         → ~/.config/nvim/lua/colors.lua            (gitignored)
         ├─ templates/kdeglobals       → ~/.config/kdeglobals                     (outside the repo)
         └─ templates/Wallust.kvconfig → ~/.config/Kvantum/Wallust/Wallust.kvconfig (gitignored)
+
+   then $XDG_STATE_HOME/wallust/theme: the theme's name, then "all" or "shell-only"
 ```
 
-**The palette is a fixed theme, not derived from the wallpaper.** This is easy
-to get wrong: the config *looks* like a pywal setup (`backend = "wal"`, a
-wallpaper in hyprpaper.conf), but running `wallust run ~/Wallpapers/whale.jpg`
-replaces the whole palette with a washed-out monochrome blue. The live colours
-are exactly `wallust theme Oxocarbon-Dark`, verified byte-for-byte against
-`colors.conf`. `backend`/`palette` in `wallust.toml` only matter for
-image-derived runs and are inert for `theme`.
+`--shell-only` renders through `shell.toml`, which lists the quickshell
+template alone, and passes `-s` so the open terminals keep their colours: the
+shell changes and the apps stay as they were. It is what the app's
+"APPLY TO: Shell" means.
 
-Override the theme for one run with `WALLUST_THEME=... apply.sh`;
-`wallust theme <name> --preview` shows a palette without writing anything.
+**Bare, `apply.sh` applies the recorded theme again, the same way.** That is
+what `modules/start.lua` runs at login, so a login never undoes a choice, and
+it is also what renders every colour file on a fresh clone (Oxocarbon-Dark,
+the default, before anything was recorded). `WALLUST_THEME=X apply.sh` is the
+same as `apply.sh X`.
+
+**Oxocarbon-Dark stays the default rather than a palette from the
+wallpaper.** Running `wallust run ~/Wallpapers/whale.jpg` replaces the whole
+palette with a washed-out monochrome blue, which is why the fixed theme was
+chosen. A palette from the wallpaper is now an explicit choice instead: "New
+from wallpaper" is `apply.sh --from <image>`, which saves it as
+`colorschemes/<image name>.json` in the repo, a theme like any other. The
+shell ignores any of its ANSI slots too grey to read; see "Themes" in
+PROJECT_STRUCTURE.md.
+
+`wallust.toml` is templates only. It used to carry `backend = "wal"` and
+`palette = "dark16"`, which only affect image-derived runs: rendering all four
+templates with and without them gave byte-identical output. `--from` runs
+wallust's defaults (the `fastresize` backend). Every template uses `target=`,
+the key wallust's v3 spec names; `dst=` is an alias of it.
+
+`wallust theme <name> --preview` shows a palette without writing anything —
+but only without `-q`: 3.5.1's `main.rs` returns early for a preview only when
+not quiet, so with `-q` the theme is applied for real (read in the source, not
+tried).
+
+**Test with `-s`.** Without it wallust writes the palette as escape sequences
+to every `/dev/pts/*`, i.e. into every terminal the user has open, and a
+template render error is only a warning: wallust still exits 0.
+
+### What changes live
+
+| Target | When a theme is applied |
+| --- | --- |
+| The shell | at once: `style/Theme.qml` watches the palette file |
+| Open terminals, kitty's included | at once, from the escape sequences (not with `--shell-only`) |
+| New kitty, nvim, Dolphin windows | at start, from the files above |
+| Running Qt/KDE apps on a palette-driven style (Breeze, Fusion) | at once: `apply.sh` broadcasts `org.kde.KGlobalSettings.notifyChange(0, 0)` |
+| A running Dolphin on Kvantum, as configured here | not at all, until it is reopened |
+| A running nvim | not at all; `colors.lua` is read at start |
+
+The broadcast is what plasma-integration's platform theme listens for
+(`KHintsSettings::slotNotifyChange`): it reparses kdeglobals and sets the new
+palette. Verified with a Dolphin on `-style fusion`, which went from
+Oxocarbon-Dark to Catppuccin-Latte in place. Kvantum ignores it, because it
+draws from its own theme, loaded when the style is created; and the
+`StyleChanged` notification would not recreate the style either, since the
+platform theme skips `setStyle()` when the style's name has not changed.
 
 ### Template filters
 
@@ -97,8 +144,19 @@ metric and widget section is KvMojave's, because they belong to that SVG.
 `QT_WAYLAND_DISABLE_WINDOWDECORATION=1` stops Qt drawing its own titlebar so
 Hyprland's border and 8px rounding are the only frame.
 
-Colours are applied at app start — a running Dolphin does not repaint when
-wallust regenerates kdeglobals.
+A running Dolphin does not repaint when a theme is applied: Kvantum loads its
+theme when the style is created, and ignores the palette broadcast (see "What
+changes live"). Reopening it is enough.
+
+**Light themes do not work in Dolphin with this Kvantum theme.** Only
+`[GeneralColors]` follows the palette; the SVG is KvMojave's, with 67 colours of
+dark fills baked in, and those draw the window and view backgrounds. A light
+palette therefore puts dark text on dark surfaces: a fresh Dolphin under
+Catppuccin-Latte was unreadable. The same Dolphin on `-style fusion` was
+correct, and followed the theme live. Two ways out, and it is a choice between
+them: a palette-driven style such as Breeze as `widgetStyle` (live updates,
+light themes, but no translucency), or the SVG's fills made a wallust template
+too (keeps both, and means mapping those 67 colours onto the palette).
 
 ## Hyprland blur rules
 
@@ -119,5 +177,8 @@ Required and installed: `dolphin`, `breeze`, `breeze-icons`, `kio`,
 `qt6-wayland`, `kvantum`, and `plasma-integration` (the `kde` platform theme —
 it was already present, which is why qt6ct turned out to be unnecessary).
 
-`imagemagick` is only needed by `backend = "wal"`, i.e. by `wallust run` on an
-image. Nothing in this repo takes that path any more.
+`imagemagick` is only needed by wallust's `wal` backend. `apply.sh --from` runs
+`wallust run` on the default `fastresize` backend, which does not use it.
+
+`wallust` itself is a cargo install (`~/.cargo/bin`), not a package; see the
+PATH note in `apply.sh`. The wallpaper app's "Add from file…" needs `zenity`.

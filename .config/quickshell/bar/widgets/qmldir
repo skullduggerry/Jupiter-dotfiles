@@ -8,6 +8,7 @@ PowerWidget 1.0 PowerWidget.qml
 QuickPager 1.0 QuickPager.qml
 SystemTrayWidget 1.0 SystemTrayWidget.qml
 SystemUsageWidget 1.0 SystemUsageWidget.qml
+TogglesWidget 1.0 TogglesWidget.qml
 TrayMenu 1.0 TrayMenu.qml
 TrayMenuItem 1.0 TrayMenuItem.qml
 UsageMeter 1.0 UsageMeter.qml

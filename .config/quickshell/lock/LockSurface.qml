@@ -17,7 +17,7 @@ WlSessionLockSurface {
         id: wallpaper
 
         anchors.fill: parent
-        source: Style.lock.wallpaper
+        source: WallpaperService.current !== "" ? "file://" + WallpaperService.current : ""
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         visible: false
@@ -53,7 +53,7 @@ WlSessionLockSurface {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: Time.time
-            color: Colors.text.base
+            color: Colors.lock.text
             font.family: Style.text.font
             font.pixelSize: Style.text.displaySize
         }
@@ -61,7 +61,7 @@ WlSessionLockSurface {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: Time.date
-            color: Colors.text.muted
+            color: Colors.lock.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.size
         }
@@ -79,7 +79,7 @@ WlSessionLockSurface {
                 id: fieldIcon
 
                 text: LockService.authenticating ? "󰔟" : "󰌾"
-                color: LockService.authenticating ? Colors.lock.busy : Colors.text.muted
+                color: LockService.authenticating ? Colors.lock.busy : Colors.lock.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.iconSize
 
@@ -94,7 +94,7 @@ WlSessionLockSurface {
             TextInput {
                 id: passwordInput
 
-                color: Colors.text.base
+                color: Colors.lock.text
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
                 echoMode: TextInput.Password
@@ -125,7 +125,7 @@ WlSessionLockSurface {
                     anchors.fill: parent
                     visible: passwordInput.text === ""
                     text: LockService.authenticating ? "Checking…" : "Password"
-                    color: Colors.text.muted
+                    color: Colors.lock.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
                     verticalAlignment: Text.AlignVCenter
@@ -157,7 +157,7 @@ WlSessionLockSurface {
 
     Text {
         text: Quickshell.env("USER")
-        color: Colors.text.muted
+        color: Colors.lock.muted
         font.family: Style.text.font
         font.pixelSize: Style.text.smallSize
 

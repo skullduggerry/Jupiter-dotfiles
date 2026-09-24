@@ -20,7 +20,7 @@ Item {
 
         Text {
             text: NotificationService.doNotDisturb ? "󰂛" : NotificationService.count > 0 ? "󰂚" : "󰂜"
-            color: NotificationService.doNotDisturb ? Colors.icon.disabled : NotificationService.hasCritical ? Colors.notification.urgent : NotificationService.count > 0 ? Colors.icon.active : Colors.icon.disabled
+            color: !NotificationService.doNotDisturb && NotificationService.hasCritical ? Colors.notification.urgent : Colors.icon.active
             font.family: Style.text.font
             font.pixelSize: Style.text.iconSize
             anchors.verticalCenter: parent.verticalCenter

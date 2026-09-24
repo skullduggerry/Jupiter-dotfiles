@@ -58,7 +58,6 @@ Item {
                     source: icon
                     colorization: Style.tray.colorization
                     colorizationColor: Colors.icon.active
-                    opacity: trayIcon.modelData.status === Status.Passive ? Style.tray.passiveOpacity : 1
                 }
 
                 MouseArea {

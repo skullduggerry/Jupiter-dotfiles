@@ -4,6 +4,7 @@ import "./launcher"
 import "./lock"
 import "./notifications"
 import "./osd"
+import "./wallpaper"
 import Quickshell
 
 Scope {
@@ -23,6 +24,9 @@ Scope {
     }
 
     Osd {
+    }
+
+    WallpaperApp {
     }
 
 }

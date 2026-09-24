@@ -103,7 +103,7 @@ Item {
                 Text {
                     width: Style.popup.rowIconWidth
                     text: root.sinkReady && root.sink.audio.muted ? "󰝟" : "󰕾"
-                    color: root.sinkReady && root.sink.audio.muted ? Colors.icon.disabled : Colors.icon.active
+                    color: Colors.icon.active
                     font.family: Style.text.font
                     font.pixelSize: Style.text.iconSize
                     anchors.verticalCenter: parent.verticalCenter
@@ -150,7 +150,7 @@ Item {
                 Text {
                     width: Style.popup.rowIconWidth
                     text: root.sourceReady && root.source.audio.muted ? "󰍭" : "󰍬"
-                    color: root.sourceReady && root.source.audio.muted ? Colors.icon.disabled : Colors.icon.active
+                    color: Colors.icon.active
                     font.family: Style.text.font
                     font.pixelSize: Style.text.iconSize
                     anchors.verticalCenter: parent.verticalCenter

@@ -1,0 +1,5 @@
+# The quickshell template alone: what `apply.sh --shell-only` renders, when the
+# wallpaper app is set to theme the shell and leave the apps as they are.
+[templates]
+
+quickshell = { src='quickshell.json', target='~/.cache/wallust/quickshell.json'}

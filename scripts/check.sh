@@ -39,10 +39,10 @@ qml_files() {
 }
 
 # qmllint crashes (exit 255, silently) on `void`/`var` in a signature, which the
-# three IpcHandler files need. Excluded until that is fixed upstream.
+# four IpcHandler files need. Excluded until that is fixed upstream.
 lint_excluded() {
     case $(basename "$1") in
-        Launcher.qml|Dropdown.qml|Lock.qml) return 0 ;;
+        Launcher.qml|Dropdown.qml|Lock.qml|WallpaperApp.qml) return 0 ;;
         *) return 1 ;;
     esac
 }
@@ -148,7 +148,7 @@ pass "lua sources parse"
 section "shell"
 while read -r f; do
     bash -n "$f" 2>/dev/null || fail "$f does not parse"
-done < <(find scripts .githooks -type f \( -name '*.sh' -o -path './.githooks/*' \) 2>/dev/null)
+done < <(find scripts .githooks .config -type f \( -name '*.sh' -o -path './.githooks/*' \) 2>/dev/null)
 pass "shell sources parse"
 
 section "greeter compositor config"

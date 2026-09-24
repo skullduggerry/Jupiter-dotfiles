@@ -24,7 +24,7 @@ Item {
 
         Text {
             text: !root.powered ? "󰂲" : root.connected ? "󰂱" : "󰂯"
-            color: root.connected ? Colors.icon.active : root.powered ? Colors.icon.inactive : Colors.icon.disabled
+            color: Colors.icon.active
             font.family: Style.text.font
             font.pixelSize: Style.text.iconSize
             anchors.verticalCenter: parent.verticalCenter

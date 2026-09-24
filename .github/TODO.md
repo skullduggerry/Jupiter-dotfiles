@@ -18,24 +18,44 @@ Built and reviewed, never exercised against the real thing:
       earlier attempt concluded wheel could not be injected — so the paging
       thresholds were tuned against a replay of the measured gesture. Only the
       feel is unconfirmed.
+- [ ] **Airplane Mode** actually switching the radios. Reading it is verified;
+      flipping it is not, because the desktop's only link is Wi-Fi and the
+      test would have cut the connection it was running over. The write is the
+      same `Networking.wifiEnabled` the Wi-Fi page's On/Off header makes.
+- [ ] **Night Light by eye.** Everything but the colour is verified in a nested
+      Hyprland (see "Quick toggles" in PROJECT_STRUCTURE.md); the tint is
+      applied after screen capture, so 4000K has never been looked at.
+- [ ] The toggle tiles under a **real pointer**. They were driven through IPC,
+      since a nested compositor has no input to give them.
+- [ ] The **wallpaper app** under a real pointer and keyboard, for the same
+      reason: its services were driven through test-only IPC hooks, its pages
+      switched the same way, and only Escape and typing into the theme search
+      went through real (injected) keys. SUPER+W itself was fired as the
+      global, not pressed.
+- [ ] **Add from file…** with the real zenity dialog. The import script was
+      exercised with a stand-in zenity: new file, same file again, a name
+      clash, and cancelling.
+- [ ] A **real login** with the new start-up: hyprpaper started from the saved
+      config (only simulated, with `hyprpaper -c` on it), and the login-time
+      `apply.sh`, which only now finds wallust at all.
 
 ## Next features
 
-- [ ] **Settings app** as a `FloatingWindow`: theme, accent colour, font,
-      persisted through `FileView` + `JsonAdapter` and applied live. Every
-      widget already reads `Colors.*`/`Style.*`, so deriving those from a config
-      file is contained — but a Light mode means authoring a second palette,
-      since every colour today assumes dark.
-- [ ] **Tray flyout**: six quick-toggle tiles. Backends present here:
-      `hyprsunset` (Night Light), `power-profiles-daemon` (Power Mode), `rfkill`
-      (Airplane Mode), and DND (`NotificationService.doNotDisturb`, already
-      toggled by right-clicking the bell). **Not
-      installed: `cliphist`** and **no screen recorder** (`wf-recorder` /
-      `wl-screenrec`) — those two tiles need a package first.
-- [ ] **Wallpaper selector**, plus the wallpaper section of the workspace
-      dropdown, over `hyprpaper` IPC, including per-workspace apply.
-- [ ] The bar's **tray-expand** button, once its panel exists. (The
-      notification bell is in.)
+- [ ] **Settings app** as a `FloatingWindow`: accent colour and font. The
+      theme part exists now, as the wallpaper app's Themes page, and a light
+      palette already works in the shell (every colour is derived from
+      `Colors.palette`), so the design's Light/Dark/Auto is a choice of theme.
+- [ ] The tray flyout's last two tiles, **Clipboard** and **Screen Record**.
+      The other four are the Toggles page. Both need a package first:
+      **`cliphist` is not installed**, and **no screen recorder** is
+      (`wf-recorder` / `wl-screenrec`). Each is one more `ToggleTile` in
+      `panels/TogglesPanel.qml`; at six tiles `Style.toggles.tileColumns` goes
+      to 3, which is the design's grid.
+- [ ] The rest of the **wallpaper app**'s design: "This Workspace / All
+      Workspaces" (hyprpaper takes a monitor, not a workspace, so per-workspace
+      means switching on workspace changes), the category tabs (subfolders of
+      `~/Wallpapers` would fit), and the wallpaper section of the workspace
+      dropdown.
 - [ ] **Inline reply** on notifications that offer it. `hasInlineReply` /
       `sendInlineReply()` exist; the capability is deliberately not advertised
       until there is a field to type into.
@@ -54,7 +74,11 @@ Done and verified against a real window — see `.github/THEMING.md`. Left over:
 
 - [ ] Other Qt/KDE apps inherit this for free but none were checked. Ark,
       Gwenview and the KIO file dialogs are the ones worth a look.
-- [ ] `wallust.toml` mixes `target=` (kitty, kdeglobals, kvantum) and `dst=`
-      (nvim). Both work; pick one.
-- [ ] `backend`/`palette` in `wallust.toml` are inert now that the palette comes
-      from a built-in theme. Harmless, but they read as if they were live.
+- [ ] **Decide how Dolphin should follow a theme.** With Kvantum it takes a new
+      theme only when reopened, and a light theme is unreadable in it, because
+      KvMojave's SVG draws dark surfaces whatever the palette says. Breeze as
+      the widget style follows every theme live (verified with Fusion) but
+      loses the translucency; making the SVG a template keeps both. See
+      "Qt / KDE apps" in THEMING.md.
+- [ ] A running **nvim** keeps its colours until restarted; `colors.lua` is
+      only read at start.

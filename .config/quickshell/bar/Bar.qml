@@ -1,9 +1,19 @@
 import "../style"
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Wayland
 
 Scope {
+    id: root
+
+    property bool expanded: false
+
+    GlobalShortcut {
+        name: "barExpand"
+        onPressed: root.expanded = !root.expanded
+    }
+
     Variants {
         model: Quickshell.screens
 
@@ -30,6 +40,8 @@ Scope {
 
             BarContent {
                 screen: modelData
+                expanded: root.expanded
+                onExpandRequested: root.expanded = !root.expanded
             }
 
         }

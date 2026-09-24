@@ -10,6 +10,7 @@ WidgetPopup {
     readonly property alias pageBluetooth: settings.pageBluetooth
     readonly property alias pageAudio: settings.pageAudio
     readonly property alias pageBrightness: settings.pageBrightness
+    readonly property alias pageToggles: settings.pageToggles
 
     function openAt(page: int, anchor: Item) {
         root.anchorItem = anchor;

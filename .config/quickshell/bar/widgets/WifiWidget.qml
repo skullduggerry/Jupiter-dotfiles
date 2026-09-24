@@ -49,7 +49,7 @@ Item {
 
         Text {
             text: root.icon
-            color: root.connected ? Colors.icon.active : Colors.icon.disabled
+            color: Colors.icon.active
             font.family: Style.text.font
             font.pixelSize: Style.text.iconSize
             anchors.verticalCenter: parent.verticalCenter

@@ -84,7 +84,7 @@ Item {
                     id: deviceIcon
 
                     text: deviceRow.connected ? "󰂱" : deviceRow.paired ? "󰂯" : "󰂲"
-                    color: deviceRow.connected ? Colors.icon.active : deviceRow.paired ? Colors.icon.inactive : Colors.icon.disabled
+                    color: Colors.icon.active
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
                     width: Style.popup.rowIconWidth

@@ -1,6 +1,6 @@
-/config/kitty/colors.conf
-/config/nvim/lua/colors.lua
-/config/quickshell/.qmlls.ini
-/config/Kvantum/Wallust/Wallust.kvconfig
+/.config/kitty/colors.conf
+/.config/nvim/lua/colors.lua
+/.config/quickshell/.qmlls.ini
+/.config/Kvantum/Wallust/Wallust.kvconfig
 __pycache__/
 *.pyc

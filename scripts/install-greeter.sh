@@ -12,8 +12,10 @@
 # stays the single source of truth for the design system. Re-run this after
 # changing any colour or dimension, or the greeter keeps the old ones.
 #
-# The wallpaper path is read from config/hypr/hyprpaper.conf so the greeter
-# always shows the same image as the desktop.
+# The wallpaper path is read from the hyprpaper config the desktop starts from
+# so the greeter shows the same image: the wallpaper app's saved one once
+# something was picked there, config/hypr/hyprpaper.conf before that. Re-run it
+# after picking a new wallpaper, too.
 set -euo pipefail
 
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -21,8 +23,12 @@ dest=${1:-/etc/greetd}
 
 owner_home=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
 
-wallpaper=$(sed -n 's/^[[:space:]]*path[[:space:]]*=[[:space:]]*//p' \
-    "$repo/.config/hypr/hyprpaper.conf" | head -1)
+# The same path config/hypr/modules/start.lua checks. sudo resets the
+# environment, so this falls back to the owner's home rather than root's.
+picked=${XDG_STATE_HOME:-$owner_home/.local/state}/quickshell/hyprpaper.conf
+config=$repo/.config/hypr/hyprpaper.conf
+[[ -r $picked ]] && config=$picked
+wallpaper=$(sed -n 's/^[[:space:]]*path[[:space:]]*=[[:space:]]*//p' "$config" | tail -1)
 wallpaper=${wallpaper/#\~/$owner_home}
 
 if [[ ! -r $wallpaper ]]; then

@@ -1,7 +1,6 @@
 pragma Singleton
 
 import QtQuick
-import Quickshell
 
 QtObject {
     id: metrics
@@ -37,7 +36,6 @@ QtObject {
     readonly property QtObject
     tray: QtObject {
         readonly property real colorization: 1
-        readonly property real passiveOpacity: 0.45
         readonly property int itemPadding: 4
     }
 
@@ -114,6 +112,37 @@ QtObject {
     }
 
     readonly property QtObject
+    toggles: QtObject {
+        readonly property int tileColumns: 2
+        readonly property int tileHeight: 64
+        readonly property int tileSpacing: metrics.workspaces.tileSpacing
+        readonly property int badgeSize: 26
+    }
+
+    readonly property QtObject
+    wallpaper: QtObject {
+        readonly property int windowWidth: 1100
+        readonly property int windowHeight: 720
+        readonly property int minimumWidth: 720
+        readonly property int minimumHeight: 480
+        readonly property int padding: 20
+        readonly property int spacing: 16
+        readonly property int cardWidth: 320
+        readonly property real cardRatio: 0.5
+        readonly property int cardRadius: 8
+        readonly property int thumbnailWidth: 640
+        readonly property int badgeSize: 18
+        readonly property int badgeInset: 8
+        readonly property int labelHeight: 20
+        readonly property int labelPadding: 6
+        readonly property int labelRadius: 4
+        readonly property int themeCardWidth: 180
+        readonly property int themeCardHeight: 72
+        readonly property int swatchSize: 10
+        readonly property int searchWidth: 280
+    }
+
+    readonly property QtObject
     slider: QtObject {
         readonly property int track: 6
         readonly property int height: 20
@@ -156,7 +185,6 @@ QtObject {
         readonly property int fieldHeight: 40
         readonly property int fieldRadius: 20
         readonly property int spacing: 18
-        readonly property url wallpaper: "file://" + Quickshell.env("HOME") + "/Wallpapers/whale.jpg"
         readonly property int blurMax: 48
         readonly property real blurAmount: 1
     }

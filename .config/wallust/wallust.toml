@@ -1,10 +1,7 @@
-backend = "wal"
-
-palette = "dark16"
-
 [templates]
 
 kitty = { src='kitty.conf', target='~/.config/kitty/colors.conf'}
-nvim = { src='nvim.lua', dst='~/.config/nvim/lua/colors.lua'}
+nvim = { src='nvim.lua', target='~/.config/nvim/lua/colors.lua'}
 kdeglobals = { src='kdeglobals', target='~/.config/kdeglobals'}
 kvantum = { src='Wallust.kvconfig', target='~/.config/Kvantum/Wallust/Wallust.kvconfig'}
+quickshell = { src='quickshell.json', target='~/.cache/wallust/quickshell.json'}
