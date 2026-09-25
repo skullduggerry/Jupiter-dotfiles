@@ -1,3 +1,4 @@
+import "../services"
 import "../style"
 import QtQuick
 import Quickshell.Services.UPower
@@ -5,9 +6,11 @@ import Quickshell.Services.UPower
 Item {
     id: root
 
-    readonly property int preferredHeight: Style.bar.padding * 2 + header.height + Style.border.width + Style.bar.spacing + rows.implicitHeight
+    readonly property int preferredHeight: Style.bar.padding * 2 + header.height + Style.border.width + Style.bar.spacing + rows.implicitHeight + Style.bar.spacing + profiles.height
     readonly property UPowerDevice device: UPower.displayDevice
     readonly property bool charging: root.device.state === UPowerDeviceState.Charging || root.device.state === UPowerDeviceState.PendingCharge
+    // power-profiles-daemon's modes, Performance only where the hardware has it.
+    readonly property var profileChoices: PowerProfiles.hasPerformanceProfile ? [PowerProfile.PowerSaver, PowerProfile.Balanced, PowerProfile.Performance] : [PowerProfile.PowerSaver, PowerProfile.Balanced]
 
     function stateLabel(state: int) : string {
         switch (state) {
@@ -107,32 +110,63 @@ Item {
                 topMargin: Style.bar.spacing
             }
 
-            BatteryDetail {
+            DetailRow {
                 label: "State"
                 value: root.stateLabel(root.device.state)
             }
 
-            BatteryDetail {
+            DetailRow {
                 label: root.charging ? "Until full" : "Remaining"
                 visible: root.device.state !== UPowerDeviceState.FullyCharged
                 value: root.durationLabel(root.charging ? root.device.timeToFull : root.device.timeToEmpty)
             }
 
-            BatteryDetail {
+            DetailRow {
                 label: "Power draw"
                 value: Math.abs(root.device.changeRate).toFixed(1) + " W"
             }
 
-            BatteryDetail {
+            DetailRow {
                 label: "Capacity"
                 visible: root.device.healthSupported
                 value: Math.round(root.device.healthPercentage) + "%"
             }
 
-            BatteryDetail {
+            DetailRow {
                 label: "Model"
                 visible: root.device.model !== ""
                 value: root.device.model
+            }
+
+        }
+
+        Row {
+            id: profiles
+
+            spacing: Style.widgets.spacing
+
+            anchors {
+                top: rows.bottom
+                left: parent.left
+                right: parent.right
+                topMargin: Style.bar.spacing
+            }
+
+            Repeater {
+                model: root.profileChoices
+
+                delegate: PillButton {
+                    id: choice
+
+                    required property int modelData
+
+                    width: (profiles.width - profiles.spacing * (root.profileChoices.length - 1)) / root.profileChoices.length
+                    compact: true
+                    text: QuickToggles.profileName(choice.modelData)
+                    checked: PowerProfiles.profile === choice.modelData
+                    onClicked: PowerProfiles.profile = choice.modelData
+                }
+
             }
 
         }

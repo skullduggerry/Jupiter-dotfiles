@@ -1,3 +1,4 @@
+import "../services"
 import "../style"
 import QtQuick
 import Quickshell
@@ -10,6 +11,13 @@ Scope {
     id: root
 
     property bool open: false
+
+    // A rotating wallpaper turns whether or not the window is open.
+    Binding {
+        target: WallpaperService
+        property: "active"
+        value: true
+    }
 
     IpcHandler {
         function toggle(): void {

@@ -75,11 +75,15 @@ QtObject {
         readonly property int tileHeight: 35
         readonly property int tileSpacing: 6
         readonly property int tileColumns: 3
+        // The wallpaper card under the grid: wider than the app's 2:1, so the
+        // workspaces keep the bulk of the dropdown.
+        readonly property real previewRatio: 0.4
     }
 
     readonly property QtObject
     usage: QtObject {
         readonly property real warnAbove: 0.8
+        readonly property int coreHeight: 32
     }
 
     readonly property QtObject

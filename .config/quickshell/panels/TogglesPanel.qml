@@ -7,16 +7,6 @@ Item {
     id: root
 
     readonly property int preferredHeight: Style.bar.padding * 2 + header.height + Style.border.width + Style.bar.spacing + tiles.height
-    readonly property string powerProfileLabel: {
-        switch (PowerProfiles.profile) {
-        case PowerProfile.PowerSaver:
-            return "Power Saver";
-        case PowerProfile.Performance:
-            return "Performance";
-        default:
-            return "Balanced";
-        }
-    }
     readonly property string powerProfileIcon: {
         switch (PowerProfiles.profile) {
         case PowerProfile.PowerSaver:
@@ -114,7 +104,7 @@ Item {
             ToggleTile {
                 width: tiles.tileWidth
                 icon: root.powerProfileIcon
-                label: root.powerProfileLabel
+                label: QuickToggles.profileName(PowerProfiles.profile)
                 checked: PowerProfiles.profile !== PowerProfile.Balanced
                 onActivated: QuickToggles.cyclePowerProfile()
             }

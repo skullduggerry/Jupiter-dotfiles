@@ -7,6 +7,10 @@ Item {
 
     readonly property int preferredHeight: Style.bar.padding * 2 + header.height + Style.border.width + Style.bar.spacing + Math.max(Style.popup.itemHeight, entries.contentHeight)
 
+    // Toasts give way to an open centre; see NotificationService.viewers.
+    Component.onCompleted: NotificationService.viewers += 1
+    Component.onDestruction: NotificationService.viewers -= 1
+
     Item {
         anchors.fill: parent
         anchors.margins: Style.bar.padding
@@ -98,8 +102,10 @@ Item {
 
         }
 
+        // On the list's own area: centred on the whole panel, it sat across
+        // the header's separator.
         Text {
-            anchors.centerIn: parent
+            anchors.centerIn: entries
             visible: entries.count === 0
             text: NotificationService.doNotDisturb ? "Do not disturb" : "No notifications"
             color: Colors.text.muted

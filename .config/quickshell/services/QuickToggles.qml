@@ -36,6 +36,18 @@ Singleton {
 
     }
 
+    // Shared by the Toggles tile and the Battery page's choice.
+    function profileName(profile: int) : string {
+        switch (profile) {
+        case PowerProfile.PowerSaver:
+            return "Power Saver";
+        case PowerProfile.Performance:
+            return "Performance";
+        default:
+            return "Balanced";
+        }
+    }
+
     function cyclePowerProfile() {
         switch (PowerProfiles.profile) {
         case PowerProfile.PowerSaver:

@@ -48,13 +48,15 @@ Item {
         }
     }
 
+    // Deliberately not anchored to the bell, which moves with the bar's
+    // drawer: the centre opens at the right edge, exactly the column the
+    // toasts pop up in, so a notification is found where it was shown.
     WidgetPopup {
         id: notificationPopup
 
         screen: root.screen
-        anchorItem: root
         namespaceSuffix: "notifications-popup"
-        popupWidth: Style.dropdown.width
+        popupWidth: Style.notifications.width
         popupHeight: Math.max(Style.popup.minHeight, Math.min(Style.dropdown.maxHeight, panel.item ? panel.item.preferredHeight : Style.popup.minHeight))
 
         Loader {

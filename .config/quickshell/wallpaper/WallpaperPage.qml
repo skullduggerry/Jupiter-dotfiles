@@ -1,14 +1,79 @@
+import "../panels"
 import "../services"
 import "../style"
-import Qt.labs.folderlistmodel
 import QtQuick
 
-// ~/Wallpapers as a grid, and the panels' Blur/Solid switch beside it: a light
-// wallpaper is what makes the translucent bar hard to read.
+// ~/Wallpapers as a grid under the wallpaper mode, and the panels' Blur/Solid
+// switch beside it: a light wallpaper is what makes the translucent bar hard
+// to read.
 Item {
     id: root
 
     readonly property int columns: Math.max(1, Math.floor((root.width + Style.wallpaper.spacing) / (Style.wallpaper.cardWidth + Style.wallpaper.spacing)))
+
+    // Where the theme page has its search field, so both grids start level.
+    Row {
+        id: mode
+
+        spacing: Style.wallpaper.spacing
+
+        Row {
+            spacing: Style.bar.spacing
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "MODE"
+                color: Colors.text.muted
+                font.family: Style.text.font
+                font.pixelSize: Style.text.smallSize
+                font.weight: Font.Medium
+            }
+
+            PillButton {
+                text: "Static"
+                checked: !WallpaperService.rotating
+                onClicked: WallpaperService.setRotating(false)
+            }
+
+            PillButton {
+                text: "Rotate"
+                checked: WallpaperService.rotating
+                onClicked: WallpaperService.setRotating(true)
+            }
+
+        }
+
+        Row {
+            visible: WallpaperService.rotating
+            spacing: Style.bar.spacing
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "EVERY"
+                color: Colors.text.muted
+                font.family: Style.text.font
+                font.pixelSize: Style.text.smallSize
+                font.weight: Font.Medium
+            }
+
+            Repeater {
+                model: WallpaperService.rotateChoices
+
+                delegate: PillButton {
+                    id: interval
+
+                    required property int modelData
+
+                    text: WallpaperService.rotateLabel(interval.modelData)
+                    checked: WallpaperService.rotateMinutes === interval.modelData
+                    onClicked: WallpaperService.setRotateMinutes(interval.modelData)
+                }
+
+            }
+
+        }
+
+    }
 
     GridView {
         id: grid
@@ -20,21 +85,14 @@ Item {
         cellHeight: (grid.cellWidth - Style.wallpaper.spacing) * Style.wallpaper.cardRatio + Style.wallpaper.spacing
         clip: true
         boundsBehavior: Flickable.StopAtBounds
+        model: WallpaperService.library
 
         anchors {
-            top: parent.top
+            top: mode.bottom
+            topMargin: Style.wallpaper.spacing
             bottom: footer.top
             bottomMargin: Style.wallpaper.spacing
             left: parent.left
-        }
-
-        // Watches the directory, so "Add from file…" shows up by itself.
-        model: FolderListModel {
-            folder: "file://" + WallpaperService.directory
-            nameFilters: ["*.jpg", "*.jpeg", "*.png", "*.webp", "*.bmp"]
-            caseSensitive: false
-            showDirs: false
-            sortCaseSensitive: false
         }
 
         delegate: WallpaperCard {

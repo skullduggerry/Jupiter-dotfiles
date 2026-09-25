@@ -35,9 +35,11 @@ Built and reviewed, never exercised against the real thing:
 - [ ] **Add from file…** with the real zenity dialog. The import script was
       exercised with a stand-in zenity: new file, same file again, a name
       clash, and cancelling.
-- [ ] A **real login** with the new start-up: hyprpaper started from the saved
-      config (only simulated, with `hyprpaper -c` on it), and the login-time
-      `apply.sh`, which only now finds wallust at all.
+- [ ] The **new pills and the usage meters under a real pointer**: the
+      wallpaper mode (app and workspace dropdown), the Battery page's power
+      modes, and a click on the CPU/RAM meters. Their services were driven
+      through test-only IPC hooks and `powerprofilesctl`, and every one of them
+      was checked on screen following the change, but no click reached them.
 
 ## Next features
 
@@ -53,9 +55,8 @@ Built and reviewed, never exercised against the real thing:
       to 3, which is the design's grid.
 - [ ] The rest of the **wallpaper app**'s design: "This Workspace / All
       Workspaces" (hyprpaper takes a monitor, not a workspace, so per-workspace
-      means switching on workspace changes), the category tabs (subfolders of
-      `~/Wallpapers` would fit), and the wallpaper section of the workspace
-      dropdown.
+      means switching on workspace changes), and the category tabs
+      (subfolders of `~/Wallpapers` would fit).
 - [ ] **Inline reply** on notifications that offer it. `hasInlineReply` /
       `sendInlineReply()` exist; the capability is deliberately not advertised
       until there is a field to type into.

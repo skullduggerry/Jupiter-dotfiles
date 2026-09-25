@@ -21,10 +21,12 @@ config/quickshell/
 │                          NotificationService, QuickToggles, SystemUsage, Time,
 │                          WallpaperService (+ wallpaper-import.sh).
 ├── panels/                Panel content shown by more than one surface:
-│                          AudioPanel, BatteryPanel (+BatteryDetail),
-│                          BluetoothPanel, BrightnessPanel, CalendarPanel,
-│                          NotificationPanel (+NotificationEntry), PanelSlider,
-│                          TogglesPanel (+ToggleTile), WifiPanel, WorkspacePanel.
+│                          AudioPanel, BatteryPanel, BluetoothPanel,
+│                          BrightnessPanel, CalendarPanel,
+│                          NotificationPanel (+NotificationEntry), SystemPanel,
+│                          TogglesPanel (+ToggleTile), WifiPanel, WorkspacePanel;
+│                          and the controls they share: DetailRow (a label and
+│                          its value), PanelSlider, PillButton, InputField.
 ├── bar/                   Bar.qml (PanelWindow per screen) + BarContent.qml,
 │   │                      and BarDrawer.qml (the right side's hidden icons).
 │   └── widgets/           one file per widget, plus WidgetPopup.qml (the
@@ -38,7 +40,8 @@ config/quickshell/
 ├── lock/                  Lock.qml (WlSessionLock) + LockSurface.qml (per monitor).
 └── wallpaper/             WallpaperApp.qml (scope/IPC/shortcut/window) +
                            WallpaperContent.qml, its two pages (WallpaperPage,
-                           ThemePage), their cards and PillButton.
+                           ThemePage) and their cards. Its pills are panels/'s
+                           PillButton, which the dropdowns use too.
 ```
 
 ## Import graph
@@ -147,7 +150,9 @@ and gets it passed down from `BarContent.qml`, which gets it from `Bar.qml`'s
 
 `WidgetPopup` usage: set `anchorItem: root` so it opens under its own widget, a
 distinct `namespaceSuffix`, and put content as default-property children. See
-`PowerWidget.qml`.
+`PowerWidget.qml`. Leaving `anchorItem` unset puts the popup at the right edge
+instead, on `Style.bar.edgeGap`; the notification centre is the one popup that
+does this (see Notifications).
 
 **The suffix must end in `-popup`.** The frosted-glass backdrop is not drawn by
 quickshell at all — it is a Hyprland layer rule in
@@ -453,6 +458,15 @@ the label is the profile's name and the badge is filled whenever it is not
 Balanced. `PowerProfiles` exposes no availability flag: without the daemon it
 sits at Balanced and a click only logs a critical.
 
+**The Battery page shows the same choice whole**, as a row of compact
+`PillButton` segments under the details, one per profile the hardware offers,
+the current one selected; a click sets that profile directly rather than
+cycling. Both read their names from `QuickToggles.profileName()`. It fits
+without touching the pager's height: the UPower display device never carries a
+model or a capacity (both read `""`/`0` over DBus here), so at most three
+detail rows show above it. Checked on screen by switching profiles with
+`powerprofilesctl set`, which the selected segment followed.
+
 While Do Not Disturb, Airplane Mode or Night Light is on, the dots gain a ring
 (`md-dots_horizontal_circle_outline`); the icon colour never changes. Tiles
 follow the same rule: every glyph and label is full white, and "on" is the
@@ -499,6 +513,26 @@ A popup already open when the drawer moves stays where it opened, since
 `WidgetPopup` only re-measures its anchor when that item's own `x` changes, and
 a moving row does not change it.
 
+## The usage dropdown
+
+Clicking the CPU/RAM meters opens `SystemPanel` (`usage-popup`): a bar per core,
+the CPU's model, average frequency, temperature and load average, then memory
+used, cache (`free`'s buff/cache) and swap, with the uptime in its header.
+
+- **Only what the meters need is read all the time.** `/proc/stat` and
+  `/proc/meminfo` were read every 3s already; the per-core shares and the extra
+  memory fields come out of those same reads, so an opening panel has a real
+  sample at once. `/proc/cpuinfo`, `/proc/loadavg`, `/proc/uptime` and the
+  sensor are read only while `SystemUsage.detailed` is set, which the panel
+  binds, and the interval drops to 1s for as long as it is.
+- **The sensor is found by its driver's name**, once, on first open: hwmon
+  numbers follow probe order and change between boots (`k10temp` is `hwmon5`
+  here today). Tried in order: `k10temp`, `zenpower`, `coretemp`,
+  `cpu_thermal`; with none of them the Temperature row stays hidden.
+- The model name is shortened for the row: "AMD Ryzen 5 7640U w/ Radeon 760M
+  Graphics" shows as "AMD Ryzen 5 7640U", and Intel's `(R)`, `(TM)` and
+  "CPU @ …" go the same way.
+
 ## The wallpaper app
 
 `wallpaper/WallpaperApp.qml` is an ordinary window, a `FloatingWindow` (class
@@ -515,7 +549,9 @@ Themes, and its "This Workspace / All Workspaces" choice is not built:
 hyprpaper has no per-workspace wallpaper.
 
 **Wallpapers** are `~/Wallpapers` through a `FolderListModel`, which watches the
-directory, so an import shows up by itself. Thumbnails decode at the fixed
+directory, so an import shows up by itself. The model is
+`WallpaperService.library`, not the page's own, because rotation walks it too:
+one list, one filter, one order. Thumbnails decode at the fixed
 `Style.wallpaper.thumbnailWidth` rather than the card's width: the cards follow
 the window, and a `sourceSize` bound to them would decode every image again on
 each step of a resize.
@@ -552,6 +588,33 @@ each step of a resize.
   is opaque, for a wallpaper too light to read the bar over. A light theme's
   blur is 80%: at 50%, a light surface over a dark wallpaper went mid-grey and
   its dark text on it was unreadable.
+
+**The wallpaper mode** is the row above the grid: **Static** keeps the pick,
+**Rotate** moves on to the next wallpaper in the grid's order, wrapping, every
+5 min / 15 min / 30 min / 1 h (the choices are `WallpaperService.rotateChoices`).
+Each step is an ordinary `apply()`, so the saved config follows and a login
+restores whichever wallpaper was showing. The mode and interval persist in
+`Quickshell.statePath("wallpaper.json")`.
+
+- **The service has to exist from login to rotate.** A singleton is built on
+  first use, and before this nothing on screen used `WallpaperService` until
+  the app or the lock screen opened. `WallpaperApp.qml`'s scope, which
+  `shell.qml` always builds, binds `WallpaperService.active`, and the timer runs
+  only while `active`, rotating and the library holds more than one image.
+- **A pick while rotating gets a whole turn.** Every successful apply restarts
+  the timer, so a wallpaper chosen 17s into a turn stayed 60s (checked with a
+  one-minute interval), not the 43s left of the old one.
+- hyprpaper does not hoard what it was shown: three full cycles through the
+  six wallpapers here took it from 106 MB to 141 MB, and the third added
+  nothing.
+
+**The workspace dropdown** (`WorkspacePanel`, in the bar's popup and the
+gesture's left zone alike) ends with the same state: the current wallpaper as
+a card with its name pill, the Static/Rotate choice in compact pills beside
+its title (with the interval while rotating), and the theme's name with its six
+ANSI swatches, as its card on the Themes page draws them. The card is wider
+than the app's 2:1 (`Style.workspaces.previewRatio`) so the workspaces keep the
+bulk of the dropdown.
 
 ## Themes
 
@@ -687,6 +750,18 @@ it out of the centre.
 Critical notifications never auto-expire and keep their colour; right-clicking
 the bar's bell toggles do-not-disturb, which suppresses toasts for everything
 except critical.
+
+**The centre opens in the toasts' column, not under the bell.** It used to be
+a `Style.dropdown.width` popup centred on the bell, and the bell moves with the
+bar's drawer: open, the centre floated mid-screen; closed, it was clamped to the
+right edge but 20px narrower than the toasts. It now leaves `anchorItem` unset
+and takes `Style.notifications.width`, so it covers exactly the column a toast
+occupies (both measured at x 1085–1424 on the laptop). That makes the two
+overlap exactly, so toasts give way to it: `NotificationPanel` counts itself in
+`NotificationService.viewers`, opening a centre expires the toasts showing, and
+nothing raises a toast while one is open, since the centre lists it as it
+arrives. A transient notification is expired at once instead, because the
+centre does not list it and it would otherwise stay tracked forever.
 
 **Whatever else owns the bus name has to be masked**, since two daemons cannot
 hold it at once. Which daemon that is differs per machine — this laptop shipped
@@ -879,7 +954,7 @@ repo-wide Nerd Font glyph count against HEAD, python/lua/shell parsing, the
 greeter compositor config, and `tests/`. The pre-commit hook formats staged QML
 and re-stages it; pre-push runs the suite without modifying anything.
 
-**Three constructs defeat the Qt tooling:**
+**Four constructs defeat the Qt tooling:**
 
 - a `: void` return type — crashes qmllint (exit 255, silently) *and* makes
   qmlformat exit non-zero with empty output. `Dropdown`, `Launcher`, `Lock` and
@@ -891,6 +966,10 @@ and re-stages it; pre-push runs the suite without modifying anything.
   function **parameter** it is worse, because qmlformat silently rewrites it to
   plain `list`, so `check.sh --fix` would change the code. Nothing uses either;
   `Theme.run()` takes two strings instead of an argument list for this reason.
+- a number literal with more than six significant digits. qmlformat reprints
+  every literal with six, silently: `check.sh --fix` turned `1048576` into
+  `1.04858e+06`, which is 1048580. Write such a number as an expression
+  (`SystemPanel` divides by `1024 / 1024`).
 
 Underneath, qmllint is still:
 

@@ -10,6 +10,12 @@ Singleton {
     property bool doNotDisturb: false
     property var popupIds: []
 
+    // Notification centres on screen, counted by NotificationPanel. A centre
+    // opens in the column toasts pop up in and already lists everything, so
+    // toasts give way to it: those showing expire as it opens, and nothing
+    // new raises one while it is open.
+    property int viewers: 0
+
     readonly property var tracked: server.trackedNotifications.values
 
     readonly property var list: root.tracked.filter(candidate => !candidate.transient).reverse()
@@ -37,6 +43,13 @@ Singleton {
         root.popupIds = []
     }
 
+    function expirePopups() {
+        const shown = root.popups.slice()
+        for (let index = 0; index < shown.length; index++) root.expirePopup(shown[index])
+    }
+
+    onViewersChanged: if (root.viewers > 0) root.expirePopups()
+
     NotificationServer {
         id: server
 
@@ -48,6 +61,12 @@ Singleton {
         onNotification: (notification) => {
             notification.tracked = true
             if (notification.lastGeneration) return
+            if (root.viewers > 0) {
+                // The open centre lists it. It does not list a transient one,
+                // which would otherwise stay tracked with nowhere to show.
+                if (notification.transient) notification.expire()
+                return
+            }
             if (root.doNotDisturb && notification.urgency !== NotificationUrgency.Critical) return
             root.popupIds = [...root.popupIds, notification.id]
         }

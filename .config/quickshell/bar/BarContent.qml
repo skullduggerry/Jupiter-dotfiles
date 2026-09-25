@@ -34,6 +34,7 @@ Rectangle {
         }
 
         SystemUsageWidget {
+            screen: root.screen
         }
 
     }
