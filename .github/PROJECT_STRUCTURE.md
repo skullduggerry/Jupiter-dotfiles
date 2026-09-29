@@ -497,7 +497,7 @@ The state lives in `services/QuickToggles.qml`.
 | Night Light | a `hyprsunset` process the shell owns |
 | Screen Record | a `wf-recorder` process the shell owns, stopped with SIGINT |
 | Clipboard | two `wl-paste --watch cliphist store` processes (text, images) |
-| Power Mode | Quickshell's own `PowerProfiles` (power-profiles-daemon) |
+| Caffeine | an `IdleInhibitor` on every bar, enabled while it is on |
 
 **Night Light is a process, not hyprsunset's IPC.** Hyprland resets every
 monitor's colour matrix when the ctm-control client that set it disconnects
@@ -529,25 +529,41 @@ it off turns both back on. rfkill would have needed a long-running
 `rfkill event` watcher, and it would disagree with the Wi-Fi page's On/Off
 header, which writes the same `Networking.wifiEnabled`.
 
-**Power Mode cycles** Power Saver → Balanced → Performance, skipping Performance
-where `hasPerformanceProfile` is false. Three states do not fit in a badge, so
-the label is the profile's name and the badge is filled whenever it is not
-Balanced. `PowerProfiles` exposes no availability flag: without the daemon it
-sits at Balanced and a click only logs a critical.
+**Caffeine keeps the session awake.** A left click switches it on or off, and a
+right click cycles the length: 15 min → 30 min → 1 h → 2 h → no limit. Off,
+the label says the length a click gives; on, the time it ends ("until 16:40").
+It is an `IdleInhibitor` on every bar (`bar/Bar.qml`), as an inhibitor needs a
+window, and hypridle's idle notifications respect inhibitors, so neither the
+lock nor the screens going off come while it is on. A length starts at the
+clock's next minute and ends on its ticks (`Time.now`, the wall clock), so it
+lasts at least what it says and at most a minute more, and a suspend in between
+does not stretch it. Only the length persists (`caffeineMinutes`): a new shell,
+a reload included, starts with it off and locks as usual.
 
-**The Battery page shows the same choice whole**, as a compact `PillGroup` with
+Hyprland (0.56) weighs an inhibitor on a layer surface when it arrives, and one
+that arrives before its surface is mapped does nothing. Measured in a nested
+Hyprland with a bar-like `PanelWindow` and two `IdleMonitor`s, one of them
+ignoring inhibitors: enabled at start, the inhibitor held nothing; enabled two
+seconds after the map, it kept the other monitor from idling until it was
+switched off, while the one ignoring it went idle. Caffeine only turns on over
+bars that are already up. A bar that appears while it is on, for a monitor
+plugged in, brings an inhibitor that does not count, beside those that do.
+
+**Power profiles are on the Battery page**, as a compact `PillGroup` with
 `fill` under the details, one pill per profile the hardware offers; a click
-sets that profile directly rather than cycling. The tile, this row and the
-Settings app's Power page all take `QuickToggles.profileChoices`. It fits
-without touching the pager's height: the UPower display device never carries a
-model or a capacity (both read `""`/`0` over DBus here), so at most three
-detail rows show above it. Checked on screen by switching profiles with
-`powerprofilesctl set`, which the selected segment followed.
+sets that profile. The pager has that page on a desktop too, and the Settings
+app's Power page shows the same row; both take `QuickToggles.profileChoices`.
+`PowerProfiles` exposes no availability flag: without the daemon it sits at
+Balanced and a pick only logs a critical. It fits without touching the pager's
+height: the UPower display device never carries a model or a capacity (both
+read `""`/`0` over DBus here), so at most three detail rows show above it.
+Checked on screen by switching profiles with `powerprofilesctl set`, which the
+selected segment followed.
 
-While Do Not Disturb, Airplane Mode, Night Light or a recording is on, the dots
-gain a ring (`md-dots_horizontal_circle_outline`); the icon colour never
-changes. Tiles follow the same rule: every glyph and label is full white, and
-"on" is the filled badge, whose glyph turns `Colors.text.inverted` to stay
+While Do Not Disturb, Airplane Mode, Night Light, Caffeine or a recording is
+on, the dots gain a ring (`md-dots_horizontal_circle_outline`); the icon colour
+never changes. Tiles follow the same rule: every glyph and label is full white,
+and "on" is the filled badge, whose glyph turns `Colors.text.inverted` to stay
 readable on it. Six tiles, three to a row, is the design's grid; a label wraps
 to two lines rather than elide, since the dropdown's zone is 320 wide and
 "Do Not Disturb" at three to a row is not (`Style.toggles.tileHeight` is 76 for

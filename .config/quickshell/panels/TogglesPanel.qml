@@ -1,21 +1,19 @@
 import "../services"
 import "../style"
 import QtQuick
-import Quickshell.Services.UPower
 
 PanelFrame {
     id: root
 
     implicitHeight: root.chromeHeight + tiles.height
-    readonly property string powerProfileIcon: {
-        switch (PowerProfiles.profile) {
-        case PowerProfile.PowerSaver:
-            return "\u{F0F86}";
-        case PowerProfile.Performance:
-            return "\u{F04C5}";
-        default:
-            return "\u{F0F85}";
-        }
+    // How long a click keeps the session awake, or while it does, until when.
+    readonly property string caffeineLabel: {
+        const minutes = QuickToggles.caffeineMinutes;
+        if (QuickToggles.caffeineEnd !== 0)
+            return "Caffeine\nuntil " + Qt.formatDateTime(new Date(QuickToggles.caffeineEnd * 60000), "HH:mm");
+        if (minutes === 0)
+            return "Caffeine\nno limit";
+        return "Caffeine\n" + (minutes % 60 === 0 ? minutes / 60 + " h" : minutes + " min");
     }
 
     // The Clipboard tile's right click: its history, on the page after this one.
@@ -75,10 +73,11 @@ PanelFrame {
 
         ToggleTile {
             width: tiles.tileWidth
-            icon: root.powerProfileIcon
-            label: QuickToggles.profileName(PowerProfiles.profile)
-            checked: PowerProfiles.profile !== PowerProfile.Balanced
-            onActivated: QuickToggles.cyclePowerProfile()
+            icon: "\u{F0176}"
+            label: root.caffeineLabel
+            checked: QuickToggles.caffeine
+            onActivated: QuickToggles.setCaffeine(!QuickToggles.caffeine)
+            onSecondaryActivated: QuickToggles.cycleCaffeineMinutes()
         }
     }
 

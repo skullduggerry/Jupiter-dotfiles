@@ -23,7 +23,16 @@ Singleton {
     readonly property bool recording: recorder.running
     // The file the running (or the last) recording goes to.
     property string recordingFile: ""
-    readonly property bool anyOn: root.nightLight || root.airplaneMode || NotificationService.doNotDisturb || root.recording
+    // Caffeine keeps the session from going idle, so hypridle neither locks it
+    // nor turns the screens off, for caffeineMinutes or, at 0, until turned
+    // off. The bars hold the inhibitor, which needs a window. Only the length
+    // is saved: a new shell locks as usual.
+    property bool caffeine: false
+    // The minute it ends, counted from the epoch; 0 while it has no end.
+    property int caffeineEnd: 0
+    readonly property int caffeineMinutes: settings.caffeineMinutes
+    readonly property list<int> caffeineChoices: [15, 30, 60, 120, 0]
+    readonly property bool anyOn: root.nightLight || root.airplaneMode || NotificationService.doNotDisturb || root.recording || root.caffeine
     // power-profiles-daemon's modes, Performance only where the hardware has it.
     readonly property var profileChoices: (PowerProfiles.hasPerformanceProfile ? [PowerProfile.PowerSaver, PowerProfile.Balanced, PowerProfile.Performance] : [PowerProfile.PowerSaver, PowerProfile.Balanced]).map(profile => ({
                 label: root.profileName(profile),
@@ -87,9 +96,19 @@ Singleton {
         }
     }
 
-    function cyclePowerProfile() {
-        const profiles = root.profileChoices.map(choice => choice.value);
-        PowerProfiles.profile = profiles[(profiles.indexOf(PowerProfiles.profile) + 1) % profiles.length];
+    // Up to the clock's next minute, the only moments it can end on.
+    function setCaffeine(enabled: bool) {
+        root.caffeine = enabled;
+        root.caffeineEnd = enabled && root.caffeineMinutes > 0 ? Math.ceil(Date.now() / 60000) + root.caffeineMinutes : 0;
+    }
+
+    // The next length, counted from now if Caffeine is on.
+    function cycleCaffeineMinutes() {
+        const choices = root.caffeineChoices;
+        settings.caffeineMinutes = choices[(choices.indexOf(root.caffeineMinutes) + 1) % choices.length];
+        writeDebounce.restart();
+        if (root.caffeine)
+            root.setCaffeine(true);
     }
 
     Component.onCompleted: {
@@ -108,6 +127,17 @@ Singleton {
         onExited: (exitCode, exitStatus) => {
             if (settings.nightLight)
                 console.warn("night light: hyprsunset exited with status", exitCode);
+        }
+    }
+
+    // The bar's clock ticks every minute by the wall clock, so Caffeine ends
+    // on time across a suspend too.
+    Connections {
+        target: Time
+
+        function onNowChanged() {
+            if (root.caffeineEnd !== 0 && Math.round(Time.now.getTime() / 60000) >= root.caffeineEnd)
+                root.setCaffeine(false);
         }
     }
 
@@ -187,6 +217,7 @@ Singleton {
             property bool nightLight: false
             property int nightLightTemperature: 4000
             property bool clipboardHistory: false
+            property int caffeineMinutes: 60
         }
     }
 }

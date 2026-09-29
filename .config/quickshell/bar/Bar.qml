@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../services"
 import "../style"
 import QtQuick
 import Quickshell
@@ -46,6 +47,13 @@ Scope {
                 screen: bar.modelData
                 expanded: root.expanded
                 onExpandRequested: root.expanded = !root.expanded
+            }
+
+            // Caffeine, on the Toggles page: an inhibitor needs a window, and
+            // every screen has a bar.
+            IdleInhibitor {
+                window: bar
+                enabled: QuickToggles.caffeine
             }
         }
     }

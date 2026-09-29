@@ -9,7 +9,8 @@ Rectangle {
     property bool checked: false
 
     signal activated
-    // A right click, for a tile with more behind it (Clipboard's history).
+    // A right click, for a tile with more behind it (Clipboard's history,
+    // Caffeine's length).
     signal secondaryActivated
 
     implicitHeight: Style.toggles.tileHeight
