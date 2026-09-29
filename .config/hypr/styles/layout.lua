@@ -28,6 +28,14 @@ hl.config(
 	}
 )
 
+-- Ignore apps asking to be maximized, as kitty does whenever its last window
+-- was closed maximized: they would cover the windows they should tile beside.
+hl.window_rule({
+    name = "suppress-maximize-events",
+    match = { class = ".*" },
+    suppress_event = "maximize",
+})
+
 hl.layer_rule({ name = "waybar-blur",  match = { namespace = "^waybar$" }, blur = true, ignore_alpha = 0.0 })
 hl.layer_rule({ name = "qs-bar-blur",  match = { namespace = "^quickshell:bar$" }, blur = true, ignore_alpha = 0.2 })
 hl.layer_rule({
