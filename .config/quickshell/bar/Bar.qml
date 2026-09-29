@@ -17,6 +17,13 @@ Scope {
         onPressed: root.expanded = !root.expanded
     }
 
+    // The power button opens the power menu, which is on the bar.
+    Binding {
+        target: PowerButton
+        property: "active"
+        value: true
+    }
+
     Variants {
         model: Quickshell.screens
 

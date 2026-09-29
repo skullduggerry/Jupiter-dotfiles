@@ -20,7 +20,8 @@ config/quickshell/
 │                          Brightness, CalendarService (+ nextcloud-calendar.py),
 │                          DisplayChange, DropdownState, LauncherHistory,
 │                          LockService, NotificationService, OsdState,
-│                          PopupAreas, QuickToggles (+ screen-record.sh),
+│                          PopupAreas, PowerButton,
+│                          QuickToggles (+ screen-record.sh),
 │                          Screens, SettingsState, SystemUsage, Time, Volume,
 │                          WallpaperService (+ wallpaper-import.sh),
 │                          WorkspaceBlocks.
@@ -653,6 +654,21 @@ hidden child did take the click.
 A popup already open when the drawer moves stays where it opened, since
 `WidgetPopup` only re-measures its anchor when that item's own `x` changes, and
 a moving row does not change it.
+
+**The power button opens the power menu** on the focused screen: `XF86PowerOff`
+fires the `powerMenu` `GlobalShortcut` in `services/PowerButton.qml`, and the
+`PowerWidget` on that screen opens its popup. It opens rather than toggles, as
+a press can come in on both ACPI power button devices (`hyprctl devices` lists
+`power-button` and `power-button-1`). logind powers off on that key unless a
+`handle-power-key` inhibitor is held, so the service keeps
+`systemd-inhibit --what=handle-power-key` running under
+`setpriv --pdeathsig TERM` while `Bar.qml` has it `active` and the session is
+unlocked. On the lock screen, where the menu could not show, at the greeter and
+with the shell gone, the button powers off as before. An active local session
+may take that inhibitor without authentication, so logind.conf stays as it is.
+Measured: `systemd-inhibit --list` shows it as Quickshell, and a test shell in a
+nested Hyprland dropped its own on `LockService.lock()`, took it again on
+unlock and released it when killed.
 
 ## The usage dropdown
 
@@ -1510,7 +1526,8 @@ qs ipc call settings openPage keybinds # displays, sound, network, wallpaper, �
 ```
 
 `SUPER+R` (launcher), `SUPER+L` (lock), `SUPER+B` (bar drawer), `SUPER+W`
-(Settings on the Wallpaper page) and `SUPER+I` (Settings) are `GlobalShortcut`s bound with
+(Settings on the Wallpaper page), `SUPER+I` (Settings) and the power button
+(the power menu) are `GlobalShortcut`s bound with
 `hl.dsp.global(...)`; the three-finger swipe is an
 `hl.gesture` block calling `dropdown openAt`. All in
 `config/hypr/modules/keybinds.lua`. Any of them can be fired without the key,

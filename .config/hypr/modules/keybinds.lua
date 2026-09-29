@@ -22,6 +22,9 @@ hl.bind("XF86MonBrightnessDown", hl.dsp.global("quickshell:brightnessDown"), { l
 hl.bind("XF86AudioRaiseVolume",  hl.dsp.global("quickshell:volumeUp"), { locked = true, repeating = true, description = "Volume up" })
 hl.bind("XF86AudioLowerVolume",  hl.dsp.global("quickshell:volumeDown"), { locked = true, repeating = true, description = "Volume down" })
 hl.bind("XF86AudioMute",         hl.dsp.global("quickshell:volumeMute"), { locked = true, description = "Mute" })
+-- The shell holds logind off the power button while unlocked
+-- (config/quickshell/services/PowerButton.qml); locked, logind powers off.
+hl.bind("XF86PowerOff", hl.dsp.global("quickshell:powerMenu"), { description = "Open the power menu" })
 hl.bind(vars.mainMod .. " + Q", hl.dsp.exec_cmd(vars.terminal), { description = "Open a terminal" })
 -- Left and right go through the focused monitor's workspaces
 -- (modules/workspaces.lua). With CTRL the arrows go to the next monitor over
