@@ -8,7 +8,9 @@ Rectangle {
     property string label: ""
     property bool checked: false
 
-    signal activated()
+    signal activated
+    // A right click, for a tile with more behind it (Clipboard's history).
+    signal secondaryActivated
 
     implicitHeight: Style.toggles.tileHeight
     radius: Style.popup.rowRadius
@@ -39,21 +41,22 @@ Rectangle {
                 ColorAnimation {
                     duration: Style.animation.normal
                 }
-
             }
-
         }
 
+        // Three to a row, "Do Not Disturb" needs two lines.
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            width: Math.min(implicitWidth, root.width - Style.widgets.padding * 2)
+            width: root.width - Style.widgets.padding * 2
             text: root.label
             color: Colors.text.base
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            maximumLineCount: 2
             elide: Text.ElideRight
         }
-
     }
 
     MouseArea {
@@ -61,7 +64,12 @@ Rectangle {
 
         anchors.fill: parent
         hoverEnabled: true
-        onClicked: root.activated()
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onClicked: mouse => {
+            if (mouse.button === Qt.RightButton)
+                root.secondaryActivated();
+            else
+                root.activated();
+        }
     }
-
 }

@@ -1,0 +1,5 @@
+{#- Rendered to ~/.cache/wallust/color-scheme: whether the theme is dark or
+    light, in the words org.gnome.desktop.interface color-scheme takes, which
+    apply.sh hands to the desktop portal. -#}
+{%- from "palette.jinja" import scheme -%}
+prefer-{{ scheme() }}

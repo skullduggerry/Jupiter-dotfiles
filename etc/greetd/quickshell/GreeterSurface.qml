@@ -54,9 +54,7 @@ PanelWindow {
             NumberAnimation {
                 duration: Style.animation.slow
             }
-
         }
-
     }
 
     Rectangle {
@@ -93,15 +91,15 @@ PanelWindow {
                 model: GreeterService.users
 
                 delegate: GreeterChoice {
+                    id: user
+
                     required property var modelData
 
-                    label: modelData.display
-                    selected: modelData.name === GreeterService.username
-                    onChosen: GreeterService.username = modelData.name
+                    label: user.modelData.display
+                    selected: user.modelData.name === GreeterService.username
+                    onChosen: GreeterService.username = user.modelData.name
                 }
-
             }
-
         }
 
         Rectangle {
@@ -123,7 +121,7 @@ PanelWindow {
                 passwordCharacter: "●"
                 readOnly: GreeterService.busy
                 clip: true
-                Keys.onPressed: (event) => {
+                Keys.onPressed: event => {
                     root.engaged = true;
                 }
                 onTextChanged: GreeterService.password = passwordInput.text
@@ -152,16 +150,13 @@ PanelWindow {
                     font.pixelSize: Style.text.size
                     verticalAlignment: Text.AlignVCenter
                 }
-
             }
 
             Behavior on border.color {
                 ColorAnimation {
                     duration: Style.animation.normal
                 }
-
             }
-
         }
 
         Flow {
@@ -173,15 +168,15 @@ PanelWindow {
                 model: GreeterService.sessions
 
                 delegate: GreeterChoice {
+                    id: session
+
                     required property var modelData
 
-                    label: modelData.name
-                    selected: modelData.exec === GreeterService.sessionExec
-                    onChosen: GreeterService.sessionExec = modelData.exec
+                    label: session.modelData.name
+                    selected: session.modelData.exec === GreeterService.sessionExec
+                    onChosen: GreeterService.sessionExec = session.modelData.exec
                 }
-
             }
-
         }
 
         Text {
@@ -194,7 +189,5 @@ PanelWindow {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
         }
-
     }
-
 }

@@ -1,0 +1,14 @@
+# The session's environment. uwsm, which starts Hyprland here (the greeter
+# prefers its session), sources this before the compositor and hands it to
+# systemd as well, so it also reaches what systemd starts rather than Hyprland:
+# xdg autostart (Nextcloud), D-Bus activated apps and the portals. Hyprland's
+# wiki asks uwsm users to keep toolkit and theming variables here instead of in
+# the Hyprland config; modules/env.lua reads this file when uwsm is not in use.
+# One `export KEY=value` per line, unquoted.
+
+# Qt apps take their widget style (Kvantum), icon theme and font from qt6ct's
+# config, KDE apps their colours from the colour scheme kdeglobals names; wallust
+# renders all of them, see .github/THEMING.md.
+export QT_QPA_PLATFORMTHEME=qt6ct
+# Hyprland draws the frame, not Qt.
+export QT_WAYLAND_DISABLE_WINDOWDECORATION=1

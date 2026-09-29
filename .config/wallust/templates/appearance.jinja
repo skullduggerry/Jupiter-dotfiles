@@ -1,0 +1,6 @@
+{#- The Settings app's accent and font, for the other templates. apply.sh
+    renders from a copy of templates/ with this file written from
+    $XDG_STATE_HOME/quickshell/appearance.json; as committed, it holds the
+    defaults the shell starts with. -#}
+{%- macro accent_color() -%}{{ color4 }}{%- endmacro -%}
+{%- macro font_family() -%}JetBrainsMono Nerd Font{%- endmacro -%}

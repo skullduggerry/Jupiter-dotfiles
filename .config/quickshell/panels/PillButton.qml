@@ -11,9 +11,9 @@ Rectangle {
     property bool checked: false
     property bool action: false
     property bool compact: false
-    readonly property int padding: root.compact ? Style.widgets.padding : Style.wallpaper.padding
+    readonly property int padding: root.compact ? Style.widgets.padding : Style.settings.padding
 
-    signal clicked()
+    signal clicked
 
     implicitWidth: label.implicitWidth + root.padding * 2
     implicitHeight: Style.popup.itemHeight
@@ -55,7 +55,5 @@ Rectangle {
         ColorAnimation {
             duration: Style.animation.normal
         }
-
     }
-
 }

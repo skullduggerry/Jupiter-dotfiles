@@ -19,7 +19,7 @@ Item {
         spacing: Style.widgets.spacing
 
         Text {
-            text: NotificationService.doNotDisturb ? "󰂛" : NotificationService.count > 0 ? "󰂚" : "󰂜"
+            text: NotificationService.doNotDisturb ? "\u{F009B}" : NotificationService.count > 0 ? "\u{F009A}" : "\u{F009C}"
             color: !NotificationService.doNotDisturb && NotificationService.hasCritical ? Colors.notification.urgent : Colors.icon.active
             font.family: Style.text.font
             font.pixelSize: Style.text.iconSize
@@ -34,13 +34,12 @@ Item {
             font.pixelSize: Style.text.smallSize
             anchors.verticalCenter: parent.verticalCenter
         }
-
     }
 
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        onClicked: (mouse) => {
+        onClicked: mouse => {
             if (mouse.button === Qt.RightButton)
                 NotificationService.doNotDisturb = !NotificationService.doNotDisturb;
             else
@@ -57,7 +56,7 @@ Item {
         screen: root.screen
         namespaceSuffix: "notifications-popup"
         popupWidth: Style.notifications.width
-        popupHeight: Math.max(Style.popup.minHeight, Math.min(Style.dropdown.maxHeight, panel.item ? panel.item.preferredHeight : Style.popup.minHeight))
+        popupHeight: Math.max(Style.popup.minHeight, Math.min(Style.dropdown.maxHeight, panel.implicitHeight))
 
         Loader {
             id: panel
@@ -65,11 +64,7 @@ Item {
             anchors.fill: parent
             active: notificationPopup.visible
 
-            sourceComponent: NotificationPanel {
-            }
-
+            sourceComponent: NotificationPanel {}
         }
-
     }
-
 }

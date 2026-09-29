@@ -11,12 +11,12 @@ Item {
     readonly property bool checked: root.modelData.checkState === Qt.Checked
     readonly property string checkGlyph: {
         if (root.modelData.buttonType === QsMenuButtonType.RadioButton)
-            return root.checked ? "" : "";
+            return root.checked ? "\u{F043E}" : "\u{F043D}";
 
-        return root.checked ? "" : "";
+        return root.checked ? "\u{F0132}" : "\u{F0131}";
     }
 
-    signal activated()
+    signal activated
 
     height: root.modelData.isSeparator ? Style.bar.spacing : Style.popup.itemHeight
 
@@ -30,7 +30,6 @@ Item {
             right: parent.right
             verticalCenter: parent.verticalCenter
         }
-
     }
 
     Rectangle {
@@ -65,7 +64,6 @@ Item {
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
             }
-
         }
 
         Text {
@@ -82,7 +80,6 @@ Item {
                 rightMargin: Style.widgets.spacing
                 verticalCenter: parent.verticalCenter
             }
-
         }
 
         Text {
@@ -90,7 +87,7 @@ Item {
 
             visible: root.modelData.hasChildren
             width: chevron.visible ? Style.popup.rowIconWidth : 0
-            text: ""
+            text: "\u{F0142}"
             color: Colors.text.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
@@ -100,7 +97,6 @@ Item {
                 right: parent.right
                 verticalCenter: parent.verticalCenter
             }
-
         }
 
         MouseArea {
@@ -111,7 +107,5 @@ Item {
             enabled: root.modelData.enabled
             onClicked: root.activated()
         }
-
     }
-
 }

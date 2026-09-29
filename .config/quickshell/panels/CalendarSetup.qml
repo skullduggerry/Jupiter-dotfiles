@@ -10,7 +10,7 @@ Column {
     function submit() {
         root.error = CalendarService.configure(addressField.text, userField.text);
         if (root.error !== "")
-            return ;
+            return;
 
         // show what was actually kept, which is the base address rather than
         // the web-UI page people paste in
@@ -22,7 +22,6 @@ Column {
         root.error = CalendarService.signIn(addressField.text);
         if (root.error === "")
             addressField.text = CalendarService.serverUrl;
-
     }
 
     spacing: Style.widgets.spacing
@@ -43,7 +42,7 @@ Column {
         id: addressField
 
         width: parent.width
-        icon: "󰖟"
+        icon: "\u{F059F}"
         placeholder: "https://cloud.example.org"
         onAccepted: root.signIn()
     }
@@ -52,7 +51,7 @@ Column {
         id: userField
 
         width: parent.width
-        icon: "󰀄"
+        icon: "\u{F0004}"
         placeholder: "user (filled in by signing in)"
         onAccepted: root.submit()
     }
@@ -81,7 +80,6 @@ Column {
             enabled: !CalendarService.signingIn
             onClicked: root.signIn()
         }
-
     }
 
     Text {
@@ -100,5 +98,4 @@ Column {
         font.pixelSize: Style.text.smallSize
         wrapMode: Text.Wrap
     }
-
 }

@@ -1,30 +1,110 @@
+pragma ComponentBehavior: Bound
+
 import "../style"
 import QtQuick
 import Quickshell.Bluetooth
 
-Item {
+// The paired devices, connected ones first, then the ones found nearby, which
+// the adapter searches for while this is shown. A device paired here is
+// trusted, so it can reconnect by itself, and connected; Forget unpairs, on a
+// second click.
+PanelFrame {
     id: root
 
-    readonly property int preferredHeight: Style.bar.padding * 2 + header.height + Style.border.width + Style.bar.spacing + Style.popup.maxHeight
+    required property bool active
+    readonly property BluetoothAdapter adapter: Bluetooth.defaultAdapter
+    readonly property bool powered: root.adapter !== null && root.adapter.enabled
+    readonly property var devices: Bluetooth.devices.values.filter(device => device.paired || device.deviceName !== "").sort((left, right) => right.connected - left.connected || right.paired - left.paired || left.name.localeCompare(right.name))
+    implicitHeight: root.chromeHeight + Math.max(Style.popup.itemHeight, deviceList.contentHeight)
+    property BluetoothDevice pairingDevice: null
+    property BluetoothDevice forgetting: null
 
-    Item {
+    function pair(device: BluetoothDevice) {
+        root.pairingDevice = device;
+        device.pair();
+    }
+
+    title: "Bluetooth"
+    onActiveChanged: root.forgetting = null
+    // A Binding destroyed with its page leaves its target as it is, and BlueZ
+    // would go on searching for as long as the shell runs.
+    Component.onDestruction: {
+        if (search.when)
+            root.adapter.discovering = false;
+    }
+    trailing: [
+        Text {
+            visible: root.powered && root.adapter.discovering
+            text: "Searching…"
+            color: Colors.text.muted
+            font.family: Style.text.font
+            font.pixelSize: Style.text.smallSize
+        },
+        TextButton {
+            id: power
+
+            visible: root.adapter !== null
+            enabled: root.adapter !== null && root.adapter.state !== BluetoothAdapterState.Blocked
+            text: !power.enabled ? "Blocked" : root.powered ? "On" : "Off"
+            color: root.powered ? Colors.accent.primary : Colors.text.muted
+            onClicked: root.adapter.enabled = !root.powered
+        }
+    ]
+
+    // On the adapter's state, not `enabled`: that turns true as soon as it is
+    // written, and BlueZ refuses a search until the radio is actually up.
+    Binding {
+        id: search
+
+        target: root.adapter
+        property: "discovering"
+        value: true
+        when: root.active && root.adapter !== null && root.adapter.state === BluetoothAdapterState.Enabled
+    }
+
+    Connections {
+        function onPairedChanged() {
+            if (!root.pairingDevice.paired)
+                return;
+
+            root.pairingDevice.trusted = true;
+            root.pairingDevice.connect();
+            root.pairingDevice = null;
+        }
+
+        target: root.pairingDevice
+    }
+
+    Timer {
+        running: root.forgetting !== null
+        interval: Style.popup.confirmTimeout
+        onTriggered: root.forgetting = null
+    }
+
+    ListView {
+        id: deviceList
+
         anchors.fill: parent
-        anchors.margins: Style.bar.padding
+        clip: true
+        flickableDirection: Flickable.VerticalFlick
+        boundsBehavior: Flickable.StopAtBounds
+        model: root.devices
 
-        Item {
-            id: header
+        delegate: Item {
+            id: row
 
+            required property BluetoothDevice modelData
+            readonly property bool busy: row.modelData.pairing || row.modelData.state === BluetoothDeviceState.Connecting || row.modelData.state === BluetoothDeviceState.Disconnecting
+
+            width: deviceList.width
             height: Style.popup.itemHeight
 
-            anchors {
-                top: parent.top
-                left: parent.left
-                right: parent.right
-            }
-
             Text {
-                text: "Bluetooth"
-                color: Colors.text.base
+                id: icon
+
+                width: Style.popup.rowIconWidth
+                text: row.modelData.connected ? "\u{F00B1}" : row.modelData.paired ? "\u{F00AF}" : "\u{F00B2}"
+                color: Colors.icon.active
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
 
@@ -32,112 +112,92 @@ Item {
                     left: parent.left
                     verticalCenter: parent.verticalCenter
                 }
-
             }
 
-        }
+            Text {
+                text: row.modelData.name + (row.modelData.connected && row.modelData.batteryAvailable ? "  " + Math.round(row.modelData.battery * 100) + "%" : "")
+                color: Colors.text.base
+                font.family: Style.text.font
+                font.pixelSize: Style.text.size
+                elide: Text.ElideRight
 
-        Rectangle {
-            id: separator
-
-            height: Style.border.width
-            color: Colors.base.border
-
-            anchors {
-                top: header.bottom
-                left: parent.left
-                right: parent.right
+                anchors {
+                    left: icon.right
+                    right: actions.left
+                    leftMargin: Style.widgets.spacing
+                    rightMargin: Style.bar.spacing
+                    verticalCenter: parent.verticalCenter
+                }
             }
 
-        }
+            Row {
+                id: actions
 
-        ListView {
-            id: deviceList
+                spacing: Style.bar.spacing
 
-            clip: true
-            flickableDirection: Flickable.VerticalFlick
-            model: Bluetooth.devices
-            visible: count > 0
-
-            anchors {
-                top: separator.bottom
-                bottom: parent.bottom
-                left: parent.left
-                right: parent.right
-                topMargin: Style.bar.spacing
-            }
-
-            delegate: Row {
-                id: deviceRow
-
-                required property BluetoothDevice modelData
-                readonly property bool connected: deviceRow.modelData !== null && deviceRow.modelData.connected
-                readonly property bool paired: deviceRow.modelData !== null && deviceRow.modelData.paired
-                readonly property bool pairing: deviceRow.modelData !== null && deviceRow.modelData.pairing
-                readonly property string deviceName: deviceRow.modelData !== null ? deviceRow.modelData.name : ""
-
-                width: deviceList.width
-                height: Style.popup.itemHeight
-                spacing: Style.widgets.spacing
-
-                Text {
-                    id: deviceIcon
-
-                    text: deviceRow.connected ? "󰂱" : deviceRow.paired ? "󰂯" : "󰂲"
-                    color: Colors.icon.active
-                    font.family: Style.text.font
-                    font.pixelSize: Style.text.size
-                    width: Style.popup.rowIconWidth
-                    anchors.verticalCenter: parent.verticalCenter
+                anchors {
+                    right: parent.right
+                    verticalCenter: parent.verticalCenter
                 }
 
                 Text {
-                    text: deviceRow.deviceName
-                    color: Colors.text.base
-                    font.family: Style.text.font
-                    font.pixelSize: Style.text.size
-                    elide: Text.ElideRight
-                    width: deviceRow.width - deviceIcon.width - deviceAction.width - deviceRow.spacing * 2
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
-                Text {
-                    id: deviceAction
-
-                    text: deviceRow.pairing ? "Pairing…" : deviceRow.connected ? "Disconnect" : deviceRow.paired ? "Connect" : "Pair"
+                    visible: row.busy
+                    text: row.modelData.pairing ? "Pairing…" : "…"
                     color: Colors.text.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.smallSize
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    MouseArea {
-                        anchors.fill: parent
-                        enabled: !deviceRow.pairing
-                        onClicked: {
-                            if (deviceRow.connected)
-                                deviceRow.modelData.disconnect();
-                            else if (deviceRow.paired)
-                                deviceRow.modelData.connect();
-                            else
-                                deviceRow.modelData.pair();
-                        }
-                    }
-
                 }
 
+                TextButton {
+                    visible: row.modelData.pairing
+                    text: "Cancel"
+                    onClicked: row.modelData.cancelPair()
+                }
+
+                TextButton {
+                    visible: !row.busy && root.powered
+                    text: row.modelData.connected ? "Disconnect" : row.modelData.paired ? "Connect" : "Pair"
+                    onClicked: {
+                        if (row.modelData.connected)
+                            row.modelData.disconnect();
+                        else if (row.modelData.paired)
+                            row.modelData.connect();
+                        else
+                            root.pair(row.modelData);
+                    }
+                }
+
+                TextButton {
+                    id: forget
+
+                    visible: row.modelData.paired && !row.busy
+                    text: root.forgetting === row.modelData ? "Forget?" : "Forget"
+                    color: root.forgetting === row.modelData ? Colors.status.error : forget.hovered ? Colors.text.base : Colors.text.muted
+                    onClicked: {
+                        if (root.forgetting === row.modelData)
+                            row.modelData.forget();
+                        else
+                            root.forgetting = row.modelData;
+                    }
+                }
             }
-
         }
-
-        Text {
-            anchors.centerIn: parent
-            visible: deviceList.count === 0
-            text: "No devices found"
-            color: Colors.text.muted
-            font.family: Style.text.font
-            font.pixelSize: Style.text.size
-        }
-
     }
 
+    Text {
+        anchors.centerIn: deviceList
+        visible: deviceList.count === 0
+        text: {
+            if (root.adapter === null)
+                return "No Bluetooth adapter";
+
+            if (!root.powered)
+                return "Bluetooth is off";
+
+            return root.adapter.discovering ? "Searching for devices…" : "No devices found";
+        }
+        color: Colors.text.muted
+        font.family: Style.text.font
+        font.pixelSize: Style.text.size
+    }
 }

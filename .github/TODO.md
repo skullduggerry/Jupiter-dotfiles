@@ -1,85 +1,60 @@
 # TODO
 
-Only what is actually open. Finished phases were removed — `git log` has them.
+Only what is actually open. Finished work is in `git log`.
 
-## Untested paths
+## To try by hand
 
-Built and reviewed, never exercised against the real thing:
+Everything below was built and driven in a nested Hyprland with a virtual
+pointer and keyboard (and a stand-in BlueZ for Bluetooth, see
+PROJECT_STRUCTURE.md); what is left needs real hands, eyes or hardware.
 
-- [ ] Joining a **Wi-Fi network that needs a PSK**: `connectWithPsk()` and the
-      wrong-password path. The half in front of them is verified — clicking
-      *Connect* on an unknown network raises the prompt, it takes keystrokes,
-      and Escape dismisses the prompt without closing the dropdown. The rest
-      needs a real association, so it wants a network you own.
-- [ ] The **three-finger swipe gesture** itself.
-- [ ] How the **two-finger swipe** feels on the real touchpad. It is now
-      driveable from a virtual pointer — a uinput device has to advertise
-      `REL_*WHEEL_HI_RES` for libinput to deliver the events, which is why an
-      earlier attempt concluded wheel could not be injected — so the paging
-      thresholds were tuned against a replay of the measured gesture. Only the
-      feel is unconfirmed.
-- [ ] **Airplane Mode** actually switching the radios. Reading it is verified;
-      flipping it is not, because the desktop's only link is Wi-Fi and the
-      test would have cut the connection it was running over. The write is the
-      same `Networking.wifiEnabled` the Wi-Fi page's On/Off header makes.
-- [ ] **Night Light by eye.** Everything but the colour is verified in a nested
-      Hyprland (see "Quick toggles" in PROJECT_STRUCTURE.md); the tint is
-      applied after screen capture, so 4000K has never been looked at.
-- [ ] The toggle tiles under a **real pointer**. They were driven through IPC,
-      since a nested compositor has no input to give them.
-- [ ] The **wallpaper app** under a real pointer and keyboard, for the same
-      reason: its services were driven through test-only IPC hooks, its pages
-      switched the same way, and only Escape and typing into the theme search
-      went through real (injected) keys. SUPER+W itself was fired as the
-      global, not pressed.
-- [ ] **Add from file…** with the real zenity dialog. The import script was
-      exercised with a stand-in zenity: new file, same file again, a name
-      clash, and cancelling.
-- [ ] The **new pills and the usage meters under a real pointer**: the
-      wallpaper mode (app and workspace dropdown), the Battery page's power
-      modes, and a click on the CPU/RAM meters. Their services were driven
-      through test-only IPC hooks and `powerprofilesctl`, and every one of them
-      was checked on screen following the change, but no click reached them.
+- [ ] A **real pointer and keyboard** over the shell: the toggle tiles, every
+      Settings page with SUPER+I and SUPER+W pressed rather than fired, the
+      arrow keys between dropdown zones, the pills and the usage meters.
+- [ ] **Bluetooth with a real device**: pairing one (and a PIN or passkey
+      one, which goes through blueman-applet's agent), forgetting it, and
+      pairing from a phone with "visible to other devices" on. Against the
+      stand-in: search while shown and not after, pair, cancel, connect,
+      forget on the second click, power off and on.
+- [ ] Joining a **Wi-Fi network that needs a PSK** and the wrong-password path;
+      the prompt itself is verified. Needs a network you own.
+- [ ] **Airplane Mode** switching the radios: the desktop's only link is Wi-Fi.
+- [ ] **Night Light by eye**: the tint is applied after screen capture, so
+      4000 K has only been read back from hyprsunset, never looked at.
+- [ ] The **touchpad**: the three-finger swipe, and how the two-finger swipe's
+      paging feels (it was tuned against a replay of the measured gesture).
+- [ ] **Displays on the real monitors**: a real mode and refresh-rate change,
+      adaptive sync and a display switched off.
+- [ ] **Sound**: picking another output or input device.
+- [ ] **Startup** at a real login: an app added and one switched off.
+- [ ] **Add from file…** with the real zenity dialog.
+- [ ] **This Workspace** wallpapers on two real monitors, and a login with
+      some set.
+- [ ] The **greeter on both of the desktop's screens** (it has booted there;
+      whether it drew on both is not in any log).
+- [ ] **Monitors unplugged** with per-monitor workspaces: one switched off and
+      on, both at once, the laptop meeting a display for the first time. The
+      laptop's HDMI-A-1 is now placed `auto-right`, which should close the gap
+      its fixed x=1920 left beside eDP-1 at scale 2: check SUPER+CTRL+arrows
+      and the pointer crossing there.
+- [ ] **Inline reply** from a real app (only a gdbus `Notify` has sent one).
+- [ ] **Toasts following focus** on two monitors: the fade-in, and typing in
+      an app on the other monitor while a toast follows.
 
-## Next features
+## Qt theming
 
-- [ ] **Settings app** as a `FloatingWindow`: accent colour and font. The
-      theme part exists now, as the wallpaper app's Themes page, and a light
-      palette already works in the shell (every colour is derived from
-      `Colors.palette`), so the design's Light/Dark/Auto is a choice of theme.
-- [ ] The tray flyout's last two tiles, **Clipboard** and **Screen Record**.
-      The other four are the Toggles page. Both need a package first:
-      **`cliphist` is not installed**, and **no screen recorder** is
-      (`wf-recorder` / `wl-screenrec`). Each is one more `ToggleTile` in
-      `panels/TogglesPanel.qml`; at six tiles `Style.toggles.tileColumns` goes
-      to 3, which is the design's grid.
-- [ ] The rest of the **wallpaper app**'s design: "This Workspace / All
-      Workspaces" (hyprpaper takes a monitor, not a workspace, so per-workspace
-      means switching on workspace changes), and the category tabs
-      (subfolders of `~/Wallpapers` would fit).
-- [ ] **Inline reply** on notifications that offer it. `hasInlineReply` /
-      `sendInlineReply()` exist; the capability is deliberately not advertised
-      until there is a field to type into.
-- [ ] Toasts on the **focused** monitor: the mechanism is verified against a
-      `hyprctl output create headless` second screen — the toast moves with
-      focus and back, and the move does *not* restart its expiry timer (a 10s
-      toast still expired at 10.2s across two moves). What is left is the
-      subjective half: it jumps with no transition, so judge that on real
-      dual-monitor hardware.
-- [ ] The design file's **search box**, if it should replace the fullscreen
-      launcher rather than sit alongside it.
+Qt apps take their style, icons and fonts from qt6ct and their colours from
+the Wallust colour scheme; see `.github/THEMING.md`. The palette they get
+matches what plasma-integration gave them, for a dark and a light theme, and
+Dolphin is themed on a fresh install. Left over:
 
-## Dolphin / Qt theming
-
-Done and verified against a real window — see `.github/THEMING.md`. Left over:
-
-- [ ] Other Qt/KDE apps inherit this for free but none were checked. Ark,
-      Gwenview and the KIO file dialogs are the ones worth a look.
-- [ ] **Decide how Dolphin should follow a theme.** With Kvantum it takes a new
-      theme only when reopened, and a light theme is unreadable in it, because
-      KvMojave's SVG draws dark surfaces whatever the palette says. Breeze as
-      the widget style follows every theme live (verified with Fusion) but
-      loses the translucency; making the SVG a template keeps both. See
-      "Qt / KDE apps" in THEMING.md.
-- [ ] A running **nvim** keeps its colours until restarted; `colors.lua` is
-      only read at start.
+- [ ] Qt apps in the **live** session by eye: Dolphin's menus, the KIO file
+      dialog and KDE Connect were last checked under plasma-integration.
+- [ ] **Running Qt apps** take a new theme's colours only when reopened;
+      qt6ct applies the icons and the font at once.
+- [ ] Dolphin's small **status bar elides** under Kvantum ("3 fil…(9 B)");
+      Fusion shows it whole. It did so before the templates.
+- [ ] **KeePassXC** is Qt 5 and outside all of this; its theme is set to
+      `dark`. Following the palette would need `qt5ct` and `kvantum-qt5` —
+      your call.
+- [ ] Ark and Gwenview are not installed, so they were not looked at.

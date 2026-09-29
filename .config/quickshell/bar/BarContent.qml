@@ -9,7 +9,7 @@ Rectangle {
     required property ShellScreen screen
     required property bool expanded
 
-    signal expandRequested()
+    signal expandRequested
 
     anchors.fill: parent
     anchors.margins: Style.border.width
@@ -36,21 +36,11 @@ Rectangle {
         SystemUsageWidget {
             screen: root.screen
         }
-
     }
 
-    Row {
-        spacing: Style.bar.spacing
-
-        anchors {
-            horizontalCenter: parent.horizontalCenter
-            verticalCenter: parent.verticalCenter
-        }
-
-        ClockWidget {
-            screen: root.screen
-        }
-
+    ClockWidget {
+        anchors.centerIn: parent
+        screen: root.screen
     }
 
     Row {
@@ -72,7 +62,6 @@ Rectangle {
             pager: quickPager
             onExpandRequested: root.expandRequested()
         }
-
     }
 
     BarDrawer {
@@ -94,7 +83,6 @@ Rectangle {
         }
 
         BluetoothWidget {
-            screen: root.screen
             pager: quickPager
         }
 
@@ -103,10 +91,8 @@ Rectangle {
         }
 
         WifiWidget {
-            screen: root.screen
             pager: quickPager
         }
-
     }
 
     Row {
@@ -121,14 +107,12 @@ Rectangle {
         }
 
         BatteryWidget {
-            screen: root.screen
             pager: quickPager
         }
 
         PowerWidget {
             screen: root.screen
         }
-
     }
 
     QuickPager {
@@ -136,5 +120,4 @@ Rectangle {
 
         screen: root.screen
     }
-
 }

@@ -7,8 +7,9 @@ Rectangle {
     property alias text: input.text
     property string placeholder: ""
     property string icon: ""
+    readonly property bool editing: input.activeFocus
 
-    signal accepted()
+    signal accepted
 
     function focusInput() {
         input.forceActiveFocus();
@@ -41,7 +42,6 @@ Rectangle {
             leftMargin: Style.widgets.padding
             verticalCenter: parent.verticalCenter
         }
-
     }
 
     TextInput {
@@ -72,14 +72,11 @@ Rectangle {
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
-
     }
 
     Behavior on border.color {
         ColorAnimation {
             duration: Style.animation.normal
         }
-
     }
-
 }

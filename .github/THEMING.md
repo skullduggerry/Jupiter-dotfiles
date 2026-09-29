@@ -6,7 +6,7 @@ covers the quickshell shell itself.
 ## The chain
 
 ```
-the wallpaper app's Themes page, or apply.sh by hand
+Settings → Wallpaper → Themes, or apply.sh by hand
         │
         ▼  config/wallust/apply.sh [--shell-only] THEME | --from IMAGE
    wallust theme THEME          a built-in
@@ -15,11 +15,41 @@ the wallpaper app's Themes page, or apply.sh by hand
         ├─ templates/quickshell.json  → ~/.cache/wallust/quickshell.json          (the shell's palette)
         ├─ templates/kitty.conf       → ~/.config/kitty/colors.conf              (gitignored)
         ├─ templates/nvim.lua         → ~/.config/nvim/lua/colors.lua            (gitignored)
-        ├─ templates/kdeglobals       → ~/.config/kdeglobals                     (outside the repo)
-        └─ templates/Wallust.kvconfig → ~/.config/Kvantum/Wallust/Wallust.kvconfig (gitignored)
+        ├─ templates/kdeglobals       → ~/.cache/wallust/kdeglobals              (merged, see below)
+        │                             → ~/.local/share/color-schemes/Wallust.colors (KDE apps' colours)
+        ├─ templates/qt6ct.conf       → ~/.config/qt6ct/qt6ct.conf                (Qt's style, icons, font)
+        ├─ templates/Wallust.kvconfig → ~/.config/Kvantum/Wallust/Wallust.kvconfig (gitignored)
+        ├─ templates/Wallust.svg      → ~/.config/Kvantum/Wallust/Wallust.svg      (gitignored)
+        └─ templates/color-scheme     → ~/.cache/wallust/color-scheme            (prefer-dark / prefer-light)
+        │
+        ├─ kdeglobals.py merges ~/.cache/wallust/kdeglobals into ~/.config/kdeglobals
+        └─ gsettings org.gnome.desktop.interface color-scheme ← color-scheme
 
    then $XDG_STATE_HOME/wallust/theme: the theme's name, then "all" or "shell-only"
 ```
+
+**The Settings app's accent and font reach the app templates too.** wallust
+cannot be handed variables, so `apply.sh` renders from a temporary folder of
+symlinks to `templates/`, `colorschemes/` and `wallust.toml` (`-d`), in which
+`templates/appearance.jinja` is replaced by what `appearance.py` writes from
+the shell's `appearance.json`: `accent_color()` (the palette slot of the
+chosen accent) and `font_family()`. As committed, that file holds the
+defaults, so the templates render on their own too (the tests, `palettes.py`).
+The shell passes its current choice as `APPEARANCE_ACCENT` and
+`APPEARANCE_FONT` as well, which win over the file: the first version read the
+file only and rendered the previous accent, because `Theme` debounces its
+writes. The accent colours the apps' selection, focus and active text
+(kdeglobals, Kvantum's highlight and the SVG's accented fills); links stay the
+palette's blue. The font becomes qt6ct's `general` font; `fixed` stays
+JetBrainsMono.
+
+`templates/palette.jinja` is not a template of its own: it holds the colour
+arithmetic the others import (`{% from "palette.jinja" import shade %}`), the
+same formulas as `style/Colors.qml` — `mix(a, b, t)`, `shade(t)` for t of the
+way from the background to the text, `accent(t)`, `selection(t)`, and
+`scheme()` for "dark" or "light" by HSL lightness, as Colors judges it. Every
+surface an app template draws is a `shade()`, which is what makes a light theme
+mirror a dark one instead of drawing dark greys under dark text.
 
 `--shell-only` renders through `shell.toml`, which lists the quickshell
 template alone, and passes `-s` so the open terminals keep their colours: the
@@ -62,24 +92,45 @@ template render error is only a warning: wallust still exits 0.
 | --- | --- |
 | The shell | at once: `style/Theme.qml` watches the palette file |
 | Open terminals, kitty's included | at once, from the escape sequences (not with `--shell-only`) |
-| New kitty, nvim, Dolphin windows | at start, from the files above |
-| Running Qt/KDE apps on a palette-driven style (Breeze, Fusion) | at once: `apply.sh` broadcasts `org.kde.KGlobalSettings.notifyChange(0, 0)` |
-| A running Dolphin on Kvantum, as configured here | not at all, until it is reopened |
-| A running nvim | not at all; `colors.lua` is read at start |
+| New kitty, Qt windows | at start, from the files above |
+| Running Qt apps, Dolphin included | colours and style at their next start, icons and font at once: see below |
+| GTK 4, Electron, browsers; Qt apps on an "automatic" theme of their own | dark or light at once, through the portal's `color-scheme` |
+| A running nvim | at once: `init.lua` watches `lua/colors.lua` and runs it again |
 
-The broadcast is what plasma-integration's platform theme listens for
-(`KHintsSettings::slotNotifyChange`): it reparses kdeglobals and sets the new
-palette. Verified with a Dolphin on `-style fusion`, which went from
-Oxocarbon-Dark to Catppuccin-Latte in place. Kvantum ignores it, because it
-draws from its own theme, loaded when the style is created; and the
-`StyleChanged` notification would not recreate the style either, since the
-platform theme skips `setStyle()` when the style's name has not changed.
+**Running Qt apps keep their colours until they restart.** Outside Plasma
+nothing makes them reread a theme: a KDE app loads its colour scheme once, at
+start (`KColorSchemeManager::init`, kcolorscheme 6.30), and Kvantum reads its
+theme when the style is created. qt6ct watches `~/.config/qt6ct/` and gives
+open windows a changed icon theme and font (qt6ct 0.11, `createFSWatcher`), so
+after a switch between dark and light an open Dolphin shows the new icons on
+the old colours until it is restarted. Restyling in place was
+plasma-integration's platform theme, which comes with Plasma itself (see
+"Packages").
+
+**nvim** runs `lua/colors.lua` from `init.lua`, which was commented out until
+the template mapped the palette properly: it used to put the terminal's slots
+straight into base16's (`base01`, the status line, was the theme's red). base16
+slots are roles, 00 to 07 from the background to the text, so those are
+`shade()`s now and 08 to 0F the accents. `init.lua` watches the file's folder
+with `vim.uv.new_fs_event()` and reruns it when wallust writes it, then puts
+`Normal`'s background back to none so the terminal's translucency shows.
+Verified with a headless nvim across a Latte ↔ Oxocarbon switch.
 
 ### Template filters
 
 Wallust 3.5.1. Confirmed present: `strip` (hex without `#`), `rgb` (`29,31,33` —
 what kdeglobals wants), `red`/`green`/`blue`, `lighten(f)`, `darken(f)`,
-`saturate(f)`, `complementary`. **Not** present: `rgba`, `invert`, `grey`.
+`saturate(f)`, `complementary`, `blend(c)` (50/50 only; a second argument is an
+error). **Not** present: `rgba`, `xrgba`, `alpha`, `desaturate`, `invert`,
+`grey`, `mix`. `hexa` prints nonsense (`#51177255FF` for `#33B1FF`).
+
+The engine is minijinja, with its own builtins, which is where the arithmetic
+comes from: macros, `{% from "palette.jinja" import … %}` (resolved in
+`templates/`, and an imported macro sees the palette variables), `set`,
+inline `if`/`else`, `[…] | max`, and `"%02x" | format(n)`. `red` and friends
+return strings, so `| int` before any sum. A template that fails to render is a
+warning and an untouched target, never an exit status; `tests/wallust-templates-test.py`
+renders every template for a dark and a light theme and fails on any warning.
 
 To try a template without touching the live colours, render it in an isolated
 config dir:
@@ -95,35 +146,65 @@ losslessly, so it is a faithful stand-in for the live palette.
 
 ## Qt / KDE apps (Dolphin)
 
-Four pieces, each owning something different. Getting any one wrong looks like
+Five pieces, each owning something different. Getting any one wrong looks like
 "the theme just doesn't apply".
 
 | Piece | Owns | Where |
 | --- | --- | --- |
-| `QT_QPA_PLATFORMTHEME=kde` | applies the colour scheme to the palette | `config/hypr/modules/env.lua` |
-| kdeglobals | colours, fonts, icon theme, **and which widget style** | `templates/kdeglobals` |
-| Kvantum theme | window translucency | `templates/Wallust.kvconfig` + `config/Kvantum/Wallust/Wallust.svg` |
+| `QT_QPA_PLATFORMTHEME=qt6ct` | every Qt app's widget style, icon theme and font | `config/uwsm/env`, `templates/qt6ct.conf` |
+| The Wallust colour scheme | KDE apps' colours | `templates/kdeglobals`, rendered to `color-schemes/Wallust.colors` |
+| kdeglobals | which colour scheme, style and icon theme KDE apps load | `templates/kdeglobals`, merged by `kdeglobals.py` |
+| Kvantum theme | how widgets are drawn, window translucency, other Qt apps' colours | `templates/Wallust.kvconfig` + `templates/Wallust.svg` |
 | Hyprland `decoration:blur` | the blur behind it | `styles/layout.lua` |
+
+**The Qt variables live in `config/uwsm/env`**, symlinked to
+`~/.config/uwsm/env` like the other config folders. uwsm starts Hyprland here
+(the greeter prefers its session), sources that file first and exports it to
+systemd as well; Hyprland's wiki asks uwsm users to keep toolkit and theming
+variables there rather than in the Hyprland config. As `hl.env` in
+`modules/env.lua` they only reached what Hyprland started: Nextcloud, started
+by xdg autostart through systemd, had `QT_QPA_PLATFORMTHEME` only because
+Hyprland exports that one variable itself, and no
+`QT_WAYLAND_DISABLE_WINDOWDECORATION`. `modules/env.lua` reads the same file
+when uwsm is not in use (`UWSM_FINALIZE_VARNAMES` unset). After the first
+login with it (27 September) both variables were in `systemctl --user
+show-environment`, in Hyprland's own environment (set once, by uwsm) and in
+Nextcloud's and kdeconnectd's.
 
 Three things cost real time here, all established by experiment:
 
-> **`~/.config/kdeglobals` on its own does nothing.** Dolphin launched with no
-> platform theme, and again with `-style breeze`, stayed fully light Breeze with
-> a complete dark `[Colors:*]` in kdeglobals. Setting `[Colors:View]
-> ForegroundNormal` to pure red changed nothing either — proof the file was
-> never read. A platform theme is what turns a colour scheme into the
-> application's `QPalette`.
+> **Outside Plasma, KDE apps ignore the colours in `~/.config/kdeglobals`.**
+> Dolphin launched with no platform theme, and again with `-style breeze`,
+> stayed fully light Breeze with a complete dark `[Colors:*]` in kdeglobals, and
+> `[Colors:View] ForegroundNormal` set to pure red changed nothing either. Only
+> plasma-integration's platform theme applies those. Anywhere else a KDE app
+> loads the colour scheme that `[UiSettings] ColorScheme` names from
+> `color-schemes/`, and with none named, Breeze Light or Breeze Dark by the
+> system's preference (`KColorSchemeManager::init`, kcolorscheme 6.30): the
+> light Breeze seen here.
 
-> **`QT_QPA_PLATFORMTHEME=qt6ct` is the wrong platform theme for this.** It
-> applies qt6ct's own font and style but does not read kdeglobals, so KDE
-> widgets (Dolphin's Places panel, the file view, the breadcrumb) fell back to
-> unreadable dark-grey-on-dark. `kde` — the plasma-integration plugin, already
-> installed here — is the one that reads kdeglobals. qt6ct is not used at all
-> and its config was removed.
+> **qt6ct tripped over the same thing.** Under it KDE widgets (Dolphin's Places
+> panel, the file view, the breadcrumb) were unreadable dark grey on dark:
+> Kvantum's dark theme over Breeze Light's palette, as no scheme was named. With
+> `ColorScheme=Wallust`, a probe program against KF 6.30 and Qt 6.11 read the
+> same palette, colour scheme, style, icon theme and font under qt6ct as under
+> plasma-integration, for Oxocarbon-Dark and Catppuccin-Latte.
 
 > **`widgetStyle` lives in the `[KDE]` group, not `[General]`.** With it in the
 > wrong group the colours were correct but the window was opaque, because
 > Kvantum was never selected and Breeze was painting.
+
+**kdeglobals is merged, not rendered over.** KDE apps write settings of their
+own there (the file dialog's view, for one), and `apply.sh` runs at every
+login, so rendering the whole file threw them away every time. wallust renders
+to `~/.cache/wallust/kdeglobals`, and `kdeglobals.py` replaces only the keys
+the template sets, drops comments as KConfig does, and writes beside the file
+and renames over it.
+
+**The icon theme follows the background**: `breeze` for a light theme,
+`breeze-dark` for a dark one (`scheme()`), in kdeglobals for KDE apps and in
+`qt6ct.conf` for the rest. breeze-dark's white glyphs were unreadable on a
+light palette.
 
 **Translucency**: Kvantum's `[%General] translucent_windows=true` +
 `composite=true`, which makes only the window *background* translucent — text
@@ -137,26 +218,58 @@ The alpha lives in `[GeneralColors]` in the Kvantum template, as `#RRGGBBAA`
 the knobs to tune. Note `strip` drops the leading `#`, so an alpha value has to
 be written `#{{background | strip}}cc`.
 
-The theme is KvMojave's SVG with `[GeneralColors]` replaced by the palette; every
-metric and widget section is KvMojave's, because they belong to that SVG.
-`Wallust.svg` is committed, the generated `Wallust.kvconfig` is gitignored.
-
 `QT_WAYLAND_DISABLE_WINDOWDECORATION=1` stops Qt drawing its own titlebar so
 Hyprland's border and 8px rounding are the only frame.
 
-A running Dolphin does not repaint when a theme is applied: Kvantum loads its
-theme when the style is created, and ignores the palette broadcast (see "What
-changes live"). Reopening it is enough.
+### The Kvantum theme follows the palette, light themes included
 
-**Light themes do not work in Dolphin with this Kvantum theme.** Only
-`[GeneralColors]` follows the palette; the SVG is KvMojave's, with 67 colours of
-dark fills baked in, and those draw the window and view backgrounds. A light
-palette therefore puts dark text on dark surfaces: a fresh Dolphin under
-Catppuccin-Latte was unreadable. The same Dolphin on `-style fusion` was
-correct, and followed the theme live. Two ways out, and it is a choice between
-them: a palette-driven style such as Breeze as `widgetStyle` (live updates,
-light themes, but no translucency), or the SVG's fills made a wallust template
-too (keeps both, and means mapping those 67 colours onto the palette).
+The theme is KvMojave's: its metrics, its widget sections, its SVG. Before, only
+`[GeneralColors]` followed the palette while the SVG's 70 colours and every
+section's `text.*.color` stayed KvMojave's dark ones, so a light palette drew
+dark text on dark fills (Dolphin under Catppuccin-Latte was unreadable). Now
+both files are templates:
+
+- **`templates/Wallust.svg` is written by `scripts/kvantum-template.py`** from
+  the KvMojave.svg the kvantum package installs (the old committed SVG was that
+  file, byte for byte). It replaces colours by role and leaves everything else
+  as it was; rerun it if a kvantum update changes KvMojave.
+  A grey became `shade(t)`, t measured against KvMojave's window (`#302f2e`)
+  and text (`#ffffff`), so KvMojave's window is exactly the palette's
+  background; blues became `accent(t)`, lighter or darker than the accent by as
+  much as they were than KvMojave's `#286adc`; white became the text colour,
+  except a check mark drawn on the accent, which takes the background; black
+  stayed black, since it is only ever a shadow or an outline at low opacity.
+  The window buttons' traffic lights and the shadow hints kept their colours.
+  Change a role in the script rather than a colour in the template.
+- **Selection is an accent tint under ordinary text.** Views disagree about
+  which role draws selected text: Dolphin's Places panel uses Text, its file
+  view HighlightedText. KvMojave drew a light grey under both, and the Places
+  panel put white text on it. So the SVG's selected and pressed rows (and menu
+  and menu bar highlights) are `selection(0.4)`/`selection(0.5)`, the accent
+  over the background, and Text and HighlightedText are both the foreground.
+- **The palette's Highlight stays the full accent** (kdeglobals' Selection
+  background, Kvantum's `highlight.color`): KDE recolours Breeze icons with it,
+  and with the tint there the folders went a dull dark blue.
+- Every section's text colour is `{{ foreground }}`, a `shade()` of it when
+  inactive, or the accent where KvMojave used a light blue.
+
+Verified in a nested session under plasma-integration, fresh and live, dark
+(Oxocarbon-Dark) and light (Catppuccin-Latte): Dolphin, its context menu, the
+KIO file dialog, and the KDE Connect app (on a fresh start).
+
+Known and left alone: Dolphin's small status bar elides its text under Kvantum
+("3 fil…(9 B)"), where Fusion shows "3 files (9 B)". It did so before the
+templates too.
+
+### Apps outside this
+
+- **KeePassXC is Qt 5** (2.7). qt6ct and Kvantum here are Qt 6 only, so it
+  gets neither; its own theme is set to `dark` in `keepassxc.ini`. On
+  "Automatic" it follows the portal's `color-scheme`, which `apply.sh` sets.
+  Following the palette itself would need `qt5ct` and `kvantum-qt5` and its
+  theme on "Classic".
+- **Apps with a theme of their own** (PrismLauncher, OnlyOffice's bundled Qt)
+  are not on this path at all.
 
 ## Hyprland blur rules
 
@@ -173,12 +286,18 @@ exactly this reason.
 
 ## Packages
 
-Required and installed: `dolphin`, `breeze`, `breeze-icons`, `kio`,
-`qt6-wayland`, `kvantum`, and `plasma-integration` (the `kde` platform theme —
-it was already present, which is why qt6ct turned out to be unnecessary).
+Required: `dolphin`, `qt6-wayland`, `qt6ct`, `kvantum` and `breeze-icons`, all
+in Jupiter-installer's `packages/core.txt`, which its phase 2 installs. Nothing
+from Plasma: `plasma-integration` needs `xdg-desktop-portal-kde`, which needs
+`plasma-workspace`, and with it KWin and 66 packages more, and adds a Plasma
+session to the login screen.
 
 `imagemagick` is only needed by wallust's `wal` backend. `apply.sh --from` runs
 `wallust run` on the default `fastresize` backend, which does not use it.
 
-`wallust` itself is a cargo install (`~/.cargo/bin`), not a package; see the
-PATH note in `apply.sh`. The wallpaper app's "Add from file…" needs `zenity`.
+`wallust` comes from the AUR (Jupiter-installer's `packages/aur.txt`); on the desktop it is still a
+cargo install in `~/.cargo/bin`, which `apply.sh` puts first on its PATH. The Wallpaper page's "Add from file…" needs `zenity`.
+`apply.sh` also runs `python3` (the kdeglobals merge) and `gsettings` (glib2);
+the portal reads `color-scheme` through
+`xdg-desktop-portal-gtk`, which `hyprland-portals.conf` names after
+Hyprland's own.

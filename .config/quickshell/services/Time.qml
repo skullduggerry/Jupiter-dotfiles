@@ -16,5 +16,4 @@ Singleton {
 
         precision: root.showSeconds ? SystemClock.Seconds : SystemClock.Minutes
     }
-
 }

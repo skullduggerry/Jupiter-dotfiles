@@ -5,13 +5,15 @@
 #     scripts/check.sh --fix      apply the safe fixes first, then verify
 #     scripts/check.sh --staged   restrict file checks to what git has staged
 #
-# Formatting follows the official Qt/Quickshell QML conventions via qmlformat
-# rather than a house style: member ordering, semicolons in functions and
-# expressions, grouped property notation. See .github/PROJECT_STRUCTURE.md.
+# Formatting is qmlformat's, i.e. the official Qt QML conventions rather than a
+# house style. See .github/PROJECT_STRUCTURE.md.
 set -uo pipefail
 
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo"
+# The shell is Qt 6; /usr/bin/qmlformat and qmllint are Qt 5's (qt5-declarative)
+# and misparse it.
+PATH=/usr/lib/qt6/bin:$PATH
 
 fix=0
 staged=0
@@ -38,33 +40,15 @@ qml_files() {
     fi
 }
 
-# qmllint crashes (exit 255, silently) on `void`/`var` in a signature, which the
-# four IpcHandler files need. Excluded until that is fixed upstream.
-lint_excluded() {
-    case $(basename "$1") in
-        Launcher.qml|Dropdown.qml|Lock.qml|WallpaperApp.qml) return 0 ;;
-        *) return 1 ;;
-    esac
-}
-
 section "formatting (qmlformat, official QML conventions)"
 while read -r f; do
     [[ -z $f || ! -f $f ]] && continue
     checked=$((checked + 1))
-    # qmlformat exits non-zero with no output on two constructs it cannot parse:
-    # a `: void` return type (which also crashes qmllint) and the spread
-    # operator. Those files are skipped rather than failed; qmllint still covers
-    # the ones it can read.
-    if ! qmlformat "$f" >/dev/null 2>&1; then
-        echo "  skip  $f (qmlformat cannot parse ': void' or spread)"
-        continue
-    fi
-    if ! diff -q <(qmlformat "$f" 2>/dev/null | python3 scripts/normalise-pragmas.py) \
-                 <(python3 scripts/normalise-pragmas.py < "$f") >/dev/null 2>&1; then
+    if ! formatted=$(qmlformat "$f" 2>/dev/null); then
+        fail "$f does not parse (qmllint below says where)"
+    elif ! diff -q <(echo "$formatted") "$f" >/dev/null; then
         if [[ $fix == 1 ]]; then
-            qmlformat -i "$f" >/dev/null 2>&1 \
-                && scripts/hoist-pragmas.py "$f" >/dev/null \
-                && echo "  fixed $f"
+            qmlformat -i "$f" && echo "  fixed $f"
             [[ $staged == 1 ]] && git add "$f"
         else
             fail "$f is not formatted (run scripts/check.sh --fix)"
@@ -89,17 +73,24 @@ done < <(qml_files)
 pass "trailing whitespace, final newline, no tabs"
 
 section "qmllint"
-mapfile -t lintable < <(qml_files)
+# Against Quickshell's type information with its packaging slips fixed, and any
+# warning fails. The greeter is linted as installed, beside a copy of style/.
+lint=$(mktemp -d)
+trap 'rm -rf "$lint"' EXIT
+scripts/quickshell-types.py "$lint/types"
+cp -r etc/greetd/quickshell "$lint/greeter"
+cp -r .config/quickshell/style "$lint/greeter/style"
 targets=()
-for f in "${lintable[@]}"; do
-    [[ -z $f || ! -f $f ]] && continue
-    lint_excluded "$f" || targets+=("$f")
-done
+while read -r f; do
+    [[ -n $f && -f $f ]] || continue
+    [[ $f == etc/greetd/quickshell/* ]] && f=$lint/greeter/${f#etc/greetd/quickshell/}
+    targets+=("$f")
+done < <(qml_files)
 if [[ ${#targets[@]} -gt 0 ]]; then
-    if out=$(qmllint -I /usr/lib/qt6/qml "${targets[@]}" 2>&1); then
+    if out=$(qmllint --bare -I "$lint/types" -I /usr/lib/qt6/qml --max-warnings 0 --unused-imports warning "${targets[@]}" 2>&1); then
         pass "${#targets[@]} files"
     else
-        fail "qmllint"; echo "$out" | head -20
+        fail "qmllint"; echo "${out//$lint\/greeter/etc/greetd/quickshell}" | head -40
     fi
 fi
 
@@ -124,13 +115,11 @@ while read -r line; do
 done < <(grep -rh 'namespaceSuffix: "' .config/quickshell --include='*.qml')
 pass "all popup namespaces end in -popup"
 
-section "nerd font glyph integrity"
-was=$(scripts/glyph-count.py --head)
-now=$(scripts/glyph-count.py)
-if (( now < was )); then
-    fail "glyph count fell repo-wide ($was -> $now); a tool may have emptied codepoints"
+section "nerd font glyphs"
+if pasted=$(scripts/pasted-glyphs.py); then
+    pass "every glyph is a \\u{...} escape"
 else
-    pass "glyphs intact repo-wide ($was -> $now)"
+    fail "pasted glyphs, write them as \\u{...}: $(echo $pasted)"
 fi
 
 section "python"
@@ -151,13 +140,17 @@ while read -r f; do
 done < <(find scripts .githooks .config -type f \( -name '*.sh' -o -path './.githooks/*' \) 2>/dev/null)
 pass "shell sources parse"
 
-section "greeter compositor config"
+section "hyprland configs"
+# Hyprland's own parser, which also rejects unknown rule fields and wrong
+# types; luac above only sees the syntax.
 if command -v Hyprland >/dev/null; then
-    if Hyprland --verify-config -c "$repo/etc/greetd/hyprland.lua" 2>&1 | grep -q 'config ok'; then
-        pass "etc/greetd/hyprland.lua"
-    else
-        fail "etc/greetd/hyprland.lua does not verify"
-    fi
+    for config in .config/hypr/hyprland.lua etc/greetd/hyprland.lua; do
+        if Hyprland --verify-config -c "$repo/$config" 2>&1 | grep -q 'config ok'; then
+            pass "$config"
+        else
+            fail "$config does not verify"
+        fi
+    done
 fi
 
 section "tests"

@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import "../services"
 import "../style"
 import QtQuick
@@ -13,8 +15,9 @@ Item {
     readonly property int pageAudio: 3
     readonly property int pageBrightness: 4
     readonly property int pageToggles: 5
-    readonly property int pageCount: 6
-    readonly property int preferredHeight: Style.pager.height
+    readonly property int pageClipboard: 6
+    readonly property int pageCount: 7
+    implicitHeight: Style.pager.height
     property real swipeTravel: 0
     property bool swipePaged: false
     property bool counted: false
@@ -27,7 +30,7 @@ Item {
         root.swipeTravel += deltaX;
         const needed = root.swipePaged ? Style.pager.swipeRepeat : Style.pager.swipeStep;
         if (Math.abs(root.swipeTravel) < needed)
-            return ;
+            return;
 
         if (root.swipeTravel < 0)
             pages.incrementCurrentIndex();
@@ -37,20 +40,30 @@ Item {
         root.swipePaged = true;
     }
 
+    // The arrow keys: the next page over. A host with somewhere else to go
+    // from either end (the dropdown's zones) turns wrapping off and gets false.
+    function step(direction: int, wrap: bool): bool {
+        const next = pages.currentIndex + direction;
+        if (!wrap && (next < 0 || next >= root.pageCount))
+            return false;
+
+        pages.currentIndex = (next + root.pageCount) % root.pageCount;
+        return true;
+    }
+
     // A media key while these panels are already up: turn to that page rather
     // than changing a value out of sight. `zoneAt` is what's watched, not
     // `zone`, so a second press of the same key still counts.
     function followOsd() {
         if (!root.active)
-            return ;
+            return;
 
         const page = root.pageFor(OsdState.zone);
         if (page >= 0)
             root.currentIndex = page;
-
     }
 
-    function pageFor(zone: string) : int {
+    function pageFor(zone: string): int {
         switch (zone) {
         case OsdState.zoneAudio:
             return root.pageAudio;
@@ -65,7 +78,7 @@ Item {
     // because the dropdown's Loader destroys this while `active` is still true.
     function syncViewer() {
         if (root.active === root.counted)
-            return ;
+            return;
 
         OsdState.viewers += root.active ? 1 : -1;
         root.counted = root.active;
@@ -76,7 +89,6 @@ Item {
     Component.onDestruction: {
         if (root.counted)
             OsdState.viewers -= 1;
-
     }
 
     Connections {
@@ -127,7 +139,6 @@ Item {
                 x: pages.width * 2
                 y: pages.height / 2
             }
-
         }
 
         delegate: Item {
@@ -152,14 +163,14 @@ Item {
                         return audioPage;
                     case root.pageBrightness:
                         return brightnessPage;
+                    case root.pageClipboard:
+                        return clipboardPage;
                     default:
                         return togglesPage;
                     }
                 }
             }
-
         }
-
     }
 
     Row {
@@ -197,53 +208,51 @@ Item {
                     ColorAnimation {
                         duration: Style.animation.normal
                     }
-
                 }
-
             }
-
         }
-
     }
 
     Component {
         id: batteryPage
 
-        BatteryPanel {
-        }
-
+        BatteryPanel {}
     }
 
     Component {
         id: bluetoothPage
 
         BluetoothPanel {
+            active: root.active && pages.currentIndex === root.pageBluetooth
         }
-
     }
 
     Component {
         id: audioPage
 
-        AudioPanel {
-        }
-
+        AudioPanel {}
     }
 
     Component {
         id: brightnessPage
 
-        BrightnessPanel {
-        }
-
+        BrightnessPanel {}
     }
 
     Component {
         id: togglesPage
 
         TogglesPanel {
+            onClipboardRequested: pages.currentIndex = root.pageClipboard
         }
+    }
 
+    Component {
+        id: clipboardPage
+
+        ClipboardPanel {
+            active: root.active && pages.currentIndex === root.pageClipboard
+        }
     }
 
     Component {
@@ -252,7 +261,5 @@ Item {
         WifiPanel {
             active: root.active && pages.currentIndex === root.pageWifi
         }
-
     }
-
 }

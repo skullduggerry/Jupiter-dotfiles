@@ -54,16 +54,16 @@ Item {
             PowerAction {
                 label: "Logout"
                 onActivated: {
-                    Hyprland.dispatch("exit");
                     powerPopup.visible = false;
+                    Hyprland.dispatch("hl.dsp.exit()");
                 }
             }
 
             PowerAction {
                 label: "Suspend"
                 onActivated: {
-                    Quickshell.execDetached(["systemctl", "suspend"]);
                     powerPopup.visible = false;
+                    Quickshell.execDetached(["systemctl", "suspend"]);
                 }
             }
 
@@ -71,8 +71,8 @@ Item {
                 label: "Reboot"
                 labelColor: Colors.power.danger
                 onActivated: {
-                    Quickshell.execDetached(["systemctl", "reboot"]);
                     powerPopup.visible = false;
+                    Quickshell.execDetached(["systemctl", "reboot"]);
                 }
             }
 
@@ -80,13 +80,10 @@ Item {
                 label: "Shutdown"
                 labelColor: Colors.power.danger
                 onActivated: {
-                    Quickshell.execDetached(["systemctl", "poweroff"]);
                     powerPopup.visible = false;
+                    Quickshell.execDetached(["systemctl", "poweroff"]);
                 }
             }
-
         }
-
     }
-
 }

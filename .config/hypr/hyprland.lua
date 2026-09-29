@@ -4,16 +4,7 @@ require("modules.monitors")
 require("modules.session")
 require("modules.start")
 require("modules.vars")
+require("modules.workspaces")
 require("styles.color")
 require("styles.animations")
 require("styles.layout")
-
-
-
-
-
-
-
-
-
-

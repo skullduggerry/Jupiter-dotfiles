@@ -2,5 +2,6 @@
 /.config/nvim/lua/colors.lua
 /.config/quickshell/.qmlls.ini
 /.config/Kvantum/Wallust/Wallust.kvconfig
+/.config/Kvantum/Wallust/Wallust.svg
 __pycache__/
 *.pyc

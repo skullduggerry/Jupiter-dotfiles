@@ -1,18 +1,22 @@
+import "../services"
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
-import "../services"
 
 Scope {
-    id: lockScope
-
+    // No unlock over IPC, by design.
     IpcHandler {
-        target: "lock"
+        function lock(): void {
+            LockService.lock();
+        }
 
-        function lock(): void { LockService.lock() }
-        function locked(): bool { return LockService.locked }
+        function locked(): bool {
+            return LockService.locked;
+        }
+
+        target: "lock"
     }
 
     GlobalShortcut {

@@ -25,20 +25,18 @@ Singleton {
 
     function submit() {
         if (!root.canSubmit || root.password === "")
-            return ;
+            return;
 
         root.errorText = "";
         root.busy = true;
         root.send({
-            "cmd": "login",
-            "username": root.username
+            cmd: "login",
+            username: root.username
         });
     }
 
-    function preferredSession(available) : string {
-        const managed = available.find((entry) => {
-            return entry.exec.indexOf("uwsm") !== -1;
-        });
+    function preferredSession(available): string {
+        const managed = available.find(entry => entry.exec.indexOf("uwsm") !== -1);
         if (managed !== undefined)
             return managed.exec;
 
@@ -61,7 +59,7 @@ Singleton {
         root.password = "";
         root.busy = false;
         root.send({
-            "cmd": "cancel"
+            cmd: "cancel"
         });
         root.errorText = message;
     }
@@ -73,20 +71,20 @@ Singleton {
             root.promptText = event.message;
             if (root.password === "") {
                 root.busy = false;
-                return ;
+                return;
             }
             const answer = root.password;
             root.password = "";
             root.send({
-                "cmd": "password",
-                "response": answer
+                cmd: "password",
+                response: answer
             });
         } else if (event.type === "info") {
             root.errorText = event.message;
         } else if (event.type === "authed") {
             root.send({
-                "cmd": "start",
-                "exec": root.sessionExec
+                cmd: "start",
+                exec: root.sessionExec
             });
         } else if (event.type === "started") {
             Hyprland.dispatch("hl.dsp.exit()");
@@ -102,7 +100,6 @@ Singleton {
     onPasswordChanged: {
         if (root.password !== "")
             root.errorText = "";
-
     }
 
     Process {
@@ -119,18 +116,12 @@ Singleton {
 
         stdout: SplitParser {
             splitMarker: "\n"
-            onRead: (line) => {
-                return root.handle(JSON.parse(line));
-            }
+            onRead: line => root.handle(JSON.parse(line))
         }
 
         stderr: SplitParser {
             splitMarker: "\n"
-            onRead: (line) => {
-                return console.warn("greetd-auth:", line);
-            }
+            onRead: line => console.warn("greetd-auth:", line)
         }
-
     }
-
 }

@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import "../style"
 import QtQuick
 import Quickshell
@@ -18,9 +20,11 @@ Scope {
         model: Quickshell.screens
 
         PanelWindow {
+            id: bar
+
             required property ShellScreen modelData
 
-            screen: modelData
+            screen: bar.modelData
             WlrLayershell.namespace: "quickshell:bar"
             implicitHeight: Style.bar.height
             exclusiveZone: Style.bar.height + Style.bar.bottomGap
@@ -39,13 +43,10 @@ Scope {
             }
 
             BarContent {
-                screen: modelData
+                screen: bar.modelData
                 expanded: root.expanded
                 onExpandRequested: root.expanded = !root.expanded
             }
-
         }
-
     }
-
 }

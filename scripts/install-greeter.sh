@@ -10,7 +10,11 @@
 #
 # style/ is copied rather than duplicated in the repo, so config/quickshell/
 # stays the single source of truth for the design system. Re-run this after
-# changing any colour or dimension, or the greeter keeps the old ones.
+# changing any colour or dimension, or the greeter keeps the old ones. The same
+# goes for the monitor layout: etc/greetd/monitors.lua is a symlink to
+# config/hypr/modules/monitors.lua, and `install` copies what it points at.
+# What the Settings app kept for the monitors on this machine is appended to
+# that copy, since the greeter user has no state of its own to read it from.
 #
 # The wallpaper path is read from the hyprpaper config the desktop starts from
 # so the greeter shows the same image: the wallpaper app's saved one once
@@ -31,19 +35,35 @@ config=$repo/.config/hypr/hyprpaper.conf
 wallpaper=$(sed -n 's/^[[:space:]]*path[[:space:]]*=[[:space:]]*//p' "$config" | tail -1)
 wallpaper=${wallpaper/#\~/$owner_home}
 
+# A fresh install has no wallpaper yet; the greeter shows its plain background
+# until one is picked and this runs again.
 if [[ ! -r $wallpaper ]]; then
-    echo "install-greeter: cannot read wallpaper '$wallpaper'" >&2
-    exit 1
+    echo "install-greeter: no wallpaper at '$wallpaper', installing without one" >&2
+    wallpaper=
 fi
 
 echo "repo        $repo"
 echo "destination $dest"
-echo "wallpaper   $wallpaper"
+echo "wallpaper   ${wallpaper:-none}"
 
 install -d -m 0755 "$dest" "$dest/quickshell" "$dest/quickshell/style"
 
 install -m 0644 "$repo/etc/greetd/config.toml"  "$dest/config.toml"
 install -m 0644 "$repo/etc/greetd/hyprland.lua" "$dest/hyprland.lua"
+install -m 0644 "$repo/etc/greetd/monitors.lua" "$dest/monitors.lua"
+
+# The same file config/hypr/modules/monitors.lua loads after its own rules,
+# applied the same way: last, so it wins.
+kept=${XDG_STATE_HOME:-$owner_home/.local/state}/quickshell/monitors.lua
+if [[ -r $kept ]]; then
+    {
+        printf '\n-- Kept by the Settings app, baked in by install-greeter.sh.\n'
+        printf 'for _, rule in ipairs((function()\n'
+        cat "$kept"
+        printf 'end)()) do\n\thl.monitor(rule)\nend\n'
+    } >> "$dest/monitors.lua"
+    echo "monitors    + $kept"
+fi
 
 install -m 0644 "$repo/etc/greetd/quickshell/qmldir" "$dest/quickshell/qmldir"
 install -m 0644 "$repo"/etc/greetd/quickshell/*.qml "$dest/quickshell/"
@@ -53,7 +73,7 @@ install -m 0755 "$repo/etc/greetd/quickshell/greetd-auth.py" \
 install -m 0644 "$repo"/.config/quickshell/style/*.qml "$dest/quickshell/style/"
 install -m 0644 "$repo/.config/quickshell/style/qmldir" "$dest/quickshell/style/qmldir"
 
-install -m 0644 "$wallpaper" "$dest/quickshell/wallpaper.jpg"
+[[ -n $wallpaper ]] && install -m 0644 "$wallpaper" "$dest/quickshell/wallpaper.jpg"
 
 # The repo copies name /etc/greetd directly so they read as the real thing.
 # Installing elsewhere (staging) rewrites those paths, so a staged tree is the
@@ -79,8 +99,13 @@ fi
 
 echo
 if [[ $dest == /etc/greetd ]]; then
-    echo "installed. apply with:  sudo systemctl restart greetd"
-    echo "(restarting only replaces the greeter; it does not touch your session)"
+    # No `systemctl restart greetd` here: the running session is on the VT
+    # greetd draws on (config.toml), so a greeter started now would go there
+    # too. greetd starts a fresh greeter whenever no session is running, which
+    # reads these files anyway.
+    echo "installed. the greeter picks it up the next time it starts: at logout or boot"
+    echo "(first install: enable greetd as the README's \"Login screen\" says, then reboot;"
+    echo "starting greetd from inside a session puts it on that session's VT)"
 else
     echo "staged. drive it with:  GREETD_SOCK=<stub> qs -p $dest/quickshell/shell.qml"
 fi

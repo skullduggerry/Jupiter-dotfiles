@@ -51,7 +51,8 @@ Singleton {
                 break;
 
             let total = 0;
-            for (let field = 1; field < fields.length; field++) total += Number(fields[field])
+            for (let field = 1; field < fields.length; field++)
+                total += Number(fields[field]);
             const busy = total - Number(fields[4]) - Number(fields[5]);
             if (fields[0] === "cpu") {
                 const totalDelta = total - root.previousTotal;
@@ -78,8 +79,7 @@ Singleton {
 
     function sampleMemory() {
         memoryFile.reload();
-        const values = {
-        };
+        const values = {};
         const lines = memoryFile.text().split("\n");
         for (let index = 0; index < lines.length; index++) {
             const fields = lines[index].split(/\s+/);
@@ -87,7 +87,7 @@ Singleton {
         }
         const total = values["MemTotal:"] || 0;
         if (total === 0)
-            return ;
+            return;
 
         root.memoryTotal = total;
         root.memoryAvailable = values["MemAvailable:"] || 0;
@@ -125,7 +125,7 @@ Singleton {
 
     // "AMD Ryzen 5 7640U w/ Radeon 760M Graphics" is "AMD Ryzen 5 7640U";
     // Intel's "(R)", "(TM)" and "CPU @ 2.60GHz" go the same way.
-    function shortModel(name: string) : string {
+    function shortModel(name: string): string {
         return name.replace(/\((R|TM)\)/g, "").replace(/\s+(w\/|with)\s.*$/, "").replace(/\s+CPU\b.*$/, "").replace(/\s+\d+-Core Processor$/, "").replace(/\s+/g, " ").trim();
     }
 
@@ -134,17 +134,15 @@ Singleton {
         root.sampleMemory();
         if (root.detailed)
             root.sampleDetails();
-
     }
 
     onActiveChanged: {
         if (root.active)
             root.sample();
-
     }
     onDetailedChanged: {
         if (!root.detailed)
-            return ;
+            return;
 
         if (!root.sensorSearched) {
             root.sensorSearched = true;
@@ -214,26 +212,23 @@ Singleton {
             id: sensorList
 
             onStreamFinished: {
-                const drivers = {
-                };
+                const drivers = {};
                 const lines = sensorList.text.split("\n");
                 for (let index = 0; index < lines.length; index++) {
                     const separator = lines[index].lastIndexOf(":");
                     if (separator > 0)
                         drivers[lines[index].slice(separator + 1)] = lines[index].slice(0, separator).replace(/\/name$/, "");
-
                 }
                 // AMD, AMD's out-of-tree driver, Intel, then ARM boards.
                 const preferred = ["k10temp", "zenpower", "coretemp", "cpu_thermal"];
                 for (let index = 0; index < preferred.length; index++) {
                     if (drivers[preferred[index]] !== undefined) {
                         root.sensor = drivers[preferred[index]] + "/temp1_input";
-                        return ;
+                        return;
                     }
                 }
             }
         }
-
     }
 
     Timer {
@@ -242,5 +237,4 @@ Singleton {
         running: root.active
         onTriggered: root.sample()
     }
-
 }

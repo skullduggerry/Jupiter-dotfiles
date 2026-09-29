@@ -1,19 +1,19 @@
--- Environment for everything Hyprland starts.
---
--- Qt apps (Dolphin and every KIO file dialog) take their colours, font, icon
--- theme and widget style from the platform theme. "kde" is plasma-integration,
--- which is the only thing that actually reads ~/.config/kdeglobals — the
--- wallust-generated colour scheme is inert without it, verified by launching
--- Dolphin with a garish red `[Colors:View]` and watching nothing change.
--- kdeglobals then points `[KDE] widgetStyle` at Kvantum, whose translucent
--- theme is what Hyprland's blur shows through. See .github/THEMING.md.
---
--- These reach anything launched by the compositor, which includes the SUPER+E
--- file manager bind. Something launched by the systemd user session instead
--- (/etc/xdg/autostart) does not — put it in ~/.config/environment.d/ as well
--- if that ever matters.
-hl.env("QT_QPA_PLATFORMTHEME", "kde")
-
--- Let Hyprland draw the frame instead of Qt drawing its own titlebar, so a
--- Dolphin window gets the same border and 8px rounding as everything else.
-hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
+-- The session's environment lives in config/uwsm/env, where uwsm reads it and
+-- hands it to systemd as well, so what systemd starts (xdg autostart, D-Bus
+-- activated apps, the portals) gets it too. Without uwsm, it is read here.
+if os.getenv("UWSM_FINALIZE_VARNAMES") == nil then
+	local config = os.getenv("XDG_CONFIG_HOME")
+	if config == nil or config == "" then
+		config = os.getenv("HOME") .. "/.config"
+	end
+	local file = io.open(config .. "/uwsm/env", "r")
+	if file then
+		for line in file:lines() do
+			local key, value = line:match("^export%s+([%w_]+)=(.*)$")
+			if key then
+				hl.env(key, value)
+			end
+		end
+		file:close()
+	end
+end

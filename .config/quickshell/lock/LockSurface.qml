@@ -36,9 +36,7 @@ WlSessionLockSurface {
             NumberAnimation {
                 duration: Style.animation.slow
             }
-
         }
-
     }
 
     Rectangle {
@@ -78,7 +76,7 @@ WlSessionLockSurface {
             Text {
                 id: fieldIcon
 
-                text: LockService.authenticating ? "󰔟" : "󰌾"
+                text: LockService.authenticating ? "\u{F051F}" : "\u{F033E}"
                 color: LockService.authenticating ? Colors.lock.busy : Colors.lock.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.iconSize
@@ -88,7 +86,6 @@ WlSessionLockSurface {
                     leftMargin: Style.bar.padding
                     verticalCenter: parent.verticalCenter
                 }
-
             }
 
             TextInput {
@@ -101,7 +98,7 @@ WlSessionLockSurface {
                 passwordCharacter: "●"
                 readOnly: LockService.authenticating
                 clip: true
-                Keys.onPressed: (event) => {
+                Keys.onPressed: event => {
                     root.engaged = true;
                 }
                 onTextChanged: LockService.password = passwordInput.text
@@ -130,16 +127,13 @@ WlSessionLockSurface {
                     font.pixelSize: Style.text.size
                     verticalAlignment: Text.AlignVCenter
                 }
-
             }
 
             Behavior on border.color {
                 ColorAnimation {
                     duration: Style.animation.normal
                 }
-
             }
-
         }
 
         Text {
@@ -152,7 +146,6 @@ WlSessionLockSurface {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
         }
-
     }
 
     Text {
@@ -166,7 +159,5 @@ WlSessionLockSurface {
             horizontalCenter: parent.horizontalCenter
             bottomMargin: Style.bar.padding * 2
         }
-
     }
-
 }

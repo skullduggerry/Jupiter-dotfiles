@@ -8,28 +8,21 @@ Item {
 
     required property ShellScreen screen
 
-    implicitWidth: row.implicitWidth + Style.widgets.padding * 2
+    implicitWidth: clock.implicitWidth + Style.widgets.padding * 2
     implicitHeight: Style.bar.height
 
-    Row {
-        id: row
+    Text {
+        id: clock
 
         anchors.centerIn: parent
-        spacing: Style.widgets.spacing
-
-        Text {
-            text: Time.time
-            color: Colors.text.base
-            font.family: Style.text.font
-            font.pixelSize: Style.text.size
-            anchors.verticalCenter: parent.verticalCenter
-        }
-
+        text: Time.time
+        color: Colors.text.base
+        font.family: Style.text.font
+        font.pixelSize: Style.text.size
     }
 
     MouseArea {
         anchors.fill: parent
         onClicked: DropdownState.toggle(DropdownState.zoneCalendar, root.screen)
     }
-
 }

@@ -23,7 +23,6 @@ Item {
             rightMargin: Style.bar.spacing
             verticalCenter: parent.verticalCenter
         }
-
     }
 
     Behavior on progress {
@@ -31,7 +30,5 @@ Item {
             duration: Style.animation.slow
             easing.type: Easing.OutCubic
         }
-
     }
-
 }

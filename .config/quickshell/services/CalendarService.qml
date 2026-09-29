@@ -16,11 +16,8 @@ Singleton {
     property bool active: false
     property bool refetchWanted: false
     property bool syncWanted: false
-    // A fetch is a REPORT per calendar across the network — seconds, not
-    // milliseconds — so the panel must not need one to draw. Two things keep
-    // it off the critical path: fetching a window much wider than the month
-    // on screen, so paging around it costs nothing, and keeping the last
-    // answer on disk, so a fresh shell has something to show immediately.
+    // A fetch takes seconds, so it covers this much more than the visible
+    // range on each side, and paging around stays off the network.
     readonly property int prefetchDays: 120
     readonly property int staleAfter: 5 * 60 * 1000
     property date fetchStart: new Date(0)
@@ -34,8 +31,7 @@ Singleton {
     readonly property bool signingIn: login.running
     readonly property bool loading: status === "loading"
     readonly property var eventsByDay: {
-        const grouped = {
-        };
+        const grouped = {};
         for (let index = 0; index < root.events.length; index++) {
             const event = root.events[index];
             let day = new Date(event.start.getFullYear(), event.start.getMonth(), event.start.getDate());
@@ -51,17 +47,13 @@ Singleton {
         return grouped;
     }
 
-    // The server address and the login name are not secrets, so they can live
-    // in QML and in a state file. The app password still never comes near
-    // either: nextcloud-calendar.py reads it from the keyring itself.
-    // Whatever page of the web UI got pasted, reduce it to the address the DAV
-    // endpoints hang off. Everything from the first Nextcloud-owned segment on
-    // is UI, and this keeps a subpath install (https://host/nextcloud) intact.
-    function baseAddress(url: string) : string {
+    // Whatever page of the web UI got pasted, down to the address the DAV
+    // endpoints hang off; a subpath install (https://host/nextcloud) stays.
+    function baseAddress(url: string): string {
         return url.trim().replace(/\/(index\.php|remote\.php|apps|settings|login|u)(\/.*)?$/, "").replace(/\/+$/, "");
     }
 
-    function addressProblem(address: string) : string {
+    function addressProblem(address: string): string {
         if (address === "")
             return "Server address is needed";
 
@@ -73,7 +65,7 @@ Singleton {
         return "";
     }
 
-    function configure(url: string, user: string) : string {
+    function configure(url: string, user: string): string {
         const address = root.baseAddress(url);
         const problem = root.addressProblem(address);
         if (problem !== "")
@@ -90,10 +82,9 @@ Singleton {
         return "";
     }
 
-    // Login Flow v2: the browser authenticates, which is the only thing that
-    // works when the account sits behind an SSO provider, and the server
-    // answers with the real login name plus a fresh app password.
-    function signIn(url: string) : string {
+    // Login Flow v2: the browser signs in, SSO included, and the server answers
+    // with the login name and a fresh app password.
+    function signIn(url: string): string {
         const address = root.baseAddress(url);
         const problem = root.addressProblem(address);
         if (problem !== "")
@@ -120,86 +111,82 @@ Singleton {
         }
     }
 
-    function shift(day: date, days: int) : date {
+    function shift(day: date, days: int): date {
         return new Date(day.getFullYear(), day.getMonth(), day.getDate() + days);
     }
 
-    function monthStart(day: date) : date {
+    function monthStart(day: date): date {
         return new Date(day.getFullYear(), day.getMonth(), 1);
     }
 
-    function monthAfter(day: date) : date {
+    function monthAfter(day: date): date {
         return new Date(day.getFullYear(), day.getMonth() + 1, 1);
     }
 
-    function covers(start: date, end: date) : bool {
+    function covers(start: date, end: date): bool {
         return root.coveredStart.getTime() > 0 && start >= root.coveredStart && end <= root.coveredEnd;
     }
 
-    function stale() : bool {
+    function stale(): bool {
         return Date.now() - root.lastUpdated.getTime() > root.staleAfter;
     }
 
     function refresh(force: bool) {
         if (!force && root.covers(root.rangeStart, root.rangeEnd))
-            return ;
+            return;
 
         if (fetcher.running) {
             root.refetchWanted = true;
-            return ;
+            return;
         }
         root.refetchWanted = false;
         root.status = "loading";
-        // Set before running: command is a binding, so the process starts on
-        // the window that was just pinned rather than on the visible range.
-        // Snapped to whole months so the edges do not wobble with the day of
-        // the month, which is what makes the coverage below predictable.
+        // Pinned before running, since the command binds to it, and snapped to
+        // whole months, which keeps the coverage predictable.
         root.fetchStart = root.monthStart(root.shift(root.rangeStart, -root.prefetchDays));
         root.fetchEnd = root.monthAfter(root.shift(root.rangeEnd, root.prefetchDays));
         fetcher.running = true;
     }
 
-    function dayKey(day: date) : string {
+    function dayKey(day: date): string {
         return Qt.formatDate(day, "yyyy-MM-dd");
     }
 
     function adopt(raw) {
-        root.events = raw.map((event) => {
-            return ({
-                "summary": event.summary,
-                "location": event.location,
-                "calendar": event.calendar,
-                "colour": event.colour || "",
-                "allDay": event.allDay,
-                "start": new Date(event.start),
-                "end": new Date(event.end)
-            });
-        });
+        root.events = raw.map(event => ({
+                    summary: event.summary,
+                    location: event.location,
+                    calendar: event.calendar,
+                    colour: event.colour || "",
+                    allDay: event.allDay,
+                    start: new Date(event.start),
+                    end: new Date(event.end)
+                }));
     }
 
     // Keep the raw payload rather than the mapped events: it is what the
     // helper printed, so reading it back needs no second format.
     function store(raw) {
         cacheFile.setText(JSON.stringify({
-            "start": root.dayKey(root.fetchStart),
-            "end": root.dayKey(root.fetchEnd),
-            "updated": root.lastUpdated.toISOString(),
-            "events": raw
+            start: root.dayKey(root.fetchStart),
+            end: root.dayKey(root.fetchEnd),
+            updated: root.lastUpdated.toISOString(),
+            events: raw
         }));
     }
 
     function restore() {
         if (!root.configured)
-            return ;
+            return;
 
         let cached = null;
         try {
             cached = JSON.parse(cacheFile.text());
         } catch (parseError) {
-            return ;
+            return;
         }
         if (!cached || !cached.events)
-            return ;
+            return;
 
         root.adopt(cached.events);
         root.coveredStart = new Date(cached.start);
@@ -215,7 +202,7 @@ Singleton {
         } catch (parseError) {
             root.status = "error";
             root.message = errorOutput.trim().split("\n").pop() || "calendar helper exited " + exitCode + " without output";
-            return ;
+            return;
         }
         root.status = payload.status;
         root.message = payload.message || "";
@@ -231,17 +218,13 @@ Singleton {
         }
         if (root.refetchWanted)
             root.refresh(false);
-
     }
 
     onActiveChanged: {
-        // Opening the panel draws from the cache straight away; the network is
-        // only asked when what it holds has had time to drift. Going through
-        // the debounce rather than fetching here is what stops the first open
-        // spending a fetch on the default range: the panel's range bindings
-        // arrive a moment after active does.
+        // The cache draws at once, and the network is asked only when it is
+        // stale; through the debounce, as the panel's range arrives just after.
         if (!root.active)
-            return ;
+            return;
 
         root.syncWanted = root.stale();
         rangeDebounce.restart();
@@ -260,16 +243,12 @@ Singleton {
         onExited: (exitCode, exitStatus) => {
             if (root.loginMessage === "Finish signing in in your browser…")
                 root.loginMessage = "";
-
         }
 
         stdout: SplitParser {
             splitMarker: "\n"
-            onRead: (line) => {
-                return root.handleLogin(JSON.parse(line));
-            }
+            onRead: line => root.handleLogin(JSON.parse(line))
         }
-
     }
 
     Process {
@@ -279,8 +258,7 @@ Singleton {
         // Only override what has actually been set here, so NEXTCLOUD_URL from
         // a shell profile still works for anyone who configured it that way.
         environment: {
-            const vars = {
-            };
+            const vars = {};
             if (root.serverUrl !== "")
                 vars["NEXTCLOUD_URL"] = root.serverUrl;
 
@@ -289,9 +267,7 @@ Singleton {
 
             return vars;
         }
-        onExited: (exitCode, exitStatus) => {
-            return root.applyResult(exitCode, fetchOutput.text, fetchError.text);
-        }
+        onExited: (exitCode, exitStatus) => root.applyResult(exitCode, fetchOutput.text, fetchError.text)
 
         stdout: StdioCollector {
             id: fetchOutput
@@ -300,7 +276,6 @@ Singleton {
         stderr: StdioCollector {
             id: fetchError
         }
-
     }
 
     FileView {
@@ -318,7 +293,6 @@ Singleton {
             property string serverUrl: ""
             property string user: ""
         }
-
     }
 
     FileView {
@@ -337,7 +311,7 @@ Singleton {
         interval: 250
         onTriggered: {
             if (!root.active)
-                return ;
+                return;
 
             const force = root.syncWanted;
             root.syncWanted = false;
@@ -351,5 +325,4 @@ Singleton {
         running: root.active
         onTriggered: root.refresh(true)
     }
-
 }

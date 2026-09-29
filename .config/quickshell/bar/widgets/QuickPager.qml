@@ -27,9 +27,12 @@ WidgetPopup {
 
     onWheeled: (deltaX, deltaY) => {
         if (Math.abs(deltaX) < Math.abs(deltaY))
-            return ;
+            return;
 
         settings.swipe(deltaX);
+    }
+    onArrowPressed: direction => {
+        settings.step(direction, true);
     }
     namespaceSuffix: "quicksettings-popup"
     popupWidth: Style.pager.width
@@ -41,5 +44,4 @@ WidgetPopup {
         anchors.fill: parent
         active: root.visible
     }
-
 }

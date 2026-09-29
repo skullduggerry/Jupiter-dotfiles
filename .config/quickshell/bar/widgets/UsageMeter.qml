@@ -5,7 +5,7 @@ Item {
     id: root
 
     required property real value
-    readonly property var ramp: ["󰄰", "󰪞", "󰪟", "󰪠", "󰪡", "󰪢", "󰪣", "󰪤", "󰪥"]
+    readonly property list<string> ramp: ["\u{F0130}", "\u{F0A9E}", "\u{F0A9F}", "\u{F0AA0}", "\u{F0AA1}", "\u{F0AA2}", "\u{F0AA3}", "\u{F0AA4}", "\u{F0AA5}"]
 
     implicitWidth: Style.text.iconSize + Style.widgets.spacing
     implicitHeight: Style.bar.height
@@ -17,5 +17,4 @@ Item {
         font.family: Style.text.font
         font.pixelSize: Style.text.iconSize
     }
-
 }

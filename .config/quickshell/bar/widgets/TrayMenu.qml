@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import "../../style"
 import QtQuick
 import Quickshell
@@ -29,7 +31,6 @@ WidgetPopup {
     onVisibleChanged: {
         if (!root.visible)
             root.menuStack = [];
-
     }
 
     QsMenuOpener {
@@ -60,7 +61,7 @@ WidgetPopup {
                 id: backIcon
 
                 width: Style.popup.rowIconWidth
-                text: ""
+                text: "\u{F0141}"
                 color: Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
@@ -69,7 +70,6 @@ WidgetPopup {
                     left: parent.left
                     verticalCenter: parent.verticalCenter
                 }
-
             }
 
             Text {
@@ -83,7 +83,6 @@ WidgetPopup {
                     leftMargin: Style.widgets.spacing
                     verticalCenter: parent.verticalCenter
                 }
-
             }
 
             MouseArea {
@@ -93,7 +92,6 @@ WidgetPopup {
                 hoverEnabled: true
                 onClicked: root.leaveSubmenu()
             }
-
         }
 
         ListView {
@@ -117,13 +115,12 @@ WidgetPopup {
                 onActivated: {
                     if (entryRow.modelData.hasChildren) {
                         root.enterSubmenu(entryRow.modelData);
-                        return ;
+                        return;
                     }
                     entryRow.modelData.triggered();
                     root.visible = false;
                 }
             }
-
         }
 
         Text {
@@ -134,7 +131,5 @@ WidgetPopup {
             font.family: Style.text.font
             font.pixelSize: Style.text.size
         }
-
     }
-
 }

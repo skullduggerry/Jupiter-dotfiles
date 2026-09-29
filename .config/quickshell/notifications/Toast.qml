@@ -19,7 +19,7 @@ Rectangle {
     border.color: root.urgent ? Colors.notification.urgent : Colors.base.border
 
     Timer {
-        running: root.timeout > 0
+        running: root.timeout > 0 && !entry.replying
         interval: root.timeout
         onTriggered: NotificationService.expirePopup(root.modelData)
     }
@@ -36,7 +36,6 @@ Rectangle {
             top: parent.top
             margins: Style.bar.padding
         }
-
     }
 
     MouseArea {
@@ -44,5 +43,4 @@ Rectangle {
         z: -1
         onClicked: NotificationService.hidePopup(root.notificationId)
     }
-
 }

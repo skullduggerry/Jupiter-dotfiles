@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import "../services"
 import "../style"
 import QtQuick
@@ -5,7 +7,7 @@ import QtQuick
 Item {
     id: root
 
-    readonly property int preferredHeight: Style.bar.padding * 2 + header.height + weekdays.height + grid.height + Style.bar.spacing + Style.border.width + Style.bar.spacing + agendaHeader.height + root.agendaHeight + status.height
+    implicitHeight: Style.bar.padding * 2 + header.height + weekdays.height + grid.height + Style.bar.spacing + Style.border.width + Style.bar.spacing + agendaHeader.height + root.agendaHeight + status.height
     readonly property int agendaHeight: setup.visible ? setup.implicitHeight + Style.bar.spacing : Math.max(Style.popup.itemHeight, agenda.contentHeight)
     readonly property date today: Time.now
     property date displayedMonth: new Date(root.today.getFullYear(), root.today.getMonth(), 1)
@@ -28,30 +30,27 @@ Item {
     readonly property bool showingUpcoming: root.selectedEvents.length === 0 && root.upcomingEvents.length > 0
     readonly property var upcomingEvents: {
         const from = new Date(root.selectedDay.getFullYear(), root.selectedDay.getMonth(), root.selectedDay.getDate());
-        return CalendarService.events.filter((event) => {
-            return event.end > from;
-        }).slice(0, Style.calendar.upcomingCount);
+        return CalendarService.events.filter(event => event.end > from).slice(0, Style.calendar.upcomingCount);
     }
     readonly property var agendaEvents: root.showingUpcoming ? root.upcomingEvents : root.selectedEvents
 
-    function dayAt(index: int) : date {
+    function dayAt(index: int): date {
         return new Date(root.gridStart.getFullYear(), root.gridStart.getMonth(), root.gridStart.getDate() + index);
     }
 
-    function sameDay(left: date, right: date) : bool {
+    function sameDay(left: date, right: date): bool {
         return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() && left.getDate() === right.getDate();
     }
 
-    // One dot per event, in the colour its calendar carries on the server;
-    // a calendar with no colour set falls back to the shell accent.
-    function dotColours(day: date) : list {
+    // One dot per event, in its calendar's colour or the accent. Unannotated:
+    // qmlformat turns a list<color> return type into a bare list, which the
+    // engine then coerces to void at every call.
+    function dotColours(day) {
         const events = CalendarService.eventsByDay[CalendarService.dayKey(day)];
         if (events === undefined)
             return [];
 
-        return events.slice(0, Style.calendar.maxDots).map((event) => {
-            return event.colour || Colors.calendar.event;
-        });
+        return events.slice(0, Style.calendar.maxDots).map(event => event.colour || Colors.calendar.event);
     }
 
     function shiftMonth(months: int) {
@@ -96,73 +95,38 @@ Item {
                 right: parent.right
             }
 
-            Text {
-                id: previousMonth
-
-                text: "\uf053"
-                color: previousArea.containsMouse ? Colors.text.base : Colors.text.muted
-                font.family: Style.text.font
-                font.pixelSize: Style.text.smallSize
+            TextButton {
                 width: Style.popup.rowIconWidth
-                horizontalAlignment: Text.AlignLeft
+                text: "\u{F0141}"
+                onClicked: root.shiftMonth(-1)
 
                 anchors {
                     left: parent.left
                     verticalCenter: parent.verticalCenter
                 }
-
-                MouseArea {
-                    id: previousArea
-
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onClicked: root.shiftMonth(-1)
-                }
-
             }
 
-            Text {
+            TextButton {
+                id: month
+
                 anchors.centerIn: parent
                 text: Qt.formatDate(root.displayedMonth, "MMMM yyyy")
-                color: monthArea.containsMouse ? Colors.calendar.today : Colors.text.base
-                font.family: Style.text.font
+                color: month.hovered ? Colors.calendar.today : Colors.text.base
                 font.pixelSize: Style.text.size
-
-                MouseArea {
-                    id: monthArea
-
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onClicked: root.showToday()
-                }
-
+                onClicked: root.showToday()
             }
 
-            Text {
-                id: nextMonth
-
-                text: "\uf054"
-                color: nextArea.containsMouse ? Colors.text.base : Colors.text.muted
-                font.family: Style.text.font
-                font.pixelSize: Style.text.smallSize
+            TextButton {
                 width: Style.popup.rowIconWidth
                 horizontalAlignment: Text.AlignRight
+                text: "\u{F0142}"
+                onClicked: root.shiftMonth(1)
 
                 anchors {
                     right: parent.right
                     verticalCenter: parent.verticalCenter
                 }
-
-                MouseArea {
-                    id: nextArea
-
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onClicked: root.shiftMonth(1)
-                }
-
             }
-
         }
 
         Row {
@@ -191,9 +155,7 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
-
             }
-
         }
 
         Grid {
@@ -212,9 +174,7 @@ Item {
             }
 
             WheelHandler {
-                onWheel: (event) => {
-                    return root.shiftMonth(event.angleDelta.y > 0 ? -1 : 1);
-                }
+                onWheel: event => root.shiftMonth(event.angleDelta.y > 0 ? -1 : 1)
             }
 
             Repeater {
@@ -252,7 +212,6 @@ Item {
                             font.family: Style.text.font
                             font.pixelSize: Style.text.size
                         }
-
                     }
 
                     Row {
@@ -273,9 +232,7 @@ Item {
                                 radius: width / 2
                                 color: cell.inMonth ? modelData : Colors.text.muted
                             }
-
                         }
-
                     }
 
                     MouseArea {
@@ -285,11 +242,8 @@ Item {
                         hoverEnabled: true
                         onClicked: root.selectedDay = cell.day
                     }
-
                 }
-
             }
-
         }
 
         Rectangle {
@@ -304,7 +258,6 @@ Item {
                 right: parent.right
                 topMargin: Style.bar.spacing
             }
-
         }
 
         Item {
@@ -333,7 +286,6 @@ Item {
                     left: parent.left
                     verticalCenter: parent.verticalCenter
                 }
-
             }
 
             Text {
@@ -348,9 +300,7 @@ Item {
                     right: parent.right
                     verticalCenter: parent.verticalCenter
                 }
-
             }
-
         }
 
         Item {
@@ -377,7 +327,6 @@ Item {
                 wrapMode: Text.Wrap
                 maximumLineCount: 3
             }
-
         }
 
         ListView {
@@ -433,9 +382,7 @@ Item {
                     width: agendaRow.width - eventTime.width - marker.width - agendaRow.spacing * 2
                     anchors.verticalCenter: parent.verticalCenter
                 }
-
             }
-
         }
 
         CalendarSetup {
@@ -449,7 +396,6 @@ Item {
                 right: parent.right
                 topMargin: Style.bar.spacing
             }
-
         }
 
         Text {
@@ -460,7 +406,5 @@ Item {
             font.family: Style.text.font
             font.pixelSize: Style.text.size
         }
-
     }
-
 }

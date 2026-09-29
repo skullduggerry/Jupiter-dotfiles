@@ -20,7 +20,6 @@ Item {
             left: parent.left
             verticalCenter: parent.verticalCenter
         }
-
     }
 
     Text {
@@ -38,7 +37,5 @@ Item {
             right: parent.right
             verticalCenter: parent.verticalCenter
         }
-
     }
-
 }

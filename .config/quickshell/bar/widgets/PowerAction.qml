@@ -7,7 +7,7 @@ Rectangle {
     property string label: ""
     property color labelColor: Colors.text.base
 
-    signal activated()
+    signal activated
 
     width: parent ? parent.width : implicitWidth
     height: Style.popup.itemHeight
@@ -29,5 +29,4 @@ Rectangle {
         hoverEnabled: true
         onClicked: root.activated()
     }
-
 }

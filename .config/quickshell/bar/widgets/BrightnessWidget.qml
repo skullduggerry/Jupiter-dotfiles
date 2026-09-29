@@ -6,7 +6,7 @@ Item {
     id: root
 
     required property QuickPager pager
-    readonly property var ramp: ["", "", "", "", "", "", "", "", ""]
+    readonly property list<string> ramp: ["\u{F00DE}", "\u{F00DF}", "\u{F00E0}"]
 
     visible: Brightness.available
     implicitWidth: visible ? icon.implicitWidth + Style.widgets.padding * 2 : 0
@@ -31,9 +31,6 @@ Item {
     MouseArea {
         anchors.fill: parent
         onClicked: root.pager.toggleAt(root.pager.pageBrightness, root)
-        onWheel: (wheel) => {
-            return Brightness.adjust(wheel.angleDelta.y > 0 ? Brightness.step : -Brightness.step);
-        }
+        onWheel: wheel => Brightness.adjust(wheel.angleDelta.y > 0 ? Brightness.step : -Brightness.step)
     }
-
 }

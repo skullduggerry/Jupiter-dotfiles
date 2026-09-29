@@ -7,7 +7,7 @@ Rectangle {
     required property string label
     required property bool selected
 
-    signal chosen()
+    signal chosen
 
     implicitWidth: choiceLabel.implicitWidth + Style.bar.padding * 2
     implicitHeight: Style.popup.itemHeight
@@ -35,7 +35,5 @@ Rectangle {
         ColorAnimation {
             duration: Style.animation.normal
         }
-
     }
-
 }

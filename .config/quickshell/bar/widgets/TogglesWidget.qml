@@ -7,7 +7,7 @@ Item {
 
     required property QuickPager pager
 
-    signal expandRequested()
+    signal expandRequested
 
     implicitWidth: icon.implicitWidth + Style.widgets.padding * 2
     implicitHeight: Style.bar.height
@@ -25,12 +25,11 @@ Item {
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        onClicked: (mouse) => {
+        onClicked: mouse => {
             if (mouse.button === Qt.RightButton)
                 root.expandRequested();
             else
                 root.pager.toggleAt(root.pager.pageToggles, root);
         }
     }
-
 }

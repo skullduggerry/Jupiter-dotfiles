@@ -9,46 +9,41 @@ Singleton {
 
     property bool doNotDisturb: false
     property var popupIds: []
-
-    // Notification centres on screen, counted by NotificationPanel. A centre
-    // opens in the column toasts pop up in and already lists everything, so
-    // toasts give way to it: those showing expire as it opens, and nothing
-    // new raises one while it is open.
+    // Notification centres on screen (NotificationPanel counts itself). A
+    // centre lists everything in the toasts' column, so toasts give way to it:
+    // those showing expire as it opens, and none is raised while it is open.
     property int viewers: 0
-
     readonly property var tracked: server.trackedNotifications.values
-
     readonly property var list: root.tracked.filter(candidate => !candidate.transient).reverse()
-
-    readonly property var popups: root.tracked
-        .filter(candidate => root.popupIds.indexOf(candidate.id) !== -1)
-        .reverse()
-
+    readonly property var popups: root.tracked.filter(candidate => root.popupIds.includes(candidate.id)).reverse()
     readonly property int count: root.list.length
-
     readonly property bool hasCritical: root.list.some(candidate => candidate.urgency === NotificationUrgency.Critical)
 
     function hidePopup(id: int) {
-        root.popupIds = root.popupIds.filter(candidate => candidate !== id)
+        root.popupIds = root.popupIds.filter(candidate => candidate !== id);
     }
 
     function expirePopup(notification: Notification) {
-        root.hidePopup(notification.id)
-        if (notification.transient) notification.expire()
+        root.hidePopup(notification.id);
+        if (notification.transient)
+            notification.expire();
     }
 
     function dismissAll() {
-        const all = root.tracked.slice()
-        for (let index = 0; index < all.length; index++) all[index].dismiss()
-        root.popupIds = []
+        for (const notification of root.tracked.slice())
+            notification.dismiss();
+        root.popupIds = [];
     }
 
     function expirePopups() {
-        const shown = root.popups.slice()
-        for (let index = 0; index < shown.length; index++) root.expirePopup(shown[index])
+        for (const notification of root.popups.slice())
+            root.expirePopup(notification);
     }
 
-    onViewersChanged: if (root.viewers > 0) root.expirePopups()
+    onViewersChanged: {
+        if (root.viewers > 0)
+            root.expirePopups();
+    }
 
     NotificationServer {
         id: server
@@ -56,19 +51,25 @@ Singleton {
         actionsSupported: true
         bodyMarkupSupported: true
         imageSupported: true
+        inlineReplySupported: true
         persistenceSupported: true
+        onNotification: notification => {
+            notification.tracked = true;
+            if (notification.lastGeneration)
+                return;
 
-        onNotification: (notification) => {
-            notification.tracked = true
-            if (notification.lastGeneration) return
             if (root.viewers > 0) {
-                // The open centre lists it. It does not list a transient one,
-                // which would otherwise stay tracked with nowhere to show.
-                if (notification.transient) notification.expire()
-                return
+                // The open centre lists it, but not a transient one, which
+                // would otherwise stay tracked with nowhere to show.
+                if (notification.transient)
+                    notification.expire();
+
+                return;
             }
-            if (root.doNotDisturb && notification.urgency !== NotificationUrgency.Critical) return
-            root.popupIds = [...root.popupIds, notification.id]
+            if (root.doNotDisturb && notification.urgency !== NotificationUrgency.Critical)
+                return;
+
+            root.popupIds = root.popupIds.concat([notification.id]);
         }
     }
 }

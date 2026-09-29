@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import "../../style"
 import QtQuick
 import QtQuick.Effects
@@ -9,10 +11,8 @@ Item {
     id: root
 
     required property ShellScreen screen
-    readonly property var hiddenIds: ["nm-applet", "blueman"]
-    readonly property var items: SystemTray.items.values.filter((item) => {
-        return !root.hiddenIds.includes(item.id);
-    })
+    readonly property list<string> hiddenIds: ["nm-applet", "blueman"]
+    readonly property var items: SystemTray.items.values.filter(item => !root.hiddenIds.includes(item.id))
 
     visible: root.items.length > 0
     implicitWidth: visible ? row.implicitWidth : 0
@@ -66,7 +66,7 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-                    onClicked: (mouse) => {
+                    onClicked: mouse => {
                         if (mouse.button === Qt.MiddleButton)
                             trayIcon.modelData.secondaryActivate();
                         else if (mouse.button === Qt.RightButton || trayIcon.modelData.onlyMenu)
@@ -74,15 +74,10 @@ Item {
                         else
                             trayIcon.modelData.activate();
                     }
-                    onWheel: (wheel) => {
-                        return trayIcon.modelData.scroll(wheel.angleDelta.y, false);
-                    }
+                    onWheel: wheel => trayIcon.modelData.scroll(wheel.angleDelta.y, false)
                 }
-
             }
-
         }
-
     }
 
     TrayMenu {
@@ -90,5 +85,4 @@ Item {
 
         screen: root.screen
     }
-
 }

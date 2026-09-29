@@ -1,4 +1,6 @@
-import "../../panels"
+pragma ComponentBehavior: Bound
+
+import "../../services"
 import "../../style"
 import QtQuick
 import Quickshell
@@ -8,7 +10,7 @@ Item {
     id: root
 
     required property ShellScreen screen
-    readonly property HyprlandMonitor monitor: screen ? Hyprland.monitorFor(screen) : null
+    readonly property HyprlandMonitor monitor: root.screen ? Hyprland.monitorFor(root.screen) : null
 
     implicitWidth: row.implicitWidth
     implicitHeight: Style.bar.height
@@ -47,50 +49,22 @@ Item {
                         NumberAnimation {
                             duration: Style.animation.normal
                         }
-
                     }
-
                 }
 
                 MouseArea {
                     anchors.fill: parent
                     onClicked: cell.modelData.activate()
                 }
-
             }
-
         }
-
     }
 
+    // The dropdown's workspace zone rather than a popup of its own, like the
+    // clock's calendar, so the arrow keys carry on from it to the next zone.
     MouseArea {
         anchors.fill: parent
         z: -1
-        onClicked: workspacePopup.visible = !workspacePopup.visible
+        onClicked: DropdownState.toggle(DropdownState.zoneWorkspaces, root.screen)
     }
-
-    WidgetPopup {
-        id: workspacePopup
-
-        screen: root.screen
-        anchorItem: root
-        namespaceSuffix: "workspaces-popup"
-        popupWidth: Style.dropdown.width
-        popupHeight: Math.max(Style.popup.minHeight, Math.min(Style.dropdown.maxHeight, panel.item ? panel.item.preferredHeight : Style.popup.minHeight))
-
-        Loader {
-            id: panel
-
-            anchors.fill: parent
-            active: workspacePopup.visible
-
-            sourceComponent: WorkspacePanel {
-                screen: root.screen
-                onActivated: workspacePopup.visible = false
-            }
-
-        }
-
-    }
-
 }

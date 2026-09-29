@@ -4,29 +4,21 @@ import "./launcher"
 import "./lock"
 import "./notifications"
 import "./osd"
-import "./wallpaper"
+import "./settings"
 import Quickshell
 
 Scope {
-    Bar {
-    }
+    Bar {}
 
-    Dropdown {
-    }
+    Dropdown {}
 
-    Launcher {
-    }
+    Launcher {}
 
-    Lock {
-    }
+    Lock {}
 
-    Toasts {
-    }
+    Toasts {}
 
-    Osd {
-    }
+    Osd {}
 
-    WallpaperApp {
-    }
-
+    SettingsApp {}
 }

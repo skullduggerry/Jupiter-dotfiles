@@ -15,7 +15,7 @@ Singleton {
 
     function lock() {
         if (root.locked)
-            return ;
+            return;
 
         root.password = "";
         root.errorText = "";
@@ -24,7 +24,7 @@ Singleton {
 
     function submit() {
         if (pam.active || root.password === "")
-            return ;
+            return;
 
         root.errorText = "";
         pam.start();
@@ -33,7 +33,6 @@ Singleton {
     onPasswordChanged: {
         if (root.password !== "")
             root.errorText = "";
-
     }
 
     PersistentProperties {
@@ -54,19 +53,18 @@ Singleton {
             else if (pam.message !== "")
                 root.errorText = pam.message;
         }
-        onCompleted: (result) => {
+        onCompleted: result => {
             root.password = "";
             if (result === PamResult.Success) {
                 root.errorText = "";
                 root.locked = false;
-                return ;
+                return;
             }
             root.errorText = result === PamResult.MaxTries ? "Too many attempts" : "Incorrect password";
         }
-        onError: (error) => {
+        onError: error => {
             root.password = "";
             root.errorText = "PAM: " + PamError.toString(error);
         }
     }
-
 }

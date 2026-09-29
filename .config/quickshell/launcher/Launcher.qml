@@ -1,42 +1,48 @@
+pragma ComponentBehavior: Bound
+
+import "../services"
+import "../style"
+import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
-import QtQuick
-import "../style"
 
 Scope {
-    id: launcherScope
+    id: root
 
-    property bool launcherVisible: false
-    readonly property ShellScreen focusedScreen: {
-        const monitor = Hyprland.focusedMonitor
-        if (monitor === null) return null
-        return Quickshell.screens.find(candidate => candidate.name === monitor.name) || null
-    }
+    property bool open: false
 
-    function toggle() {
-        launcherVisible = !launcherVisible
-    }
     IpcHandler {
+        function toggle(): void {
+            root.open = !root.open;
+        }
+
+        function open(): void {
+            root.open = true;
+        }
+
+        function close(): void {
+            root.open = false;
+        }
+
         target: "launcher"
-        function toggle(): void { launcherScope.toggle() }
-        function open(): void { launcherScope.launcherVisible = true }
-        function close(): void { launcherScope.launcherVisible = false }
     }
+
     GlobalShortcut {
         name: "launcherToggle"
-        onPressed: launcherScope.toggle()
+        onPressed: root.open = !root.open
     }
 
     PanelWindow {
         id: window
-        visible: launcherScope.launcherVisible
-        screen: launcherScope.focusedScreen
 
+        visible: root.open
+        screen: Screens.focused
         WlrLayershell.namespace: "quickshell:launcher"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: window.visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        color: Colors.base.scrim
 
         anchors {
             top: true
@@ -44,22 +50,22 @@ Scope {
             left: true
             right: true
         }
-        color: Colors.base.scrim
 
         MouseArea {
             anchors.fill: parent
-            onClicked: launcherScope.launcherVisible = false
+            onClicked: root.open = false
         }
 
         Loader {
             id: content
+
             anchors.centerIn: parent
-            active: launcherScope.launcherVisible
-            onLoaded: content.item.reset()
+            active: root.open
+            onLoaded: (content.item as LauncherContent).reset()
 
             sourceComponent: LauncherContent {
-                onLaunched: launcherScope.launcherVisible = false
-                onCancelled: launcherScope.launcherVisible = false
+                onLaunched: root.open = false
+                onCancelled: root.open = false
             }
         }
     }

@@ -5,9 +5,6 @@ Scope {
     Variants {
         model: Quickshell.screens
 
-        GreeterSurface {
-        }
-
+        GreeterSurface {}
     }
-
 }

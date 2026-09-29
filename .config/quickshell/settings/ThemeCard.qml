@@ -36,7 +36,6 @@ Rectangle {
             top: parent.top
             margins: Style.wallpaper.badgeInset
         }
-
     }
 
     Rectangle {
@@ -61,7 +60,6 @@ Rectangle {
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
         }
-
     }
 
     Row {
@@ -86,9 +84,7 @@ Rectangle {
                 radius: width / 2
                 color: swatch.modelData
             }
-
         }
-
     }
 
     MouseArea {
@@ -99,5 +95,4 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
         onClicked: Theme.apply(root.modelData.name)
     }
-
 }

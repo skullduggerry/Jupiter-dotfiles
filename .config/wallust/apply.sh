@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Apply a wallust theme to the shell and to every app template (kitty, nvim,
-# kdeglobals, Kvantum). The shell's wallpaper app (config/quickshell/wallpaper/)
-# runs this with a theme; modules/start.lua runs it bare at login.
+# kdeglobals, Kvantum, qt6ct), then tell running apps. The shell's wallpaper app
+# (config/quickshell/wallpaper/) runs this with a theme; modules/start.lua runs
+# it bare at login.
 #
 #     apply.sh                                 the last theme again, the same way
 #     apply.sh [--shell-only] THEME            a built-in (`wallust theme list`)
@@ -39,8 +40,27 @@ else
     fi
 fi
 
+# wallust saves the escape sequences for new terminals here, but does not
+# create the folder, which a fresh home does not have yet.
+mkdir -p "${XDG_CACHE_HOME:-$HOME/.cache}/wallust"
+
 args=(-q)
-((shell_only)) && args+=(-C "$dir/shell.toml" -s)
+if ((shell_only)); then
+    args+=(-C "$dir/shell.toml" -s)
+else
+    # The Settings app's accent and font reach the app templates as
+    # appearance.jinja: wallust renders from a copy of this folder in which
+    # that file is written from the shell's state, not the committed defaults.
+    config=$(mktemp -d)
+    trap 'rm -rf "$config"' EXIT
+    mkdir "$config/templates"
+    ln -s "$dir"/templates/* "$config/templates/"
+    rm "$config/templates/appearance.jinja"
+    python3 "$dir/appearance.py" "${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/appearance.json" \
+        >"$config/templates/appearance.jinja"
+    ln -s "$dir/colorschemes" "$dir/wallust.toml" "$config/"
+    args+=(-d "$config")
+fi
 
 # `wallust cs` would take a built-in name too, but it tries colorschemes/ first
 # and accepts any single file starting with the name, so Nord would pick up a
@@ -51,12 +71,15 @@ else
     wallust "${args[@]}" theme "$theme"
 fi
 
-# Running Qt/KDE apps re-read kdeglobals on this broadcast (plasma-integration's
-# platform theme listens for it). Kvantum draws most of Dolphin from its own
-# theme, which only loads at startup; see .github/THEMING.md.
 if ((!shell_only)); then
-    dbus-send --session --type=signal /KGlobalSettings \
-        org.kde.KGlobalSettings.notifyChange int32:0 int32:0 || true
+    # Merged rather than rendered over: KDE apps keep settings of their own in
+    # kdeglobals.
+    python3 "$dir/kdeglobals.py" \
+        "$HOME/.cache/wallust/kdeglobals" "${XDG_CONFIG_HOME:-$HOME/.config}/kdeglobals"
+
+    # Dark or light, for everything that asks the desktop portal: GTK 4,
+    # Electron, browsers, and Qt apps with a theme of their own on "automatic".
+    gsettings set org.gnome.desktop.interface color-scheme "$(<"$HOME/.cache/wallust/color-scheme")" || true
 fi
 
 mkdir -p "$(dirname "$state")"

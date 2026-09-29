@@ -1,0 +1,40 @@
+{#- Colour arithmetic for the other templates, which import it:
+
+        {% from "palette.jinja" import shade, selection %}
+
+    The same formulas as config/quickshell/style/Colors.qml, so the apps and
+    the shell agree: every surface is a mix of the background and the text,
+    which is what lets a light theme mirror a dark one. -#}
+
+{%- from "appearance.jinja" import accent_color -%}
+
+{%- macro channel(a, b, t) -%}
+{%- set value = ((a | int) * (1 - t) + (b | int) * t) | round | int -%}
+{{- "%02x" | format(0 if value < 0 else (255 if value > 255 else value)) -}}
+{%- endmacro -%}
+
+{#- t of the way from a to b; outside 0..1 it keeps going, clamped. -#}
+{%- macro mix(a, b, t) -%}
+#{{ channel(a | red, b | red, t) }}{{ channel(a | green, b | green, t) }}{{ channel(a | blue, b | blue, t) }}
+{%- endmacro -%}
+
+{#- t of the way from the background to the text. Below 0 is further from the
+    text than the background: darker in a dark theme, lighter in a light one. -#}
+{%- macro shade(t) -%}{{ mix(background, foreground, t) }}{%- endmacro -%}
+
+{#- The Settings app's accent (appearance.jinja), towards white (t > 0) or
+    black (t < 0). -#}
+{%- macro accent(t) -%}
+{{ mix(accent_color(), "#ffffff", t) if t >= 0 else mix(accent_color(), "#000000", -t) }}
+{%- endmacro -%}
+
+{#- Selected rows: the accent t over the background, under ordinary text. -#}
+{%- macro selection(t) -%}{{ mix(background, accent_color(), t) }}{%- endmacro -%}
+
+{#- "light" when the background is, by HSL lightness as Colors.qml judges it. -#}
+{%- macro scheme() -%}
+{%- set r = background | red | int -%}
+{%- set g = background | green | int -%}
+{%- set b = background | blue | int -%}
+{{- "light" if ([r, g, b] | max) + ([r, g, b] | min) > 255 else "dark" -}}
+{%- endmacro -%}

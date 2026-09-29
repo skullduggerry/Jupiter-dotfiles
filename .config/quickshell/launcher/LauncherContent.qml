@@ -1,47 +1,44 @@
-import QtQuick
-import Quickshell
+pragma ComponentBehavior: Bound
+
 import "../services"
 import "../style"
+import QtQuick
+import Quickshell
 
 Rectangle {
     id: root
 
-    signal launched()
-    signal cancelled()
+    readonly property var apps: DesktopEntries.applications.values.filter(entry => entry.name !== "").sort(LauncherHistory.compare)
+    readonly property var shown: {
+        const query = search.text.trim().toLowerCase();
+        return query === "" ? root.apps : root.apps.filter(entry => entry.name.toLowerCase().includes(query) || entry.comment.toLowerCase().includes(query));
+    }
+
+    signal launched
+    signal cancelled
 
     function reset() {
-        searchInput.text = ""
-        resultsList.currentIndex = 0
-        searchInput.forceActiveFocus()
+        search.text = "";
+        results.currentIndex = 0;
+        search.forceActiveFocus();
     }
 
-    function launch(idx: int) {
-        const entry = root.filtered[idx]
-        if (!entry) return
-        LauncherHistory.record(entry.execString)
-        entry.execute()
-        root.launched()
+    function launch(index: int) {
+        const entry = root.shown[index];
+        if (entry === undefined)
+            return;
+
+        LauncherHistory.record(entry.execString);
+        entry.execute();
+        root.launched();
     }
 
-    height: Style.launcher.height
     width: Style.launcher.width
+    height: Style.launcher.height
     radius: Style.bar.radius
     color: Colors.base.surface
     border.color: Colors.base.border
     border.width: Style.border.width
-    property var allApps: {
-        const entries = [...DesktopEntries.applications.values]
-        return entries.filter(e => e.name).sort(LauncherHistory.compare)
-    }
-    property var filtered: {
-        const q = searchInput.text.trim().toLowerCase()
-        if (q === "") return root.allApps
-        return root.allApps.filter(e => {
-            const name = (e.name || "").toLowerCase()
-            const comment = (e.comment || "").toLowerCase()
-            return name.includes(q) || comment.includes(q)
-        })
-    }
 
     Column {
         anchors.fill: parent
@@ -49,7 +46,8 @@ Rectangle {
         spacing: Style.bar.spacing
 
         TextInput {
-            id: searchInput
+            id: search
+
             width: parent.width
             height: Style.launcher.inputHeight
             color: Colors.text.base
@@ -57,10 +55,9 @@ Rectangle {
             font.family: Style.text.font
             focus: true
             clip: true
-
-            Keys.onDownPressed: resultsList.incrementCurrentIndex()
-            Keys.onUpPressed: resultsList.decrementCurrentIndex()
-            Keys.onReturnPressed: root.launch(resultsList.currentIndex)
+            Keys.onDownPressed: results.incrementCurrentIndex()
+            Keys.onUpPressed: results.decrementCurrentIndex()
+            Keys.onReturnPressed: root.launch(results.currentIndex)
             Keys.onEscapePressed: root.cancelled()
         }
 
@@ -72,37 +69,36 @@ Rectangle {
 
         Item {
             width: parent.width
-            height: parent.height - searchInput.height - Style.bar.spacing * 2 - Style.border.width
+            height: parent.height - search.height - Style.bar.spacing * 2 - Style.border.width
 
             ListView {
-                id: resultsList
+                id: results
+
                 anchors.fill: parent
                 clip: true
-                model: root.filtered
+                model: root.shown
                 currentIndex: 0
                 highlightMoveDuration: Style.animation.fast
 
                 delegate: Rectangle {
                     id: result
+
                     required property DesktopEntry modelData
                     required property int index
 
-                    width: resultsList.width
+                    width: results.width
                     height: Style.launcher.rowHeight
                     radius: Style.popup.rowRadius
                     color: result.ListView.isCurrentItem ? Colors.base.hover : "transparent"
 
-                    Row {
-                        anchors.fill: parent
-                        anchors.margins: Style.launcher.rowPadding
-                        spacing: Style.widgets.spacing
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: result.modelData.name
-                            color: Colors.text.base
-                            font.pixelSize: Style.text.size
-                            font.family: Style.text.font
-                        }
+                    Text {
+                        anchors.left: parent.left
+                        anchors.leftMargin: Style.launcher.rowPadding
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: result.modelData.name
+                        color: Colors.text.base
+                        font.pixelSize: Style.text.size
+                        font.family: Style.text.font
                     }
 
                     MouseArea {
@@ -114,7 +110,7 @@ Rectangle {
 
             Text {
                 anchors.centerIn: parent
-                visible: resultsList.count === 0
+                visible: results.count === 0
                 text: "No matching applications"
                 color: Colors.text.muted
                 font.family: Style.text.font

@@ -1,28 +1,19 @@
+pragma ComponentBehavior: Bound
+
 import "../services"
 import "../style"
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
 import Quickshell.Services.Notifications
 import Quickshell.Wayland
 
 Scope {
     id: toastScope
 
-    readonly property ShellScreen focusedScreen: {
-        const monitor = Hyprland.focusedMonitor;
-        if (monitor === null)
-            return null;
-
-        return Quickshell.screens.find((candidate) => {
-            return candidate.name === monitor.name;
-        }) || null;
-    }
     readonly property var shown: NotificationService.popups.slice(0, Style.notifications.maxPopups)
-    property var deadlines: ({
-    })
+    property var deadlines: ({})
 
-    function popupTimeout(notification: Notification) : int {
+    function popupTimeout(notification: Notification): int {
         if (notification.urgency === NotificationUrgency.Critical)
             return 0;
 
@@ -32,7 +23,7 @@ Scope {
         return Style.notifications.timeout;
     }
 
-    function remainingTimeout(notification: Notification) : int {
+    function remainingTimeout(notification: Notification): int {
         let deadline = toastScope.deadlines[notification.id];
         if (deadline === undefined) {
             const full = toastScope.popupTimeout(notification);
@@ -46,14 +37,12 @@ Scope {
     }
 
     onShownChanged: {
-        const live = ({
-        });
+        const live = ({});
         for (let index = 0; index < toastScope.shown.length; index++) {
             const id = toastScope.shown[index].id;
             const deadline = toastScope.deadlines[id];
             if (deadline !== undefined)
                 live[id] = deadline;
-
         }
         toastScope.deadlines = live;
     }
@@ -61,15 +50,27 @@ Scope {
     PanelWindow {
         id: window
 
+        // The toasts' column, and how far down a popup open across it reaches:
+        // the toasts move below it rather than lie over it (PopupAreas).
+        readonly property real columnRight: window.screen !== null ? window.screen.width - Style.bar.edgeGap : 0
+        readonly property real coveredTo: PopupAreas.bottomOver(window.screen !== null ? window.screen.name : "", window.columnRight - window.implicitWidth, window.columnRight)
+
         visible: toastScope.shown.length > 0
-        screen: toastScope.focusedScreen
+        screen: Screens.focused
         WlrLayershell.namespace: "quickshell:toast-popup"
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+        // Keyboard focus only under the pointer, for a reply field. Hyprland
+        // hands the keyboard to a layer that maps with on-demand focus, so a
+        // toast appearing, or following focus to another monitor, would take
+        // it from the app in use and close an open dropdown.
+        WlrLayershell.keyboardFocus: hover.hovered ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         implicitWidth: Style.notifications.width
         implicitHeight: Math.max(1, column.implicitHeight)
         exclusiveZone: 0
         color: Colors.base.panel
+        // Following focus to another monitor, the stack fades in there rather
+        // than appearing at once.
+        onScreenChanged: arrival.restart()
 
         anchors {
             top: true
@@ -77,8 +78,19 @@ Scope {
         }
 
         margins {
-            top: Style.popup.topMargin
+            top: Math.max(Style.popup.topMargin, window.coveredTo + Style.bar.spacing)
             right: Style.bar.edgeGap
+        }
+
+        NumberAnimation {
+            id: arrival
+
+            target: column
+            property: "opacity"
+            from: 0
+            to: 1
+            duration: Style.animation.slow
+            easing.type: Easing.OutCubic
         }
 
         Column {
@@ -87,6 +99,10 @@ Scope {
             width: parent.width
             spacing: Style.widgets.spacing
 
+            HoverHandler {
+                id: hover
+            }
+
             Repeater {
                 model: toastScope.shown
 
@@ -94,11 +110,7 @@ Scope {
                     width: column.width
                     timeout: toastScope.remainingTimeout(modelData)
                 }
-
             }
-
         }
-
     }
-
 }

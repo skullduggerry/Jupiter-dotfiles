@@ -4,11 +4,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// The palette every colour in Colors.qml derives from, and what changes it:
-// config/wallust/apply.sh renders the palette (templates/quickshell.json) and
-// records which theme it applied; see .github/THEMING.md. Nothing here runs
-// until a theme is picked, because the greeter gets a copy of style/
-// (scripts/install-greeter.sh) and must only ever read.
+// The palette Colors derives from, and what changes it: config/wallust/apply.sh
+// renders it and records the theme (.github/THEMING.md). Nothing runs until a
+// theme is picked: the greeter gets a copy of style/ and must only read.
 Singleton {
     id: root
 
@@ -19,6 +17,14 @@ Singleton {
     readonly property string theme: applied.text().split("\n")[0] || "Oxocarbon-Dark"
     readonly property bool blur: settings.blur
     readonly property bool applyToApps: settings.applyToApps
+    // The Settings app's choices. The accent is one of Colors.accentNames, the
+    // font a family name, empty for the shell's own.
+    readonly property string accent: settings.accent
+    readonly property string font: settings.font
+    // The last light and the last dark theme applied, whatever applied them:
+    // what the Settings app's Light and Dark switch between.
+    readonly property string lightTheme: settings.lightTheme
+    readonly property string darkTheme: settings.darkTheme
     readonly property bool applying: wallust.running
     // Empty strings until wallust has rendered a palette, which Colors reads
     // as "use the shell's own colour".
@@ -34,7 +40,7 @@ Singleton {
         if (wallust.running) {
             root.pendingName = name;
             root.pendingImage = image;
-            return ;
+            return;
         }
         const command = [root.scripts + "/apply.sh"];
         if (!settings.applyToApps)
@@ -69,20 +75,45 @@ Singleton {
         writeDebounce.restart();
     }
 
+    function setAccent(name: string) {
+        settings.accent = name;
+        writeDebounce.restart();
+        root.reapplyToApps();
+    }
+
+    function setFont(family: string) {
+        settings.font = family;
+        writeDebounce.restart();
+        root.reapplyToApps();
+    }
+
+    // apply.sh hands the accent and the font to the apps' templates, so they
+    // follow only when the theme is applied again.
+    function reapplyToApps() {
+        if (settings.applyToApps)
+            root.apply(root.theme);
+    }
+
     function setApplyToApps(enabled: bool) {
         settings.applyToApps = enabled;
         writeDebounce.restart();
         // Bring the apps in line with the theme the shell already shows.
         if (enabled)
             root.apply(root.theme);
-
     }
 
     Component.onCompleted: settingsFile.text()
+    onThemeChanged: rememberDebounce.restart()
 
     Process {
         id: wallust
 
+        // What the Settings app has just picked, which the state file may not
+        // hold yet: its writes are debounced. apply.sh prefers these.
+        environment: ({
+                APPEARANCE_ACCENT: settings.accent,
+                APPEARANCE_FONT: settings.font
+            })
         onExited: (exitCode, exitStatus) => {
             if (exitCode !== 0)
                 root.error = "Could not apply " + root.requested;
@@ -94,15 +125,11 @@ Singleton {
             // exit handler, and run() would queue the request again.
             if (root.pendingName !== "")
                 Qt.callLater(root.runPending);
-
         }
 
         stderr: SplitParser {
-            onRead: (line) => {
-                return console.warn("theme:", line);
-            }
+            onRead: line => console.warn("theme:", line)
         }
-
     }
 
     Timer {
@@ -110,6 +137,37 @@ Singleton {
 
         interval: 200
         onTriggered: settingsFile.writeAdapter()
+    }
+
+    // The theme's name and its palette come from two files, written one after
+    // the other, so the pair is only read once both have settled. Never with no
+    // palette: the greeter cannot read one, and must not write.
+    Timer {
+        id: rememberDebounce
+
+        interval: 300
+        onTriggered: {
+            if (paletteData.background === "")
+                return;
+
+            const light = Qt.color(paletteData.background).hslLightness > 0.5;
+            if ((light ? settings.lightTheme : settings.darkTheme) === root.theme)
+                return;
+
+            if (light)
+                settings.lightTheme = root.theme;
+            else
+                settings.darkTheme = root.theme;
+            writeDebounce.restart();
+        }
+    }
+
+    Connections {
+        function onBackgroundChanged() {
+            rememberDebounce.restart();
+        }
+
+        target: paletteData
     }
 
     // Not Quickshell.statePath(): that creates its directory as soon as it is
@@ -128,8 +186,11 @@ Singleton {
 
             property bool blur: true
             property bool applyToApps: true
+            property string accent: "blue"
+            property string font: ""
+            property string lightTheme: "Catppuccin-Latte"
+            property string darkTheme: "Oxocarbon-Dark"
         }
-
     }
 
     FileView {
@@ -172,7 +233,5 @@ Singleton {
             property string color14
             property string color15
         }
-
     }
-
 }

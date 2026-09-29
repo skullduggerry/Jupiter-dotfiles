@@ -3,6 +3,8 @@ import "../style"
 import QtQuick
 import Quickshell.Widgets
 
+// A wallpaper as the design draws it: the picture, its name in a pill, and the
+// ring and check of the one applied.
 Item {
     id: root
 
@@ -10,6 +12,8 @@ Item {
     required property url fileUrl
     required property string fileBaseName
     readonly property bool applied: WallpaperService.current === root.filePath
+
+    signal clicked
 
     ClippingRectangle {
         anchors.fill: parent
@@ -30,7 +34,6 @@ Item {
             anchors.fill: parent
             color: area.containsMouse ? Colors.base.hover : "transparent"
         }
-
     }
 
     Rectangle {
@@ -62,10 +65,10 @@ Item {
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
         }
-
     }
 
     Rectangle {
+        visible: root.fileBaseName !== ""
         width: Math.min(label.implicitWidth + Style.wallpaper.labelPadding * 2, root.width - Style.wallpaper.badgeInset * 2)
         height: Style.wallpaper.labelHeight
         radius: Style.wallpaper.labelRadius
@@ -90,7 +93,6 @@ Item {
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
-
     }
 
     MouseArea {
@@ -99,7 +101,6 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: WallpaperService.apply(root.filePath)
+        onClicked: root.clicked()
     }
-
 }

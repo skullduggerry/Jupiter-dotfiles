@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import "../panels"
 import "../services"
 import "../style"
@@ -14,11 +16,9 @@ Item {
     property var themes: []
     readonly property var shown: {
         const query = search.text.trim().toLowerCase();
-        return query === "" ? root.themes : root.themes.filter((theme) => {
-            return theme.name.toLowerCase().includes(query);
-        });
+        return query === "" ? root.themes : root.themes.filter(theme => theme.name.toLowerCase().includes(query));
     }
-    readonly property int columns: Math.max(1, Math.floor((root.width + Style.wallpaper.spacing) / (Style.wallpaper.themeCardWidth + Style.wallpaper.spacing)))
+    readonly property int columns: Math.max(1, Math.floor((root.width + Style.settings.spacing) / (Style.wallpaper.themeCardWidth + Style.settings.spacing)))
 
     function focusSearch() {
         search.focusInput();
@@ -29,11 +29,8 @@ Item {
     // A theme just generated from a wallpaper is new to the catalogue.
     Connections {
         function onThemeChanged() {
-            if (!root.themes.some((theme) => {
-                return theme.name === Theme.theme;
-            }))
+            if (!root.themes.some(theme => theme.name === Theme.theme))
                 catalogue.running = true;
-
         }
 
         target: Theme
@@ -52,20 +49,14 @@ Item {
                     root.themes = JSON.parse(output.text);
                 } catch (error) {
                     console.warn("themes: palettes.py printed no catalogue:", error);
-                    return ;
+                    return;
                 }
-                const applied = root.themes.findIndex((theme) => {
-                    return theme.name === Theme.theme;
-                });
+                const applied = root.themes.findIndex(theme => theme.name === Theme.theme);
                 // Once the view has laid the new model out.
                 if (applied >= 0)
-                    Qt.callLater(() => {
-                    return grid.positionViewAtIndex(applied, GridView.Contain);
-                });
-
+                    Qt.callLater(() => grid.positionViewAtIndex(applied, GridView.Contain));
             }
         }
-
     }
 
     InputField {
@@ -79,27 +70,26 @@ Item {
     GridView {
         id: grid
 
-        // As in WallpaperPage: one spacing wider, so the last column is flush.
-        width: root.width + Style.wallpaper.spacing
+        // As in WallpaperGrid: one spacing wider, so the last column is flush.
+        width: root.width + Style.settings.spacing
         cellWidth: grid.width / root.columns
-        cellHeight: Style.wallpaper.themeCardHeight + Style.wallpaper.spacing
+        cellHeight: Style.wallpaper.themeCardHeight + Style.settings.spacing
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         model: root.shown
 
         anchors {
             top: search.bottom
-            topMargin: Style.wallpaper.spacing
+            topMargin: Style.settings.spacing
             bottom: footer.top
-            bottomMargin: Style.wallpaper.spacing
+            bottomMargin: Style.settings.spacing
             left: parent.left
         }
 
         delegate: ThemeCard {
-            width: grid.cellWidth - Style.wallpaper.spacing
-            height: grid.cellHeight - Style.wallpaper.spacing
+            width: grid.cellWidth - Style.settings.spacing
+            height: grid.cellHeight - Style.settings.spacing
         }
-
     }
 
     Text {
@@ -128,31 +118,21 @@ Item {
             bottom: parent.bottom
         }
 
-        Row {
-            spacing: Style.bar.spacing
+        PillGroup {
             anchors.verticalCenter: parent.verticalCenter
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "APPLY TO"
-                color: Colors.text.muted
-                font.family: Style.text.font
-                font.pixelSize: Style.text.smallSize
-                font.weight: Font.Medium
-            }
-
-            PillButton {
-                text: "Shell"
-                checked: !Theme.applyToApps
-                onClicked: Theme.setApplyToApps(false)
-            }
-
-            PillButton {
-                text: "Shell and apps"
-                checked: Theme.applyToApps
-                onClicked: Theme.setApplyToApps(true)
-            }
-
+            label: "APPLY TO"
+            choices: [
+                {
+                    label: "Shell",
+                    value: false
+                },
+                {
+                    label: "Shell and apps",
+                    value: true
+                }
+            ]
+            current: Theme.applyToApps
+            onPicked: apps => Theme.setApplyToApps(apps)
         }
 
         Row {
@@ -174,9 +154,6 @@ Item {
                 visible: WallpaperService.current !== ""
                 onClicked: Theme.generate(WallpaperService.current)
             }
-
         }
-
     }
-
 }

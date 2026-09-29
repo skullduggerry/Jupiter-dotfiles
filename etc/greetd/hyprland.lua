@@ -4,15 +4,12 @@
 -- greeter itself. The greeter takes exclusive keyboard focus through
 -- layer-shell, so there is nothing else here to drive.
 --
--- The monitor block mirrors config/hypr/modules/monitors.lua. Without the
--- scale the greeter renders at scale 1 on the 2880x1920 panel and is unusably
--- small — this is the only reason the greeter needs a compositor config at all.
-hl.monitor({
-	output = "eDP-1",
-	mode = "2880x1920@120",
-	position = "0x0",
-	scale = 2,
-})
+-- The monitors are config/hypr/modules/monitors.lua itself: monitors.lua here
+-- is a symlink to it, which scripts/install-greeter.sh installs as a copy, so
+-- the greeter comes up in the session's layout on the laptop and the desktop
+-- alike. Without the laptop's scale it renders at scale 1 on the 2880x1920
+-- panel and is unusably small — the reason the greeter has a config at all.
+require("monitors")
 
 hl.config({
 	misc = {

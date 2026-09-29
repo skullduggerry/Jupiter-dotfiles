@@ -1,40 +1,29 @@
 import "../../style"
 import QtQuick
-import Quickshell
 import Quickshell.Bluetooth
 
 Item {
     id: root
 
-    required property ShellScreen screen
     required property QuickPager pager
     readonly property bool powered: Bluetooth.defaultAdapter !== null && Bluetooth.defaultAdapter.enabled
-    readonly property bool connected: Bluetooth.devices.values.some((device) => {
-        return device.connected;
-    })
+    readonly property bool connected: Bluetooth.devices.values.some(device => device.connected)
 
-    implicitWidth: row.implicitWidth + Style.widgets.padding * 2
+    implicitWidth: icon.implicitWidth + Style.widgets.padding * 2
     implicitHeight: Style.bar.height
 
-    Row {
-        id: row
+    Text {
+        id: icon
 
         anchors.centerIn: parent
-        spacing: Style.widgets.spacing
-
-        Text {
-            text: !root.powered ? "󰂲" : root.connected ? "󰂱" : "󰂯"
-            color: Colors.icon.active
-            font.family: Style.text.font
-            font.pixelSize: Style.text.iconSize
-            anchors.verticalCenter: parent.verticalCenter
-        }
-
+        text: !root.powered ? "\u{F00B2}" : root.connected ? "\u{F00B1}" : "\u{F00AF}"
+        color: Colors.icon.active
+        font.family: Style.text.font
+        font.pixelSize: Style.text.iconSize
     }
 
     MouseArea {
         anchors.fill: parent
         onClicked: root.pager.toggleAt(root.pager.pageBluetooth, root)
     }
-
 }

@@ -32,17 +32,16 @@ Singleton {
             root.open(zone, screen);
     }
 
-    function screenAt(x: real, y: real) : ShellScreen {
-        for (let index = 0; index < Quickshell.screens.length; index++) {
-            const candidate = Quickshell.screens[index];
-            if (x >= candidate.x && x < candidate.x + candidate.width && y >= candidate.y && y < candidate.y + candidate.height)
-                return candidate;
-
-        }
-        return null;
+    // The arrow keys: the zones in the order they sit across the screen, with
+    // no wrapping, since the ends are the edges of the screen.
+    function step(direction: int) {
+        const order = [root.zoneWorkspaces, root.zoneCalendar, root.zoneQuickSettings];
+        const next = order.indexOf(root.zone) + direction;
+        if (next >= 0 && next < order.length)
+            root.zone = order[next];
     }
 
-    function zoneAt(x: real, screen: ShellScreen) : string {
+    function zoneAt(x: real, screen: ShellScreen): string {
         const offset = x - screen.x;
         if (offset < screen.width / 3)
             return root.zoneWorkspaces;
@@ -54,12 +53,11 @@ Singleton {
     }
 
     function openAt(x: real, y: real) {
-        const screen = root.screenAt(x, y);
+        const screen = Screens.at(x, y);
         if (screen === null) {
             console.warn("dropdown: no screen contains", x, y);
-            return ;
+            return;
         }
         root.toggle(root.zoneAt(x, screen), screen);
     }
-
 }

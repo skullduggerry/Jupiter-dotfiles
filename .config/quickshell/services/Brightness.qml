@@ -14,6 +14,7 @@ Singleton {
     property int maximum: 0
     readonly property real fraction: root.available ? root.level / root.maximum : 0
     readonly property int step: 5
+    // A floor, so the slider cannot black the screen.
     readonly property int minimum: 5
     readonly property int interval: 1000
     readonly property int settleInterval: 250
@@ -21,15 +22,11 @@ Singleton {
     property int pending: -1
     property bool active: false
 
-    // brightnessctl reaches the backlight through logind, so this needs no
-    // group membership and no helper daemon. Its floor mirrors the one swayosd
-    // used to enforce, so the slider still cannot black the screen.
     function readLevel() {
         levelFile.reload();
         const text = levelFile.text().trim();
         if (text !== "")
             root.level = Number(text);
-
     }
 
     function readMaximum() {
@@ -37,29 +34,29 @@ Singleton {
         const text = maximumFile.text().trim();
         if (text !== "")
             root.maximum = Number(text);
-
     }
 
+    // brightnessctl reaches the backlight through logind: no group, no daemon.
     function write() {
         if (root.pending < 0)
-            return ;
+            return;
 
         Quickshell.execDetached(["brightnessctl", "-c", "backlight", "-d", root.deviceName, "-q", "set", root.pending + "%"]);
         root.pending = -1;
     }
 
-    // sysfs only reports a new level on the next poll, so move the UI to the
-    // requested value at once and stop reading until the write has landed
+    // sysfs shows a write only on the next poll: the UI moves at once, and
+    // reading waits until the write has landed.
     function request(target: int) {
         if (!root.available)
-            return ;
+            return;
 
         const clamped = Math.max(root.minimum, Math.min(100, target));
         root.level = Math.round(clamped / 100 * root.maximum);
         root.pending = clamped;
         settling.restart();
         if (writes.running)
-            return ;
+            return;
 
         root.write();
         writes.start();
@@ -76,7 +73,6 @@ Singleton {
     onActiveChanged: {
         if (root.active && root.deviceName === "")
             probe.running = true;
-
     }
 
     Timer {
@@ -90,19 +86,18 @@ Singleton {
 
             if (!settling.running)
                 root.readLevel();
-
         }
     }
 
-    // while this runs a write owns root.level, and sysfs still holds the old one
+    // While this runs, a write owns `level` and sysfs still has the old one.
     Timer {
         id: settling
 
         interval: root.settleInterval
     }
 
-    // dragging the slider emits a request per pointer event; send the newest one
-    // at most this often instead of spawning a process for every one of them
+    // A drag requests on every pointer event; the newest goes out at most
+    // this often.
     Timer {
         id: writes
 
@@ -111,7 +106,7 @@ Singleton {
         onTriggered: {
             if (root.pending < 0) {
                 writes.stop();
-                return ;
+                return;
             }
             root.write();
         }
@@ -122,18 +117,14 @@ Singleton {
 
         command: ["ls", "-1", "/sys/class/backlight"]
         onExited: (exitCode, exitStatus) => {
-            const names = probeOutput.text.trim().split("\n").filter((name) => {
-                return name !== "";
-            });
+            const names = probeOutput.text.trim().split("\n").filter(name => name !== "");
             if (names.length > 0)
                 root.deviceName = names[0];
-
         }
 
         stdout: StdioCollector {
             id: probeOutput
         }
-
     }
 
     FileView {
@@ -153,5 +144,4 @@ Singleton {
         blockAllReads: true
         printErrors: false
     }
-
 }

@@ -1,0 +1,1 @@
+../../.config/hypr/modules/monitors.lua

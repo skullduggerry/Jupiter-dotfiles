@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import "../style"
 import QtQuick
 import Quickshell.Services.Notifications
@@ -9,8 +11,18 @@ Item {
     required property Notification modelData
     readonly property bool urgent: root.modelData.urgency === NotificationUrgency.Critical
     readonly property string iconSource: root.modelData.image !== "" ? root.modelData.image : root.modelData.appIcon
+    // A toast waits while a reply is being written into it.
+    readonly property bool replying: reply.editing || reply.text !== ""
 
-    signal dismissed()
+    signal dismissed
+
+    function sendReply() {
+        if (reply.text.trim() === "")
+            return;
+
+        root.modelData.sendInlineReply(reply.text);
+        root.dismissed();
+    }
 
     implicitHeight: body.implicitHeight
 
@@ -35,7 +47,6 @@ Item {
                     left: parent.left
                     verticalCenter: parent.verticalCenter
                 }
-
             }
 
             Text {
@@ -52,36 +63,22 @@ Item {
                     rightMargin: Style.widgets.spacing
                     verticalCenter: parent.verticalCenter
                 }
-
             }
 
-            Text {
+            TextButton {
                 id: closeButton
 
-                text: ""
-                color: closeArea.containsMouse ? Colors.text.base : Colors.text.muted
-                font.family: Style.text.font
-                font.pixelSize: Style.text.smallSize
+                text: "\u{F0156}"
+                onClicked: {
+                    root.modelData.dismiss();
+                    root.dismissed();
+                }
 
                 anchors {
                     right: parent.right
                     verticalCenter: parent.verticalCenter
                 }
-
-                MouseArea {
-                    id: closeArea
-
-                    anchors.fill: parent
-                    anchors.margins: -Style.widgets.spacing
-                    hoverEnabled: true
-                    onClicked: {
-                        root.modelData.dismiss();
-                        root.dismissed();
-                    }
-                }
-
             }
-
         }
 
         Text {
@@ -146,13 +143,63 @@ Item {
                             root.dismissed();
                         }
                     }
-
                 }
-
             }
-
         }
 
-    }
+        // KDE's inline reply: what is typed here goes back to the app, which
+        // is how a messenger answers from its notification.
+        Item {
+            visible: root.modelData.hasInlineReply
+            width: parent.width
+            height: visible ? Style.notifications.actionHeight : 0
 
+            InputField {
+                id: reply
+
+                height: parent.height
+                placeholder: root.modelData.inlineReplyPlaceholder || "Reply"
+                icon: "\u{F045A}"
+                onAccepted: root.sendReply()
+
+                anchors {
+                    left: parent.left
+                    right: send.left
+                    rightMargin: Style.widgets.spacing
+                }
+            }
+
+            Rectangle {
+                id: send
+
+                width: height
+                height: parent.height
+                radius: Style.popup.rowRadius
+                color: sendArea.containsMouse ? Colors.base.hover : "transparent"
+                border.width: Style.border.width
+                border.color: Colors.base.border
+
+                anchors {
+                    right: parent.right
+                    verticalCenter: parent.verticalCenter
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "\u{F048A}"
+                    color: reply.text.trim() === "" ? Colors.text.muted : Colors.icon.active
+                    font.family: Style.text.font
+                    font.pixelSize: Style.text.smallSize
+                }
+
+                MouseArea {
+                    id: sendArea
+
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: root.sendReply()
+                }
+            }
+        }
+    }
 }

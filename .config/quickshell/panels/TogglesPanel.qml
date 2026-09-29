@@ -3,10 +3,10 @@ import "../style"
 import QtQuick
 import Quickshell.Services.UPower
 
-Item {
+PanelFrame {
     id: root
 
-    readonly property int preferredHeight: Style.bar.padding * 2 + header.height + Style.border.width + Style.bar.spacing + tiles.height
+    implicitHeight: root.chromeHeight + tiles.height
     readonly property string powerProfileIcon: {
         switch (PowerProfiles.profile) {
         case PowerProfile.PowerSaver:
@@ -18,99 +18,75 @@ Item {
         }
     }
 
-    Item {
-        anchors.fill: parent
-        anchors.margins: Style.bar.padding
+    // The Clipboard tile's right click: its history, on the page after this one.
+    signal clipboardRequested
 
-        Item {
-            id: header
+    title: "Toggles"
 
-            height: Style.popup.itemHeight
+    Grid {
+        id: tiles
 
-            anchors {
-                top: parent.top
-                left: parent.left
-                right: parent.right
-            }
+        readonly property real tileWidth: (width - Style.toggles.tileSpacing * (tiles.columns - 1)) / tiles.columns
 
-            Text {
-                text: "Toggles"
-                color: Colors.text.base
-                font.family: Style.text.font
-                font.pixelSize: Style.text.size
+        width: parent.width
+        columns: Style.toggles.tileColumns
+        spacing: Style.toggles.tileSpacing
 
-                anchors {
-                    left: parent.left
-                    verticalCenter: parent.verticalCenter
-                }
-
-            }
-
+        ToggleTile {
+            width: tiles.tileWidth
+            icon: "\u{F009B}"
+            label: "Do Not Disturb"
+            checked: NotificationService.doNotDisturb
+            onActivated: NotificationService.doNotDisturb = !NotificationService.doNotDisturb
         }
 
-        Rectangle {
-            id: separator
-
-            height: Style.border.width
-            color: Colors.base.border
-
-            anchors {
-                top: header.bottom
-                left: parent.left
-                right: parent.right
-            }
-
+        ToggleTile {
+            width: tiles.tileWidth
+            icon: "\u{F001D}"
+            label: "Airplane Mode"
+            checked: QuickToggles.airplaneMode
+            onActivated: QuickToggles.setAirplaneMode(!QuickToggles.airplaneMode)
         }
 
-        Grid {
-            id: tiles
-
-            readonly property real tileWidth: (width - Style.toggles.tileSpacing * (tiles.columns - 1)) / tiles.columns
-
-            columns: Style.toggles.tileColumns
-            spacing: Style.toggles.tileSpacing
-
-            anchors {
-                top: separator.bottom
-                left: parent.left
-                right: parent.right
-                topMargin: Style.bar.spacing
-            }
-
-            ToggleTile {
-                width: tiles.tileWidth
-                icon: "\u{F009B}"
-                label: "Do Not Disturb"
-                checked: NotificationService.doNotDisturb
-                onActivated: NotificationService.doNotDisturb = !NotificationService.doNotDisturb
-            }
-
-            ToggleTile {
-                width: tiles.tileWidth
-                icon: "\u{F001D}"
-                label: "Airplane Mode"
-                checked: QuickToggles.airplaneMode
-                onActivated: QuickToggles.setAirplaneMode(!QuickToggles.airplaneMode)
-            }
-
-            ToggleTile {
-                width: tiles.tileWidth
-                icon: "\u{F0594}"
-                label: "Night Light"
-                checked: QuickToggles.nightLight
-                onActivated: QuickToggles.setNightLight(!QuickToggles.nightLight)
-            }
-
-            ToggleTile {
-                width: tiles.tileWidth
-                icon: root.powerProfileIcon
-                label: QuickToggles.profileName(PowerProfiles.profile)
-                checked: PowerProfiles.profile !== PowerProfile.Balanced
-                onActivated: QuickToggles.cyclePowerProfile()
-            }
-
+        ToggleTile {
+            width: tiles.tileWidth
+            icon: "\u{F0594}"
+            label: "Night Light"
+            checked: QuickToggles.nightLight
+            onActivated: QuickToggles.setNightLight(!QuickToggles.nightLight)
         }
 
+        ToggleTile {
+            width: tiles.tileWidth
+            icon: "\u{F044A}"
+            label: QuickToggles.recording ? "Recording" : "Screen Record"
+            checked: QuickToggles.recording
+            onActivated: QuickToggles.setRecording(!QuickToggles.recording)
+        }
+
+        ToggleTile {
+            width: tiles.tileWidth
+            icon: "\u{F0147}"
+            label: "Clipboard"
+            checked: QuickToggles.clipboardHistory
+            onActivated: QuickToggles.setClipboardHistory(!QuickToggles.clipboardHistory)
+            onSecondaryActivated: root.clipboardRequested()
+        }
+
+        ToggleTile {
+            width: tiles.tileWidth
+            icon: root.powerProfileIcon
+            label: QuickToggles.profileName(PowerProfiles.profile)
+            checked: PowerProfiles.profile !== PowerProfile.Balanced
+            onActivated: QuickToggles.cyclePowerProfile()
+        }
     }
 
+    // The way into the Settings app from the quick settings.
+    trailing: TextButton {
+        text: "\u{F08BB}"
+        color: Colors.icon.active
+        font.pixelSize: Style.text.iconSize
+        onClicked: SettingsState.show("")
+    }
 }

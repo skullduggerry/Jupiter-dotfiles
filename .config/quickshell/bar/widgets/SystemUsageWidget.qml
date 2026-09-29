@@ -31,7 +31,6 @@ Item {
         UsageMeter {
             value: SystemUsage.memory
         }
-
     }
 
     MouseArea {
@@ -46,7 +45,7 @@ Item {
         anchorItem: root
         namespaceSuffix: "usage-popup"
         popupWidth: Style.dropdown.width
-        popupHeight: Math.max(Style.popup.minHeight, Math.min(Style.dropdown.maxHeight, panel.item ? panel.item.preferredHeight : Style.popup.minHeight))
+        popupHeight: Math.max(Style.popup.minHeight, Math.min(Style.dropdown.maxHeight, panel.implicitHeight))
 
         Loader {
             id: panel
@@ -54,11 +53,7 @@ Item {
             anchors.fill: parent
             active: usagePopup.visible
 
-            sourceComponent: SystemPanel {
-            }
-
+            sourceComponent: SystemPanel {}
         }
-
     }
-
 }

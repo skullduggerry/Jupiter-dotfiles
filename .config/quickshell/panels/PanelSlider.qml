@@ -8,7 +8,7 @@ Item {
 
     signal moved(real position)
 
-    function positionAt(x: real) : real {
+    function positionAt(x: real): real {
         return Math.max(0, Math.min(1, x / root.width));
     }
 
@@ -42,23 +42,16 @@ Item {
                 NumberAnimation {
                     duration: Style.animation.fast
                 }
-
             }
-
         }
-
     }
 
     MouseArea {
         anchors.fill: parent
-        onPressed: (mouse) => {
-            return root.moved(root.positionAt(mouse.x));
-        }
-        onPositionChanged: (mouse) => {
+        onPressed: mouse => root.moved(root.positionAt(mouse.x))
+        onPositionChanged: mouse => {
             if (pressed)
                 root.moved(root.positionAt(mouse.x));
-
         }
     }
-
 }

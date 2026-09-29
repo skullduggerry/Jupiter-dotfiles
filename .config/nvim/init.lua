@@ -1,6 +1,18 @@
--- require 'colors'
-
-vim.api.nvim_set_hl(0, "Normal", {bg = "NONE", ctermbg = "NONE"})
+-- Colours from the wallust theme: lua/colors.lua, which config/wallust renders.
+-- It is run again whenever a theme is applied, so an open nvim follows too.
+-- The background stays the terminal's, which is translucent.
+local colors = vim.fn.stdpath('config') .. '/lua/colors.lua'
+local function load_colors()
+	if vim.uv.fs_stat(colors) then
+		dofile(colors)
+	end
+	local normal = vim.api.nvim_get_hl(0, { name = "Normal" })
+	vim.api.nvim_set_hl(0, "Normal", vim.tbl_extend("force", normal, { bg = "NONE", ctermbg = "NONE" }))
+end
+load_colors()
+vim.uv.new_fs_event():start(vim.fs.dirname(colors), {}, vim.schedule_wrap(function(_, name)
+	if name == 'colors.lua' then load_colors() end
+end))
 
 vim.o.number = true
 vim.o.relativenumber = true

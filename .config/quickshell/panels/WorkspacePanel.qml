@@ -1,192 +1,126 @@
+pragma ComponentBehavior: Bound
+
 import "../services"
 import "../style"
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
-import Quickshell.Widgets
 
 // The monitor's workspaces, then what the desktop looks like: the wallpaper,
-// whether it rotates, and the theme.
-Item {
+// which leads to its settings, whether it rotates, and the theme.
+PanelFrame {
     id: root
 
     required property ShellScreen screen
-    readonly property int preferredHeight: Style.bar.padding * 2 + header.height + Style.border.width + Style.bar.spacing + workspaceArea.height + Style.bar.spacing + Style.border.width + Style.bar.spacing + appearance.implicitHeight
+    implicitHeight: root.chromeHeight + sections.implicitHeight
     readonly property HyprlandMonitor monitor: root.screen ? Hyprland.monitorFor(root.screen) : null
+    readonly property string monitorName: root.monitor ? root.monitor.name : ""
     // The theme's own ANSI slots, as its card on the Themes page shows them;
     // the shell's accents until wallust has rendered a palette.
-    readonly property var swatches: [Theme.palette.color1 || Colors.accent.red, Theme.palette.color2 || Colors.accent.green, Theme.palette.color3 || Colors.accent.yellow, Theme.palette.color4 || Colors.accent.blue, Theme.palette.color5 || Colors.accent.purple, Theme.palette.color6 || Colors.accent.cyan]
-    readonly property var workspaces: {
-        if (root.monitor === null)
-            return [];
+    readonly property list<color> swatches: [Theme.palette.color1 || Colors.accent.red, Theme.palette.color2 || Colors.accent.green, Theme.palette.color3 || Colors.accent.yellow, Theme.palette.color4 || Colors.accent.blue, Theme.palette.color5 || Colors.accent.purple, Theme.palette.color6 || Colors.accent.cyan]
+    // This monitor's own workspaces, then any it holds for one unplugged.
+    readonly property var workspaces: Hyprland.workspaces.values.filter(workspace => root.monitor !== null && workspace.monitor === root.monitor).sort((left, right) => WorkspaceBlocks.parked(left, root.monitorName) - WorkspaceBlocks.parked(right, root.monitorName) || left.id - right.id)
 
-        return Hyprland.workspaces.values.filter((workspace) => {
-            return workspace.monitor === root.monitor;
-        }).sort((left, right) => {
-            return left.id - right.id;
-        });
+    signal activated
+
+    // The number the keys go by, marked when the workspace only waits here; a
+    // special workspace keeps its name.
+    function label(workspace: HyprlandWorkspace): string {
+        if (workspace.id <= 0)
+            return workspace.name;
+
+        return (WorkspaceBlocks.parked(workspace, root.monitorName) ? "\u{F0D90} " : "") + WorkspaceBlocks.number(workspace);
     }
 
-    signal activated()
+    title: "Workspaces"
 
-    Item {
-        anchors.fill: parent
-        anchors.margins: Style.bar.padding
+    Column {
+        id: sections
 
+        width: parent.width
+        spacing: Style.bar.spacing
+
+        // At least a row high, so the empty state has a place of its own.
         Item {
-            id: header
-
-            height: Style.popup.itemHeight
-
-            anchors {
-                top: parent.top
-                left: parent.left
-                right: parent.right
-            }
-
-            Text {
-                text: "Workspaces"
-                color: Colors.text.base
-                font.family: Style.text.font
-                font.pixelSize: Style.text.size
-
-                anchors {
-                    left: parent.left
-                    verticalCenter: parent.verticalCenter
-                }
-
-            }
-
-            Text {
-                text: root.monitor ? root.monitor.name : ""
-                color: Colors.text.muted
-                font.family: Style.text.font
-                font.pixelSize: Style.text.smallSize
-
-                anchors {
-                    right: parent.right
-                    verticalCenter: parent.verticalCenter
-                }
-
-            }
-
-        }
-
-        Rectangle {
-            id: separator
-
-            height: Style.border.width
-            color: Colors.base.border
-
-            anchors {
-                top: header.bottom
-                left: parent.left
-                right: parent.right
-            }
-
-        }
-
-        Grid {
-            id: grid
-
-            readonly property real tileWidth: (width - Style.workspaces.tileSpacing * (grid.columns - 1)) / grid.columns
-
-            columns: Style.workspaces.tileColumns
-            spacing: Style.workspaces.tileSpacing
-
-            anchors {
-                top: separator.bottom
-                left: parent.left
-                right: parent.right
-                topMargin: Style.bar.spacing
-            }
-
-            Repeater {
-                model: root.workspaces
-
-                delegate: Rectangle {
-                    id: tile
-
-                    required property HyprlandWorkspace modelData
-                    readonly property int windowCount: tile.modelData.toplevels.values.length
-
-                    width: grid.tileWidth
-                    height: Style.workspaces.tileHeight
-                    radius: Style.popup.rowRadius
-                    color: tileArea.containsMouse ? Colors.base.hover : "transparent"
-                    border.width: Style.border.width
-                    border.color: tile.modelData.active ? Colors.workspaces.active : Colors.base.border
-
-                    Text {
-                        id: tileName
-
-                        // matching gutters keep the name centred in the tile whether
-                        // or not the client count is showing
-                        readonly property int gutter: Style.widgets.padding + (tileCount.visible ? tileCount.width + Style.widgets.spacing : 0)
-
-                        text: tile.modelData.name
-                        color: tile.modelData.active ? Colors.workspaces.active : tile.windowCount > 0 ? Colors.workspaces.occupied : Colors.text.muted
-                        font.family: Style.text.font
-                        font.pixelSize: Style.text.size
-                        elide: Text.ElideRight
-                        horizontalAlignment: Text.AlignHCenter
-
-                        anchors {
-                            left: parent.left
-                            right: parent.right
-                            leftMargin: tileName.gutter
-                            rightMargin: tileName.gutter
-                            verticalCenter: parent.verticalCenter
-                        }
-
-                    }
-
-                    Text {
-                        id: tileCount
-
-                        visible: tile.windowCount > 0
-                        text: tile.windowCount
-                        color: Colors.text.muted
-                        font.family: Style.text.font
-                        font.pixelSize: Style.text.smallSize
-
-                        anchors {
-                            right: parent.right
-                            rightMargin: Style.widgets.padding
-                            verticalCenter: parent.verticalCenter
-                        }
-
-                    }
-
-                    MouseArea {
-                        id: tileArea
-
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: {
-                            tile.modelData.activate();
-                            root.activated();
-                        }
-                    }
-
-                }
-
-            }
-
-        }
-
-        // Where the grid is, at least a row high, so the empty state has a
-        // place of its own rather than the middle of the whole panel.
-        Item {
-            id: workspaceArea
-
+            width: parent.width
             height: Math.max(Style.popup.itemHeight, grid.height)
 
-            anchors {
-                top: separator.bottom
-                left: parent.left
-                right: parent.right
-                topMargin: Style.bar.spacing
+            Grid {
+                id: grid
+
+                readonly property real tileWidth: (width - Style.workspaces.tileSpacing * (grid.columns - 1)) / grid.columns
+
+                width: parent.width
+                columns: Style.workspaces.tileColumns
+                spacing: Style.workspaces.tileSpacing
+
+                Repeater {
+                    model: root.workspaces
+
+                    delegate: Rectangle {
+                        id: tile
+
+                        required property HyprlandWorkspace modelData
+                        readonly property int windowCount: tile.modelData.toplevels.values.length
+
+                        width: grid.tileWidth
+                        height: Style.workspaces.tileHeight
+                        radius: Style.popup.rowRadius
+                        color: tileArea.containsMouse ? Colors.base.hover : "transparent"
+                        border.width: Style.border.width
+                        border.color: tile.modelData.active ? Colors.workspaces.active : Colors.base.border
+
+                        Text {
+                            id: tileName
+
+                            // Matching gutters keep the name centred whether or
+                            // not the window count shows.
+                            readonly property int gutter: Style.widgets.padding + (tileCount.visible ? tileCount.width + Style.widgets.spacing : 0)
+
+                            text: root.label(tile.modelData)
+                            color: tile.modelData.active ? Colors.workspaces.active : tile.windowCount > 0 ? Colors.workspaces.occupied : Colors.text.muted
+                            font.family: Style.text.font
+                            font.pixelSize: Style.text.size
+                            elide: Text.ElideRight
+                            horizontalAlignment: Text.AlignHCenter
+
+                            anchors {
+                                left: parent.left
+                                right: parent.right
+                                leftMargin: tileName.gutter
+                                rightMargin: tileName.gutter
+                                verticalCenter: parent.verticalCenter
+                            }
+                        }
+
+                        Text {
+                            id: tileCount
+
+                            visible: tile.windowCount > 0
+                            text: tile.windowCount
+                            color: Colors.text.muted
+                            font.family: Style.text.font
+                            font.pixelSize: Style.text.smallSize
+
+                            anchors {
+                                right: parent.right
+                                rightMargin: Style.widgets.padding
+                                verticalCenter: parent.verticalCenter
+                            }
+                        }
+
+                        MouseArea {
+                            id: tileArea
+
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                tile.modelData.activate();
+                                root.activated();
+                            }
+                        }
+                    }
+                }
             }
 
             Text {
@@ -197,205 +131,178 @@ Item {
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
             }
-
         }
 
         Rectangle {
-            id: appearanceSeparator
-
+            width: parent.width
             height: Style.border.width
             color: Colors.base.border
-
-            anchors {
-                top: workspaceArea.bottom
-                left: parent.left
-                right: parent.right
-                topMargin: Style.bar.spacing
-            }
-
         }
 
-        Column {
-            id: appearance
+        Item {
+            width: parent.width
+            height: Style.popup.itemHeight
 
-            spacing: Style.bar.spacing
+            Text {
+                id: wallpaperTitle
 
-            anchors {
-                top: appearanceSeparator.bottom
-                left: parent.left
-                right: parent.right
-                topMargin: Style.bar.spacing
+                text: "Wallpaper"
+                color: Colors.text.base
+                font.family: Style.text.font
+                font.pixelSize: Style.text.size
+
+                anchors {
+                    left: parent.left
+                    verticalCenter: parent.verticalCenter
+                }
             }
 
-            Item {
-                width: parent.width
-                height: Style.popup.itemHeight
+            Text {
+                visible: WallpaperService.rotating
+                text: "every " + WallpaperService.rotateLabel(WallpaperService.rotateMinutes)
+                color: Colors.text.muted
+                font.family: Style.text.font
+                font.pixelSize: Style.text.smallSize
 
-                Text {
-                    id: wallpaperTitle
-
-                    text: "Wallpaper"
-                    color: Colors.text.base
-                    font.family: Style.text.font
-                    font.pixelSize: Style.text.size
-
-                    anchors {
-                        left: parent.left
-                        verticalCenter: parent.verticalCenter
-                    }
-
+                anchors {
+                    left: wallpaperTitle.right
+                    leftMargin: Style.bar.spacing
+                    verticalCenter: parent.verticalCenter
                 }
+            }
 
-                Text {
-                    visible: WallpaperService.rotating
-                    text: "every " + WallpaperService.rotateLabel(WallpaperService.rotateMinutes)
-                    color: Colors.text.muted
-                    font.family: Style.text.font
-                    font.pixelSize: Style.text.smallSize
+            PillGroup {
+                compact: true
+                choices: WallpaperService.modeChoices
+                current: WallpaperService.rotating
+                onPicked: rotating => WallpaperService.setRotating(rotating)
 
-                    anchors {
-                        left: wallpaperTitle.right
-                        leftMargin: Style.bar.spacing
-                        verticalCenter: parent.verticalCenter
-                    }
+                anchors {
+                    right: parent.right
+                    verticalCenter: parent.verticalCenter
+                }
+            }
+        }
 
+        WallpaperCard {
+            width: parent.width
+            height: width * Style.workspaces.previewRatio
+            filePath: WallpaperService.current
+            fileUrl: WallpaperService.current !== "" ? "file://" + WallpaperService.current : ""
+            fileBaseName: WallpaperService.currentName
+            onClicked: {
+                root.activated();
+                SettingsState.show("wallpaper");
+            }
+        }
+
+        Item {
+            width: parent.width
+            height: Style.popup.itemHeight
+
+            Text {
+                text: "Theme"
+                color: Colors.text.muted
+                font.family: Style.text.font
+                font.pixelSize: Style.text.smallSize
+
+                anchors {
+                    left: parent.left
+                    verticalCenter: parent.verticalCenter
+                }
+            }
+
+            Row {
+                spacing: Style.bar.spacing
+
+                anchors {
+                    right: parent.right
+                    verticalCenter: parent.verticalCenter
                 }
 
                 Row {
+                    anchors.verticalCenter: parent.verticalCenter
                     spacing: Style.widgets.spacing
 
-                    anchors {
-                        right: parent.right
-                        verticalCenter: parent.verticalCenter
-                    }
+                    Repeater {
+                        model: root.swatches
 
-                    PillButton {
-                        compact: true
-                        text: "Static"
-                        checked: !WallpaperService.rotating
-                        onClicked: WallpaperService.setRotating(false)
-                    }
+                        delegate: Rectangle {
+                            id: swatch
 
-                    PillButton {
-                        compact: true
-                        text: "Rotate"
-                        checked: WallpaperService.rotating
-                        onClicked: WallpaperService.setRotating(true)
-                    }
+                            required property color modelData
 
+                            width: Style.wallpaper.swatchSize
+                            height: Style.wallpaper.swatchSize
+                            radius: width / 2
+                            color: swatch.modelData
+                        }
+                    }
                 }
-
-            }
-
-            // The current wallpaper as the app draws its cards.
-            ClippingRectangle {
-                width: parent.width
-                height: width * Style.workspaces.previewRatio
-                radius: Style.wallpaper.cardRadius
-                color: Colors.base.hover
-
-                Image {
-                    anchors.fill: parent
-                    source: WallpaperService.current !== "" ? "file://" + WallpaperService.current : ""
-                    // As in WallpaperCard: a fixed decode width, which the
-                    // pixmap cache can serve again the next time this opens.
-                    sourceSize.width: Style.wallpaper.thumbnailWidth
-                    fillMode: Image.PreserveAspectCrop
-                    asynchronous: true
-                }
-
-                Rectangle {
-                    visible: WallpaperService.currentName !== ""
-                    width: Math.min(wallpaperName.implicitWidth + Style.wallpaper.labelPadding * 2, parent.width - Style.wallpaper.badgeInset * 2)
-                    height: Style.wallpaper.labelHeight
-                    radius: Style.wallpaper.labelRadius
-                    color: Colors.overlay.scrim
-
-                    anchors {
-                        left: parent.left
-                        bottom: parent.bottom
-                        margins: Style.wallpaper.badgeInset
-                    }
-
-                    Text {
-                        id: wallpaperName
-
-                        anchors.fill: parent
-                        anchors.leftMargin: Style.wallpaper.labelPadding
-                        anchors.rightMargin: Style.wallpaper.labelPadding
-                        text: WallpaperService.currentName
-                        color: Colors.overlay.text
-                        font.family: Style.text.font
-                        font.pixelSize: Style.text.smallSize
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                    }
-
-                }
-
-            }
-
-            Item {
-                width: parent.width
-                height: Style.popup.itemHeight
 
                 Text {
-                    text: "Theme"
-                    color: Colors.text.muted
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Theme.theme
+                    color: Colors.text.base
                     font.family: Style.text.font
                     font.pixelSize: Style.text.smallSize
-
-                    anchors {
-                        left: parent.left
-                        verticalCenter: parent.verticalCenter
-                    }
-
                 }
-
-                Row {
-                    spacing: Style.bar.spacing
-
-                    anchors {
-                        right: parent.right
-                        verticalCenter: parent.verticalCenter
-                    }
-
-                    Row {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: Style.widgets.spacing
-
-                        Repeater {
-                            model: root.swatches
-
-                            delegate: Rectangle {
-                                id: swatch
-
-                                required property color modelData
-
-                                width: Style.wallpaper.swatchSize
-                                height: Style.wallpaper.swatchSize
-                                radius: width / 2
-                                color: swatch.modelData
-                            }
-
-                        }
-
-                    }
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: Theme.theme
-                        color: Colors.text.base
-                        font.family: Style.text.font
-                        font.pixelSize: Style.text.smallSize
-                    }
-
-                }
-
             }
-
         }
-
     }
 
+    // Which monitor's workspaces these are, once there are several, since each
+    // numbers its own from 1: the layout, this one filled in, and its name.
+    trailing: Row {
+        visible: Quickshell.screens.length > 1
+        spacing: Style.widgets.spacing
+
+        Item {
+            id: monitorMap
+
+            readonly property rect bounds: {
+                let left = Infinity;
+                let top = Infinity;
+                let right = -Infinity;
+                let bottom = -Infinity;
+                for (const output of Quickshell.screens) {
+                    left = Math.min(left, output.x);
+                    top = Math.min(top, output.y);
+                    right = Math.max(right, output.x + output.width);
+                    bottom = Math.max(bottom, output.y + output.height);
+                }
+                return Qt.rect(left, top, right - left, bottom - top);
+            }
+            readonly property real unit: Style.workspaces.mapHeight / monitorMap.bounds.height
+
+            anchors.verticalCenter: parent.verticalCenter
+            width: monitorMap.bounds.width * monitorMap.unit
+            height: Style.workspaces.mapHeight
+
+            Repeater {
+                model: Quickshell.screens
+
+                delegate: Rectangle {
+                    id: output
+
+                    required property ShellScreen modelData
+
+                    x: (output.modelData.x - monitorMap.bounds.x) * monitorMap.unit
+                    y: (output.modelData.y - monitorMap.bounds.y) * monitorMap.unit
+                    width: output.modelData.width * monitorMap.unit - Style.workspaces.mapGap
+                    height: output.modelData.height * monitorMap.unit - Style.workspaces.mapGap
+                    radius: Style.workspaces.mapRadius
+                    color: output.modelData === root.screen ? Colors.workspaces.active : Colors.workspaces.inactive
+                }
+            }
+        }
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.monitorName
+            color: Colors.text.muted
+            font.family: Style.text.font
+            font.pixelSize: Style.text.smallSize
+        }
+    }
 }

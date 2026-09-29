@@ -21,21 +21,20 @@ Singleton {
         root.zone = zone;
         root.zoneAt = Date.now();
         if (root.viewers > 0)
-            return ;
+            return;
 
         root.showing = true;
         linger.restart();
     }
 
     // "I was just using that one" — what a surface opening now should continue.
-    function recentlyUsed() : bool {
+    function recentlyUsed(): bool {
         return Date.now() - root.zoneAt < root.timeout;
     }
 
     onViewersChanged: {
         if (root.viewers > 0)
             root.showing = false;
-
     }
 
     Timer {
@@ -44,5 +43,4 @@ Singleton {
         interval: root.timeout
         onTriggered: root.showing = false
     }
-
 }
