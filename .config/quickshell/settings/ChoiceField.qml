@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../icons"
 import "../panels"
 import "../style"
 import QtQuick
@@ -66,13 +67,11 @@ Item {
             }
         }
 
-        Text {
+        Icon {
             id: chevron
 
-            text: root.expanded ? "\u{F0143}" : "\u{F0140}"
+            text: root.expanded ? Icons.chevronUp : Icons.chevronDown
             color: Colors.text.muted
-            font.family: Style.text.font
-            font.pixelSize: Style.text.iconSize
 
             anchors {
                 right: parent.right
@@ -108,7 +107,7 @@ Item {
             visible: root.searchable
             height: root.searchable ? search.implicitHeight : 0
             placeholder: "Search"
-            icon: "\u{F0349}"
+            icon: Icons.search
             onAccepted: {
                 if (root.shown.length > 0)
                     root.pick(root.shown[0].value);

@@ -1,3 +1,4 @@
+import "../../icons"
 import "../../style"
 import QtQuick
 import Quickshell.Networking
@@ -8,13 +9,13 @@ Item {
     required property QuickPager pager
     readonly property WifiDevice device: Networking.devices.values.find(candidate => candidate.type === DeviceType.Wifi) || null
     readonly property WifiNetwork activeNetwork: root.device ? (root.device.networks.values.find(network => network.connected) || null) : null
-    readonly property list<string> ramp: ["\u{F091F}", "\u{F0922}", "\u{F0925}", "\u{F0928}"]
+    readonly property list<string> ramp: [Icons.wifiLow, Icons.wifiHigh, Icons.wifi]
     readonly property string glyph: {
         if (!Networking.wifiEnabled || !root.device)
-            return "\u{F092E}";
+            return Icons.wifiOff;
 
         if (root.activeNetwork === null)
-            return "\u{F092F}";
+            return Icons.wifiZero;
 
         return root.ramp[Math.min(root.ramp.length - 1, Math.floor(root.activeNetwork.signalStrength * root.ramp.length))];
     }
@@ -23,14 +24,11 @@ Item {
     implicitWidth: visible ? icon.implicitWidth + Style.widgets.padding * 2 : 0
     implicitHeight: Style.bar.height
 
-    Text {
+    Icon {
         id: icon
 
         anchors.centerIn: parent
         text: root.glyph
-        color: Colors.icon.active
-        font.family: Style.text.font
-        font.pixelSize: Style.text.iconSize
     }
 
     MouseArea {

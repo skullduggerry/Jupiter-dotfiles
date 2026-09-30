@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../../icons"
 import "../../style"
 import QtQuick
 import Quickshell
@@ -57,13 +58,12 @@ WidgetPopup {
                 right: parent.right
             }
 
-            Text {
+            Icon {
                 id: backIcon
 
                 width: Style.popup.rowIconWidth
-                text: "\u{F0141}"
+                text: Icons.chevronLeft
                 color: Colors.text.muted
-                font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
 
                 anchors {

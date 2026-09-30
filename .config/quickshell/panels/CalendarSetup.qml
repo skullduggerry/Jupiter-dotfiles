@@ -1,3 +1,4 @@
+import "../icons"
 import "../services"
 import "../style"
 import QtQuick
@@ -42,7 +43,7 @@ Column {
         id: addressField
 
         width: parent.width
-        icon: "\u{F059F}"
+        icon: Icons.globe
         placeholder: "https://cloud.example.org"
         onAccepted: root.signIn()
     }
@@ -51,7 +52,7 @@ Column {
         id: userField
 
         width: parent.width
-        icon: "\u{F0004}"
+        icon: Icons.user
         placeholder: "user (filled in by signing in)"
         onAccepted: root.submit()
     }

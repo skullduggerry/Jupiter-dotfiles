@@ -1,0 +1,4 @@
+singleton Icons 1.0 Icons.qml
+Icon 1.0 Icon.qml
+BatteryIcon 1.0 BatteryIcon.qml
+RingIcon 1.0 RingIcon.qml

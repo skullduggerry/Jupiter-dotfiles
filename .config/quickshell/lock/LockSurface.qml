@@ -1,3 +1,4 @@
+import "../icons"
 import "../services"
 import "../style"
 import QtQuick
@@ -73,13 +74,11 @@ WlSessionLockSurface {
             border.width: Style.border.width
             border.color: LockService.authenticating ? Colors.lock.busy : Colors.lock.fieldBorder
 
-            Text {
+            Icon {
                 id: fieldIcon
 
-                text: LockService.authenticating ? "\u{F051F}" : "\u{F033E}"
+                text: LockService.authenticating ? Icons.hourglass : Icons.lock
                 color: LockService.authenticating ? Colors.lock.busy : Colors.lock.muted
-                font.family: Style.text.font
-                font.pixelSize: Style.text.iconSize
 
                 anchors {
                     left: parent.left

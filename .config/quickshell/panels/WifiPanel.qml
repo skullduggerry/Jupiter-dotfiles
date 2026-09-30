@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../icons"
 import "../style"
 import QtQuick
 import Quickshell.Networking
@@ -95,12 +96,11 @@ PanelFrame {
             right: parent.right
         }
 
-        Text {
+        Icon {
             id: promptIcon
 
-            text: "\u{F0306}"
+            text: Icons.key
             color: Colors.text.muted
-            font.family: Style.text.font
             font.pixelSize: Style.text.size
             width: Style.popup.rowIconWidth
 
@@ -213,13 +213,11 @@ PanelFrame {
                 target: networkRow.modelData
             }
 
-            Text {
+            Icon {
                 id: networkIcon
 
                 width: Style.popup.rowIconWidth
-                text: networkRow.connected ? "\u{F0E1E}" : networkRow.known ? "\u{F0928}" : ""
-                color: Colors.icon.active
-                font.family: Style.text.font
+                text: networkRow.connected ? Icons.check : networkRow.known ? Icons.wifi : ""
                 font.pixelSize: Style.text.size
 
                 anchors {

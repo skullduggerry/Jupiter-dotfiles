@@ -1,3 +1,4 @@
+import "../icons"
 import "../style"
 import QtQuick
 
@@ -53,11 +54,10 @@ Rectangle {
             margins: Style.wallpaper.badgeInset
         }
 
-        Text {
+        Icon {
             anchors.centerIn: parent
-            text: "\u{F012C}"
+            text: Icons.check
             color: root.colours.background
-            font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
         }
     }

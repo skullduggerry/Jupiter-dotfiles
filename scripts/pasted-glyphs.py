@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""List the QML files with a pasted Nerd Font glyph, and fail if there is one.
+"""List the QML files with a pasted private-use glyph, and fail if there is one.
 
 Tooling has silently emptied pasted private-use codepoints before -- the
 calendar's month chevrons, and very nearly the bluetooth and wifi icons --

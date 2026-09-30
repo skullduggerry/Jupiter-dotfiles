@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../icons"
 import "../panels"
 import "../style"
 import QtQuick
@@ -74,8 +75,8 @@ ScrollPage {
             devices: root.inputs
             chosen: Pipewire.defaultAudioSource
             emptyText: "No input device"
-            volumeIcon: "\u{F036C}"
-            mutedIcon: "\u{F036D}"
+            volumeIcon: Icons.mic
+            mutedIcon: Icons.micOff
             onPicked: node => {
                 Pipewire.preferredDefaultAudioSource = node;
             }
@@ -173,8 +174,8 @@ ScrollPage {
         property var devices: []
         property PwNode chosen: null
         property string emptyText: ""
-        property string volumeIcon: "\u{F057E}"
-        property string mutedIcon: "\u{F075F}"
+        property string volumeIcon: Icons.volume2
+        property string mutedIcon: Icons.volumeX
 
         signal picked(PwNode node)
 
@@ -207,12 +208,11 @@ ScrollPage {
                     radius: Style.popup.rowRadius
                     color: deviceArea.containsMouse && !device.inUse ? Colors.base.hover : "transparent"
 
-                    Text {
+                    Icon {
                         id: radio
 
-                        text: device.inUse ? "\u{F043E}" : "\u{F043D}"
+                        text: device.inUse ? Icons.circleDot : Icons.circle
                         color: device.inUse ? Colors.accent.primary : Colors.text.muted
-                        font.family: Style.text.font
                         font.pixelSize: Style.text.size
 
                         anchors {

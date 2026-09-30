@@ -115,11 +115,20 @@ while read -r line; do
 done < <(grep -rh 'namespaceSuffix: "' .config/quickshell --include='*.qml')
 pass "all popup namespaces end in -popup"
 
-section "nerd font glyphs"
+section "pasted glyphs"
 if pasted=$(scripts/pasted-glyphs.py); then
     pass "every glyph is a \\u{...} escape"
 else
     fail "pasted glyphs, write them as \\u{...}: $(echo $pasted)"
+fi
+
+section "icon family (lucide)"
+# One icon set: every glyph is one of icons/Icons.qml's, in its font. A Nerd
+# Font escape (U+F0000 and up) is the old set, and would draw in the text font.
+if nerd=$(grep -rln '\\u{F[0-9A-Fa-f]\{4\}}' .config/quickshell etc/greetd --include='*.qml'); then
+    fail "Nerd Font glyphs, use icons/Icons.qml: $(echo $nerd)"
+else
+    pass "no Nerd Font glyphs"
 fi
 
 section "python"

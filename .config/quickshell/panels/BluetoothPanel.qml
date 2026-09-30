@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../icons"
 import "../style"
 import QtQuick
 import Quickshell.Bluetooth
@@ -99,13 +100,11 @@ PanelFrame {
             width: deviceList.width
             height: Style.popup.itemHeight
 
-            Text {
+            Icon {
                 id: icon
 
                 width: Style.popup.rowIconWidth
-                text: row.modelData.connected ? "\u{F00B1}" : row.modelData.paired ? "\u{F00AF}" : "\u{F00B2}"
-                color: Colors.icon.active
-                font.family: Style.text.font
+                text: row.modelData.connected ? Icons.bluetoothConnected : row.modelData.paired ? Icons.bluetooth : Icons.bluetoothOff
                 font.pixelSize: Style.text.size
 
                 anchors {

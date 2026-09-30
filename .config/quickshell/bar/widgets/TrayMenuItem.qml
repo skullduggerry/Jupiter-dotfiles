@@ -1,3 +1,4 @@
+import "../../icons"
 import "../../style"
 import QtQuick
 import Quickshell
@@ -11,9 +12,9 @@ Item {
     readonly property bool checked: root.modelData.checkState === Qt.Checked
     readonly property string checkGlyph: {
         if (root.modelData.buttonType === QsMenuButtonType.RadioButton)
-            return root.checked ? "\u{F043E}" : "\u{F043D}";
+            return root.checked ? Icons.circleDot : Icons.circle;
 
-        return root.checked ? "\u{F0132}" : "\u{F0131}";
+        return root.checked ? Icons.squareCheck : Icons.square;
     }
 
     signal activated
@@ -56,12 +57,11 @@ Item {
                 source: root.modelData.icon
             }
 
-            Text {
+            Icon {
                 anchors.centerIn: parent
                 visible: root.checkable
                 text: root.checkGlyph
                 color: root.checked ? Colors.menu.checked : Colors.text.muted
-                font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
             }
         }
@@ -82,14 +82,13 @@ Item {
             }
         }
 
-        Text {
+        Icon {
             id: chevron
 
             visible: root.modelData.hasChildren
             width: chevron.visible ? Style.popup.rowIconWidth : 0
-            text: "\u{F0142}"
+            text: Icons.chevronRight
             color: Colors.text.muted
-            font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
             horizontalAlignment: Text.AlignRight
 

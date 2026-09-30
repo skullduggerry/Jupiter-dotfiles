@@ -119,4 +119,38 @@ Column {
             onPicked: blur => Theme.setBlur(blur)
         }
     }
+
+    // How much of the glass is tint: as much as the wallpaper behind needs for
+    // the text to read, or always the least (Colors.base.glassFloor).
+    Section {
+        visible: Theme.blur
+        title: "TINT"
+
+        Row {
+            spacing: Style.settings.spacing
+
+            PillGroup {
+                choices: [
+                    {
+                        label: "Adaptive",
+                        value: true
+                    },
+                    {
+                        label: "Static",
+                        value: false
+                    }
+                ]
+                current: Theme.adaptiveTint
+                onPicked: adaptive => Theme.setAdaptiveTint(adaptive)
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: Math.round(Colors.base.opacity * 100) + "% opaque"
+                color: Colors.text.muted
+                font.family: Style.text.font
+                font.pixelSize: Style.text.smallSize
+            }
+        }
+    }
 }

@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../icons"
 import "../panels"
 import "../services"
 import "../style"
@@ -16,62 +17,62 @@ FocusScope {
         {
             name: "appearance",
             title: "Appearance",
-            icon: "\u{F03D8}",
+            icon: Icons.palette,
             tabs: ["wallpaper", "themes"],
             keywords: "theme themes light dark accent colour colours color colors font blur solid panels wallpaper background rotate image workspace"
         },
         {
             name: "displays",
             title: "Displays",
-            icon: "\u{F0379}",
+            icon: Icons.monitor,
             keywords: "monitor screen brightness night light warmth scale resolution refresh rate rotation arrangement adaptive sync vrr"
         },
         {
             name: "sound",
             title: "Sound",
-            icon: "\u{F057E}",
+            icon: Icons.volume2,
             keywords: "audio volume speaker headphones microphone output input device mute apps"
         },
         {
             name: "network",
             title: "Network",
-            icon: "\u{F05A9}",
+            icon: Icons.wifi,
             keywords: "wifi wi-fi wireless internet ip address dns gateway"
         },
         {
             name: "bluetooth",
             title: "Bluetooth",
-            icon: "\u{F00AF}",
+            icon: Icons.bluetooth,
             keywords: "devices pair unpair forget connect headphones speaker visible discoverable"
         },
         {
             name: "notifications",
             title: "Notifications",
-            icon: "\u{F009A}",
+            icon: Icons.bell,
             keywords: "do not disturb dnd alerts"
         },
         {
             name: "power",
             title: "Power",
-            icon: "\u{F0425}",
+            icon: Icons.power,
             keywords: "battery power mode profile saver performance balanced"
         },
         {
             name: "keybinds",
             title: "Keybinds",
-            icon: "\u{F030C}",
+            icon: Icons.keyboard,
             keywords: "keyboard shortcuts keys hotkeys binds"
         },
         {
             name: "startup",
             title: "Startup",
-            icon: "\u{F14DE}",
+            icon: Icons.rocket,
             keywords: "autostart login apps session launch boot"
         },
         {
             name: "about",
             title: "About",
-            icon: "\u{F02FD}",
+            icon: Icons.info,
             keywords: "system info version cpu memory kernel hostname"
         }
     ]
@@ -123,7 +124,7 @@ FocusScope {
             id: search
 
             placeholder: "Search settings…"
-            icon: "\u{F0349}"
+            icon: Icons.search
             // Enter opens the first page that matches.
             onAccepted: {
                 if (root.shown.length > 0)
@@ -170,13 +171,11 @@ FocusScope {
                 radius: Style.settings.itemRadius
                 color: entry.selected || entryArea.containsMouse ? Colors.base.hover : "transparent"
 
-                Text {
+                Icon {
                     id: entryIcon
 
                     width: Style.settings.iconWidth
                     text: entry.modelData.icon
-                    color: Colors.icon.active
-                    font.family: Style.text.font
                     font.pixelSize: Style.text.size
 
                     anchors {

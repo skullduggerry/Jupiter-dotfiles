@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../icons"
 import "../panels"
 import "../style"
 import QtQuick
@@ -120,7 +121,7 @@ Item {
 
         width: Math.min(Style.settings.fieldWidth * 2, root.columnWidth)
         placeholder: "Search keybinds…"
-        icon: "\u{F0349}"
+        icon: Icons.search
 
         anchors {
             top: parent.top

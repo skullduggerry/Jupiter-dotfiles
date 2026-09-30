@@ -1,3 +1,4 @@
+import "../../icons"
 import "../../services"
 import "../../style"
 import QtQuick
@@ -6,7 +7,7 @@ Item {
     id: root
 
     required property QuickPager pager
-    readonly property list<string> ramp: ["\u{F00DE}", "\u{F00DF}", "\u{F00E0}"]
+    readonly property list<string> ramp: [Icons.sunDim, Icons.sunMedium, Icons.sun]
 
     visible: Brightness.available
     implicitWidth: visible ? icon.implicitWidth + Style.widgets.padding * 2 : 0
@@ -18,14 +19,11 @@ Item {
         value: true
     }
 
-    Text {
+    Icon {
         id: icon
 
         anchors.centerIn: parent
         text: root.ramp[Math.round(Brightness.fraction * (root.ramp.length - 1))]
-        color: Colors.icon.active
-        font.family: Style.text.font
-        font.pixelSize: Style.text.iconSize
     }
 
     MouseArea {

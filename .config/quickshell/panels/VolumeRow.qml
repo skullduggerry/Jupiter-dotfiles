@@ -1,3 +1,4 @@
+import "../icons"
 import QtQuick
 import Quickshell.Services.Pipewire
 
@@ -7,8 +8,8 @@ SliderRow {
     id: root
 
     required property PwNode node
-    property string volumeIcon: "\u{F057E}"
-    property string mutedIcon: "\u{F075F}"
+    property string volumeIcon: Icons.volume2
+    property string mutedIcon: Icons.volumeX
     readonly property bool ready: root.node !== null && root.node.ready && root.node.audio !== null
 
     icon: root.ready && root.node.audio.muted ? root.mutedIcon : root.volumeIcon

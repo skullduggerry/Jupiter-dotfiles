@@ -1,3 +1,4 @@
+import "../icons"
 import "../panels"
 import "../style"
 import QtQuick
@@ -309,7 +310,8 @@ ScrollPage {
                             TextButton {
                                 visible: app.modelData.custom
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: "\u{F0156}"
+                                text: Icons.x
+                                font.family: Icons.font
                                 font.pixelSize: Style.text.size
                                 onClicked: root.change(["remove", app.modelData.id])
                             }
@@ -345,7 +347,7 @@ ScrollPage {
             visible: root.adding
             width: root.columnWidth
             placeholder: "Search apps…"
-            icon: "\u{F0349}"
+            icon: Icons.search
             onAccepted: {
                 if (root.candidates.length > 0) {
                     root.change(["add", root.candidates[0].id]);

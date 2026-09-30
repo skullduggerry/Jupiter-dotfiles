@@ -1,3 +1,4 @@
+import "../icons"
 import "../services"
 import "../style"
 import QtQuick
@@ -32,7 +33,7 @@ PanelFrame {
 
         ToggleTile {
             width: tiles.tileWidth
-            icon: "\u{F009B}"
+            icon: Icons.bellOff
             label: "Do Not Disturb"
             checked: NotificationService.doNotDisturb
             onActivated: NotificationService.doNotDisturb = !NotificationService.doNotDisturb
@@ -40,7 +41,7 @@ PanelFrame {
 
         ToggleTile {
             width: tiles.tileWidth
-            icon: "\u{F001D}"
+            icon: Icons.plane
             label: "Airplane Mode"
             checked: QuickToggles.airplaneMode
             onActivated: QuickToggles.setAirplaneMode(!QuickToggles.airplaneMode)
@@ -48,7 +49,7 @@ PanelFrame {
 
         ToggleTile {
             width: tiles.tileWidth
-            icon: "\u{F0594}"
+            icon: Icons.moon
             label: "Night Light"
             checked: QuickToggles.nightLight
             onActivated: QuickToggles.setNightLight(!QuickToggles.nightLight)
@@ -56,7 +57,7 @@ PanelFrame {
 
         ToggleTile {
             width: tiles.tileWidth
-            icon: "\u{F044A}"
+            icon: Icons.video
             label: QuickToggles.recording ? "Recording" : "Screen Record"
             checked: QuickToggles.recording
             onActivated: QuickToggles.setRecording(!QuickToggles.recording)
@@ -64,7 +65,7 @@ PanelFrame {
 
         ToggleTile {
             width: tiles.tileWidth
-            icon: "\u{F0147}"
+            icon: Icons.clipboard
             label: "Clipboard"
             checked: QuickToggles.clipboardHistory
             onActivated: QuickToggles.setClipboardHistory(!QuickToggles.clipboardHistory)
@@ -73,7 +74,7 @@ PanelFrame {
 
         ToggleTile {
             width: tiles.tileWidth
-            icon: "\u{F0176}"
+            icon: Icons.coffee
             label: root.caffeineLabel
             checked: QuickToggles.caffeine
             onActivated: QuickToggles.setCaffeine(!QuickToggles.caffeine)
@@ -83,7 +84,8 @@ PanelFrame {
 
     // The way into the Settings app from the quick settings.
     trailing: TextButton {
-        text: "\u{F08BB}"
+        text: Icons.settings
+        font.family: Icons.font
         color: Colors.icon.active
         font.pixelSize: Style.text.iconSize
         onClicked: SettingsState.show("")

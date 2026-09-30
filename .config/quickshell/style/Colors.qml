@@ -25,9 +25,32 @@ QtObject {
     }
     readonly property PaletteColors palette: PaletteColors {}
 
+    readonly property bool light: root.palette.background.hslLightness > 0.5
+    // What adaptive glass holds muted text to: WCAG AA for body text, or, in
+    // a theme whose muted text is softer than that even on a solid surface,
+    // this share of the contrast it has there.
+    readonly property real readableContrast: 4.5
+    readonly property real glassKeeps: 0.9
+    readonly property real glassStep: 0.02
+    // The wallpaper at its least readable behind the panels, over every
+    // screen: its brightest under light text, its darkest under dark text.
+    // Transparent until a bar has measured one (Theme.backdrops).
+    readonly property color backdrop: {
+        // Undefined for the moment Theme is still being built.
+        const measured = Object.values(Theme.backdrops || {}).map(sample => root.light ? sample.dark : sample.bright);
+        if (measured.length === 0)
+            return "transparent";
+
+        const brighter = (first, second) => root.luminance(first) >= root.luminance(second) ? first : second;
+        const darker = (first, second) => root.luminance(first) <= root.luminance(second) ? first : second;
+        return measured.reduce(root.light ? darker : brighter);
+    }
+
     component TextColors: QtObject {
         readonly property color base: root.palette.foreground
-        readonly property color muted: root.mix(root.palette.background, root.palette.foreground, 0.58)
+        // Brighter than the apps' inactive text (templates' shade(0.58)): it is
+        // read over glass.
+        readonly property color muted: root.mix(root.palette.background, root.palette.foreground, 0.7)
         readonly property color inverted: root.palette.background
     }
     readonly property TextColors text: TextColors {}
@@ -38,9 +61,13 @@ QtObject {
         readonly property color border: root.mix(root.palette.background, root.palette.foreground, 0.354)
         readonly property color base: root.palette.background
         readonly property color panel: "transparent"
-        // Blur (frosted glass over Hyprland's blur) or Solid; a light theme's
-        // dark text needs more of its surface to stay readable.
-        readonly property real opacity: !Theme.blur ? 1 : baseColors.base.hslLightness > 0.5 ? 0.8 : 0.5
+        // Blur (frosted glass over Hyprland's blur) or Solid. Over blur the
+        // surface is at least glassFloor opaque, a light theme's dark text
+        // needing more of it; Adaptive raises it as far as muted text needs to
+        // read (readableContrast) over the wallpaper behind (root.backdrop).
+        readonly property real glassFloor: root.light ? 0.8 : 0.6
+        readonly property real glassCeiling: root.light ? 0.88 : 0.72
+        readonly property real opacity: !Theme.blur ? 1 : Theme.adaptiveTint ? root.glassOver(root.backdrop) : baseColors.glassFloor
         readonly property color surface: root.withAlpha(baseColors.base, baseColors.opacity)
         readonly property color hover: root.withAlpha(root.palette.foreground, 0.08)
         readonly property color scrim: Qt.rgba(0, 0, 0, 0.35)
@@ -50,6 +77,8 @@ QtObject {
     component IconColors: QtObject {
         readonly property color active: root.text.base
         readonly property color disabled: root.base.border
+        // Under a meter's value (icons/RingIcon).
+        readonly property color track: root.withAlpha(root.palette.foreground, 0.16)
     }
     readonly property IconColors icon: IconColors {}
 
@@ -170,6 +199,21 @@ QtObject {
 
         const candidate = Qt.color(value);
         return candidate.hslSaturation >= 0.25 && root.contrast(candidate, root.palette.background) >= 2;
+    }
+
+    // The least surface opacity, in steps from glassFloor to glassCeiling, at
+    // which muted text over it and the backdrop reads (readableContrast).
+    function glassOver(backdrop: color): real {
+        const floor = root.base.glassFloor;
+        const ceiling = root.base.glassCeiling;
+        if (backdrop.a === 0)
+            return floor;
+
+        const target = Math.min(root.readableContrast, root.glassKeeps * root.contrast(root.text.muted, root.palette.background));
+        for (let opacity = floor; opacity < ceiling; opacity += root.glassStep)
+            if (root.contrast(root.text.muted, root.mix(backdrop, root.palette.background, opacity)) >= target)
+                return opacity;
+        return ceiling;
     }
 
     // WCAG's contrast ratio, from 1 (identical) to 21 (black on white).

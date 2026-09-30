@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../icons"
 import "../services"
 import "../style"
 import QtQuick
@@ -97,7 +98,8 @@ Item {
 
             TextButton {
                 width: Style.popup.rowIconWidth
-                text: "\u{F0141}"
+                text: Icons.chevronLeft
+                font.family: Icons.font
                 onClicked: root.shiftMonth(-1)
 
                 anchors {
@@ -119,7 +121,8 @@ Item {
             TextButton {
                 width: Style.popup.rowIconWidth
                 horizontalAlignment: Text.AlignRight
-                text: "\u{F0142}"
+                text: Icons.chevronRight
+                font.family: Icons.font
                 onClicked: root.shiftMonth(1)
 
                 anchors {

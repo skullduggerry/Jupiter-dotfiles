@@ -16,6 +16,13 @@ Singleton {
     // The first line of apply.sh's record; its own default before it ran.
     readonly property string theme: applied.text().split("\n")[0] || "Oxocarbon-Dark"
     readonly property bool blur: settings.blur
+    // Over blur, a surface as opaque as the wallpaper behind it needs (true),
+    // or always the least (Colors.base.glassFloor).
+    readonly property bool adaptiveTint: settings.adaptiveTint
+    // screen name -> {bright, dark}: the wallpaper behind that screen's panels
+    // at its brightest and darkest, as its bar measured it (BackdropProbe).
+    // Colors takes the least readable; the greeter never measures.
+    property var backdrops: ({})
     readonly property bool applyToApps: settings.applyToApps
     // The Settings app's choices. The accent is one of Colors.accentNames, the
     // font a family name, empty for the shell's own.
@@ -73,6 +80,26 @@ Singleton {
     function setBlur(enabled: bool) {
         settings.blur = enabled;
         writeDebounce.restart();
+    }
+
+    function setAdaptiveTint(enabled: bool) {
+        settings.adaptiveTint = enabled;
+        writeDebounce.restart();
+    }
+
+    function setBackdrop(screen: string, bright: color, dark: color) {
+        const next = Object.assign({}, root.backdrops);
+        next[screen] = {
+            bright: bright,
+            dark: dark
+        };
+        root.backdrops = next;
+    }
+
+    function clearBackdrop(screen: string) {
+        const next = Object.assign({}, root.backdrops);
+        delete next[screen];
+        root.backdrops = next;
     }
 
     function setAccent(name: string) {
@@ -185,6 +212,7 @@ Singleton {
             id: settings
 
             property bool blur: true
+            property bool adaptiveTint: true
             property bool applyToApps: true
             property string accent: "blue"
             property string font: ""

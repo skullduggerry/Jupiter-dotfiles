@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../icons"
 import "../services"
 import "../style"
 import QtQuick
@@ -23,13 +24,12 @@ PanelFrame {
 
     signal activated
 
-    // The number the keys go by, marked when the workspace only waits here; a
-    // special workspace keeps its name.
+    // The number the keys go by; a special workspace keeps its name.
     function label(workspace: HyprlandWorkspace): string {
         if (workspace.id <= 0)
             return workspace.name;
 
-        return (WorkspaceBlocks.parked(workspace, root.monitorName) ? "\u{F0D90} " : "") + WorkspaceBlocks.number(workspace);
+        return WorkspaceBlocks.number(workspace);
     }
 
     title: "Workspaces"
@@ -70,26 +70,36 @@ PanelFrame {
                         border.width: Style.border.width
                         border.color: tile.modelData.active ? Colors.workspaces.active : Colors.base.border
 
-                        Text {
+                        // The name, marked when the workspace only waits here.
+                        // Matching gutters keep it centred whether or not the
+                        // window count shows.
+                        Row {
                             id: tileName
 
-                            // Matching gutters keep the name centred whether or
-                            // not the window count shows.
                             readonly property int gutter: Style.widgets.padding + (tileCount.visible ? tileCount.width + Style.widgets.spacing : 0)
+                            readonly property color colour: tile.modelData.active ? Colors.workspaces.active : tile.windowCount > 0 ? Colors.workspaces.occupied : Colors.text.muted
 
-                            text: root.label(tile.modelData)
-                            color: tile.modelData.active ? Colors.workspaces.active : tile.windowCount > 0 ? Colors.workspaces.occupied : Colors.text.muted
-                            font.family: Style.text.font
-                            font.pixelSize: Style.text.size
-                            elide: Text.ElideRight
-                            horizontalAlignment: Text.AlignHCenter
+                            anchors.centerIn: parent
+                            spacing: Style.widgets.spacing
 
-                            anchors {
-                                left: parent.left
-                                right: parent.right
-                                leftMargin: tileName.gutter
-                                rightMargin: tileName.gutter
-                                verticalCenter: parent.verticalCenter
+                            Icon {
+                                id: parkedMark
+
+                                visible: tile.modelData.id > 0 && WorkspaceBlocks.parked(tile.modelData, root.monitorName)
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: Icons.monitorOff
+                                color: tileName.colour
+                                font.pixelSize: Style.text.size
+                            }
+
+                            Text {
+                                width: Math.min(implicitWidth, tile.width - tileName.gutter * 2 - (parkedMark.visible ? parkedMark.width + tileName.spacing : 0))
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.label(tile.modelData)
+                                color: tileName.colour
+                                font.family: Style.text.font
+                                font.pixelSize: Style.text.size
+                                elide: Text.ElideRight
                             }
                         }
 

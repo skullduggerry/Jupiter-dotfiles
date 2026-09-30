@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../icons"
 import "../services"
 import "../style"
 import QtQuick
@@ -169,7 +170,8 @@ PanelFrame {
             TextButton {
                 id: forget
 
-                text: "\u{F0156}"
+                text: Icons.x
+                font.family: Icons.font
                 onClicked: root.forget(entry.modelData)
 
                 anchors {

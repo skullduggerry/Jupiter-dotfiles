@@ -1,3 +1,4 @@
+import "../icons"
 import "../style"
 import QtQuick
 
@@ -14,13 +15,10 @@ Row {
 
     spacing: Style.widgets.spacing
 
-    Text {
+    Icon {
         width: Style.popup.rowIconWidth
         anchors.verticalCenter: parent.verticalCenter
         text: root.icon
-        color: Colors.icon.active
-        font.family: Style.text.font
-        font.pixelSize: Style.text.iconSize
 
         MouseArea {
             anchors.fill: parent

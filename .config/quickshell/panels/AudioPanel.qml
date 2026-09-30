@@ -1,3 +1,4 @@
+import "../icons"
 import "../style"
 import QtQuick
 import Quickshell.Services.Pipewire
@@ -32,8 +33,8 @@ PanelFrame {
             visible: sourceRow.ready
             width: parent.width
             node: root.source
-            volumeIcon: "\u{F036C}"
-            mutedIcon: "\u{F036D}"
+            volumeIcon: Icons.mic
+            mutedIcon: Icons.micOff
         }
 
         Text {

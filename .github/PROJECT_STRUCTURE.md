@@ -16,6 +16,10 @@ config/quickshell/
 ├── llm.md                 Coding rules for agents.
 ├── style/                 Colors.qml, Style.qml — every colour and dimension —
 │                          and Theme.qml, the palette Colors derives from.
+├── icons/                 Icons.qml (Lucide's glyphs by name, and the vendored
+│                          lucide.ttf + its LICENSE), Icon.qml (a glyph at the
+│                          icon size and colour), and the two drawn ones:
+│                          BatteryIcon and RingIcon (the usage meters).
 ├── services/              Singletons: data sources + cross-surface state.
 │                          Brightness, CalendarService (+ nextcloud-calendar.py),
 │                          DisplayChange, DropdownState, LauncherHistory,
@@ -37,7 +41,9 @@ config/quickshell/
 │                          SliderRow and VolumeRow, DetailRow, PanelSlider,
 │                          InputField, WallpaperCard.
 ├── bar/                   Bar.qml (PanelWindow per screen) + BarContent.qml,
-│   │                      and BarDrawer.qml (the right side's hidden icons).
+│   │                      BarDrawer.qml (the right side's hidden icons), and
+│   │                      BackdropProbe.qml (the wallpaper, measured for the
+│   │                      adaptive glass).
 │   └── widgets/           one file per widget, plus WidgetPopup.qml (the
 │                          shared dropdown shell), QuickPager.qml (the swipeable
 │                          quick-settings dropdown), PowerAction.qml, and
@@ -134,18 +140,19 @@ in it: copied as one, monitors.lua dangles and the config dies at `require`.
   the gear) is a `TextButton`, muted until hovered, its target grown past its
   edges. A volume or brightness row is a `SliderRow` (`VolumeRow` for a
   PipeWire node).
-- **Glyphs are written as `"\u{F0141}"` escapes, never pasted**; `check.sh`
-  fails on a pasted private-use character (see "Private-use glyphs" below).
-- **One icon family across the bar, and one rule for colour.** Every glyph is a
-  Material Design one from the Nerd Font (`nf-md-*`, the U+F0000 plane) at
-  `Style.text.iconSize`, wrapped in `implicitWidth: row.implicitWidth +
-  Style.widgets.padding * 2` so the row spaces evenly. The right-hand side used
-  to break this three ways: the notifications bell was Font Awesome
-  (`\uf0f3`), the battery was a hand-drawn `Rectangle` pill rather than a
-  glyph, and volume was the only icon carrying a percentage. **Every icon is
+- **Glyphs are named, `Icons.bell`, and written in `icons/Icons.qml` as
+  `"\u{E059}"` escapes, never pasted**; `check.sh` fails on a pasted
+  private-use character (see "Private-use glyphs" below).
+- **One icon family everywhere, and one rule for colour.** Every glyph is a
+  Lucide one (see "Icons"), drawn by `Icon` at `Style.text.iconSize`, wrapped
+  in `implicitWidth: row.implicitWidth + Style.widgets.padding * 2` so the row
+  spaces evenly. The battery and the usage meters are drawn instead
+  (`BatteryIcon`, `RingIcon`) in the same line weight: a glyph per step was
+  what made them busy. **Every icon is
   `Colors.icon.active`**, in the bar and in the panels alike; on, idle and off
-  are told apart by the glyph alone (bell / bell-off / bell-outline, the Wi-Fi
-  ramp / wifi-off, bluetooth / bluetooth-connect / bluetooth-off). The grey
+  are told apart by the glyph alone (bell / bell-off / bell-dot, the Wi-Fi
+  ramp / wifi-off, bluetooth / bluetooth-connected / bluetooth-off, the
+  battery's bolt on power). The grey
   tones that used to mark idle and off were unreadable over a light wallpaper,
   where the translucent bar turns mid-grey. The only other colour is attention:
   `UsageMeter` turns orange past `Style.usage.warnAbove`, a battery goes orange
@@ -156,7 +163,9 @@ in it: copied as one, monitors.lua dangles and the config dies at `require`.
 - **Colours are derived from a theme, not written down.** `Colors.palette`
   holds eight inputs (background, foreground, and the ANSI red, green, yellow,
   blue, purple and cyan slots) and every other colour is computed from them:
-  `text.muted` is 58% of the way from background to foreground, `base.border`
+  `text.muted` is 70% of the way from background to foreground (58% until
+  30 September, and still 58% for the apps' inactive text: the shell's is read
+  over glass), `base.border`
   35%, hovers and pills are the foreground at low alpha. The inputs come from
   the theme wallust rendered (see "Themes" below); without one they are the
   colours the shell was designed with, and the formulas reproduce the old
@@ -591,7 +600,7 @@ Checked on screen by switching profiles with `powerprofilesctl set`, which the
 selected segment followed.
 
 While Do Not Disturb, Airplane Mode, Night Light, Caffeine or a recording is
-on, the dots gain a ring (`md-dots_horizontal_circle_outline`); the icon colour
+on, the dots gain a ring (`Icons.circleEllipsis`); the icon colour
 never changes. Tiles follow the same rule: every glyph and label is full white,
 and "on" is the filled badge, whose glyph turns `Colors.text.inverted` to stay
 readable on it. Six tiles, three to a row, is the design's grid; a label wraps
@@ -794,11 +803,34 @@ each step of a resize.
   stand-in zenity, not the real dialog.
 - **PANELS Blur / Solid** is `Theme.blur`, which sets `Colors.base.opacity`
   for every shell surface at once: the bar, the dropdowns and popups, toasts,
-  the OSD, the launcher and the app windows. Blur is the 50% frosted glass;
-  Solid is opaque, for a wallpaper too light to read the bar over. A light
-  theme's blur is 80%: at 50%, a light surface over a dark wallpaper went
-  mid-grey and its dark text on it was unreadable. It is on the Appearance
-  page's Style tab.
+  the OSD, the launcher and the app windows. Solid is opaque. Blur is frosted
+  glass, and **TINT** (shown under Blur) says how much of it is tint:
+  - **Static** is `Colors.base.glassFloor`: 60%, 80% for a light theme. It
+    used to be 50% and 80%, over a blur of size 2 × 2 passes, and text went
+    unreadable over busy or bright wallpapers; the blur is now 6 × 3 with a
+    little noise (`config/hypr/styles/layout.lua`), so detail turns to colour.
+  - **Adaptive** (the default) goes as far above the floor as muted text needs
+    to read, up to `glassCeiling`: 72%, 88% for a light theme. the owner's call
+    (30 September): 92% read as a solid bar, and glass that stops looking like
+    glass is not worth the last bit of contrast; muted text went brighter
+    instead. Each bar's `BackdropProbe` draws its
+    screen's wallpaper small in a hidden `Canvas`, cropped as hyprpaper's cover
+    crops it, and averages blocks of its upper half about the blur's size
+    (after Hyprland's blur contrast), reporting the brightest and darkest
+    block to `Theme.backdrops`. `Colors.backdrop` takes the least readable over
+    every screen (the brightest under light text, the darkest under dark), and
+    `Colors.glassOver()` steps the opacity until `text.muted` over the blend
+    reaches WCAG AA, or 90% of the contrast it has on a solid surface in a theme
+    whose muted text is softer than AA (Quiet's is 3.9:1). It follows the
+    wallpaper per workspace. The page shows the opacity in use.
+  - A Canvas reads its image data in device pixels but draws in the window's
+    units: on the 2× laptop panel, reading the logical size gave the top-left
+    quarter of the picture, dark, and the bright corner behind the bar's icons
+    went unmeasured. A Canvas also cannot `drawImage` an `Image` item it does
+    not show (it drew nothing), so the probe loads the file itself and keeps a
+    small `Image` only for its proportions.
+
+  It is on the Appearance page's Style tab.
 
 **The wallpaper mode** is the row above the grid: **Static** keeps the pick,
 **Rotate** moves on to the next wallpaper in the grid's order, wrapping, every
@@ -848,7 +880,7 @@ search words per page; Enter opens the first match) and its nine entries but
 Wallpaper & Background, which is Appearance's tabs, plus Keybinds and Startup,
 which the design does not have, after Power. Its
 coloured dots are the design's placeholders for icons, so the entries carry
-`nf-md` glyphs in `Colors.icon.active`, the bar's icon rule. Measurements are
+Lucide glyphs in `Colors.icon.active`, the bar's icon rule. Measurements are
 the frame's at half its 2x size (`Style.settings`); text keeps the shell's
 sizes.
 
@@ -986,10 +1018,8 @@ and the page says changes take effect then.
 
 **The accent** is `Colors.accent.primary`, what every accent in `Colors` now
 is (calendar, Wi-Fi header, tray menu checks, the lock's busy ring). **The
-font** is `Style.text.font`, which icons are drawn in too: fontconfig falls back
-to a font with the Nerd Font glyphs, checked by rendering them under DejaVu
-Sans, Noto Sans and two families that are not installed. Both reach the Qt apps
-when themes apply to the apps; see THEMING.md.
+font** is `Style.text.font`; icons are `Icons.font`, whatever the text font is.
+Both reach the Qt apps when themes apply to the apps; see THEMING.md.
 
 ## Themes
 
@@ -1007,7 +1037,7 @@ applying gives; about 0.3s for all of them.
 | --- | --- | --- |
 | `~/.cache/wallust/quickshell.json` | the palette | wallust, `templates/quickshell.json` |
 | `$XDG_STATE_HOME/wallust/theme` | the theme applied, then `all` or `shell-only` | `apply.sh` |
-| `$XDG_STATE_HOME/quickshell/appearance.json` | Blur/Solid, Shell/Shell and apps, accent, font, the last light and dark theme | `Theme` |
+| `$XDG_STATE_HOME/quickshell/appearance.json` | Blur/Solid, Adaptive/Static tint, Shell/Shell and apps, accent, font, the last light and dark theme | `Theme` |
 
 All three are watched, so `apply.sh Nord` from a terminal recolours the shell
 live and the Themes tab shows Nord as applied. Picking a theme runs `apply.sh`,
@@ -1037,15 +1067,25 @@ when both are trusted, and the old `#d19a66` otherwise.
 
 Bar icons are monochrome, in `Colors.icon.active`, whatever their state; see
 Conventions above. State is carried by the glyph: the Wi-Fi ramp, the battery
-fill, the notification count, the ringed toggles dots.
+fill and bolt, the notification dot, the ringed toggles dots.
 
-**Every glyph is a Material Design one (`U+F0000`+).** The Font Awesome range of
-the Nerd Font is not reliably covered by `Style.text.font` (`\uf028`, speaker,
-rendered as an empty box in the bar for a long time), and the last Font
-Awesome and weather glyphs (tray menu checks and chevrons, the calendar's
-chevrons, the notification ×, the brightness ramp) were replaced on 27
-September. `pango-view --font='JetBrainsMono Nerd Font 22'` renders candidates,
-to check a new glyph actually draws before assuming the codepoint is wrong.
+**Every glyph is a Lucide one** (30 September; the Material Design ones from
+the Nerd Font read as heavy and uneven, the battery worst, 22 glyphs across two
+ramps). `icons/lucide.ttf` is lucide-static 1.49.0's font, vendored with its
+ISC `LICENSE` so the shell needs no package for it; `Icons` loads it with a
+`FontLoader` and names each glyph it uses. A new one: find its codepoint in the
+npm package's `font/codepoints.json` (`npm pack lucide-static`), add it to
+`Icons.qml` as an escape, and draw it with `Icon { text: Icons.name }`, or,
+where a `TextButton` shows it, `font.family: Icons.font`. A glyph in any other
+`Text` draws in the text font, as a box: two did after the switch, the
+brightness ramp and the tray menu checks, because they reach `text:` through a
+property. `check.sh` fails on any Nerd Font escape left (`\u{F....}`).
+
+Lucide's font is 24 units of line art in a 1000-unit em with no descent, so it
+centres in a `Text` like a glyph of the text font. At 13 px its strokes are
+about 1 px, which `RingIcon` (1.5) and `BatteryIcon` (`Style.border.width`)
+follow. The parked-workspace mark was a glyph inside the tile's label string;
+another font cannot share a plain `Text`, so it is an `Icon` beside it.
 
 ## The system tray
 
@@ -1448,7 +1488,7 @@ explicit mode (`1920x1080@60`); real outputs resolve `preferred` fine.
 **Private-use glyphs get lost in transit.** The calendar's month chevrons were
 silently emptied to `""` at some point by a tool that dropped the codepoints,
 and this very note held a pasted glyph where it meant an escape. Every glyph is
-written as an escape, `"\u{F0141}"`, and `scripts/pasted-glyphs.py` (in
+written as an escape, `"\u{E06E}"`, and `scripts/pasted-glyphs.py` (in
 `check.sh`) fails on a pasted one.
 
 ## Verifying an API exists
@@ -1474,7 +1514,7 @@ scripts/install-hooks.sh  # once per clone: pre-commit + pre-push
 
 `check.sh` runs formatting, the `.editorconfig` whitespace rules, qmllint,
 qmldir completeness, the `-popup` namespace rule the blur depends on, a
-rule that every Nerd Font glyph is an escape, python/lua/shell parsing, the
+rule that every glyph is an escape and none is a Nerd Font one, python/lua/shell parsing, the
 two Hyprland configs through Hyprland's own parser (it rejects unknown rule
 fields, which `luac -p` cannot), and `tests/`. The pre-commit hook formats
 staged QML and re-stages it; pre-push runs the suite without modifying

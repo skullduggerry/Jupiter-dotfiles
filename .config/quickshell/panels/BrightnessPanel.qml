@@ -1,3 +1,4 @@
+import "../icons"
 import "../services"
 import "../style"
 import QtQuick
@@ -23,7 +24,7 @@ PanelFrame {
         SliderRow {
             visible: Brightness.available
             width: parent.width
-            icon: "\u{F00DF}"
+            icon: Icons.sunMedium
             value: Brightness.fraction
             onMoved: position => Brightness.setPercent(Math.round(position * 100))
         }

@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../icons"
 import "../style"
 import QtQuick
 import Quickshell.Services.Notifications
@@ -68,7 +69,8 @@ Item {
             TextButton {
                 id: closeButton
 
-                text: "\u{F0156}"
+                text: Icons.x
+                font.family: Icons.font
                 onClicked: {
                     root.modelData.dismiss();
                     root.dismissed();
@@ -159,7 +161,7 @@ Item {
 
                 height: parent.height
                 placeholder: root.modelData.inlineReplyPlaceholder || "Reply"
-                icon: "\u{F045A}"
+                icon: Icons.reply
                 onAccepted: root.sendReply()
 
                 anchors {
@@ -184,11 +186,10 @@ Item {
                     verticalCenter: parent.verticalCenter
                 }
 
-                Text {
+                Icon {
                     anchors.centerIn: parent
-                    text: "\u{F048A}"
+                    text: Icons.send
                     color: reply.text.trim() === "" ? Colors.text.muted : Colors.icon.active
-                    font.family: Style.text.font
                     font.pixelSize: Style.text.smallSize
                 }
 

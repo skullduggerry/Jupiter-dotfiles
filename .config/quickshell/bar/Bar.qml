@@ -56,6 +56,10 @@ Scope {
                 onExpandRequested: root.expanded = !root.expanded
             }
 
+            BackdropProbe {
+                screen: bar.modelData
+            }
+
             // Caffeine, on the Toggles page: an inhibitor needs a window, and
             // every screen has a bar.
             IdleInhibitor {

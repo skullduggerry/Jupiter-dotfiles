@@ -95,13 +95,22 @@ QtObject {
     component UsageStyle: QtObject {
         readonly property real warnAbove: 0.8
         readonly property int coreHeight: 32
+        // The bar's meters, a ring of this stroke (icons/RingIcon).
+        readonly property real ringWidth: 1.5
     }
     readonly property UsageStyle usage: UsageStyle {}
 
-    // Percentages at and below which the bar's battery turns orange, then red.
+    // Percentages at and below which the bar's battery turns orange, then red,
+    // and the battery it draws (icons/BatteryIcon).
     component BatteryStyle: QtObject {
         readonly property int lowAt: 20
         readonly property int criticalAt: 10
+        readonly property int iconWidth: 17
+        readonly property int iconHeight: 9
+        readonly property int iconRadius: 3
+        readonly property int fillGap: 1
+        readonly property int terminalWidth: 2
+        readonly property int terminalHeight: 4
     }
     readonly property BatteryStyle battery: BatteryStyle {}
 
@@ -238,6 +247,20 @@ QtObject {
         readonly property int taskRingSize: 8
     }
     readonly property CalendarStyle calendar: CalendarStyle {}
+
+    // What bar/BackdropProbe reads of a wallpaper for adaptive glass: drawn
+    // this wide, the upper share of the screen that has panels over it, and
+    // the blocks it averages, at this width about Hyprland's blur.
+    component BackdropStyle: QtObject {
+        readonly property int sampleWidth: 128
+        readonly property real coverage: 0.5
+        readonly property int blockSize: 4
+        // Hyprland's decoration:blur contrast and brightness, its defaults,
+        // which config/hypr/styles/layout.lua keeps.
+        readonly property real blurContrast: 0.8916
+        readonly property real blurBrightness: 1
+    }
+    readonly property BackdropStyle backdrop: BackdropStyle {}
 
     component LockStyle: QtObject {
         readonly property int fieldWidth: 320

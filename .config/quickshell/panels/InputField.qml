@@ -1,3 +1,4 @@
+import "../icons"
 import "../style"
 import QtQuick
 
@@ -29,13 +30,11 @@ Rectangle {
         onClicked: input.forceActiveFocus()
     }
 
-    Text {
+    Icon {
         id: fieldIcon
 
         text: root.icon
         color: Colors.text.muted
-        font.family: Style.text.font
-        font.pixelSize: Style.text.iconSize
 
         anchors {
             left: parent.left

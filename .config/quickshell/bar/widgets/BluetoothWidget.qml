@@ -1,3 +1,4 @@
+import "../../icons"
 import "../../style"
 import QtQuick
 import Quickshell.Bluetooth
@@ -12,14 +13,11 @@ Item {
     implicitWidth: icon.implicitWidth + Style.widgets.padding * 2
     implicitHeight: Style.bar.height
 
-    Text {
+    Icon {
         id: icon
 
         anchors.centerIn: parent
-        text: !root.powered ? "\u{F00B2}" : root.connected ? "\u{F00B1}" : "\u{F00AF}"
-        color: Colors.icon.active
-        font.family: Style.text.font
-        font.pixelSize: Style.text.iconSize
+        text: !root.powered ? Icons.bluetoothOff : root.connected ? Icons.bluetoothConnected : Icons.bluetooth
     }
 
     MouseArea {

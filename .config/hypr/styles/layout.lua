@@ -15,10 +15,14 @@ hl.config(
 	},
 	decoration = {
 		rounding = 8,
+		-- Strong enough that a busy wallpaper reads as colour, not detail,
+		-- behind the shell's glass; a little noise keeps it from banding.
 		blur = {
 			enabled = true,
-			size = 2,
-			passes = 2,
+			size = 6,
+			passes = 3,
+			noise = 0.02,
+			vibrancy = 0.17,
 			ignore_opacity = true,
 		},
 	},

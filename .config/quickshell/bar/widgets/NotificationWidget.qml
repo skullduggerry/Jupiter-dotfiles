@@ -1,3 +1,4 @@
+import "../../icons"
 import "../../panels"
 import "../../services"
 import "../../style"
@@ -18,11 +19,9 @@ Item {
         anchors.centerIn: parent
         spacing: Style.widgets.spacing
 
-        Text {
-            text: NotificationService.doNotDisturb ? "\u{F009B}" : NotificationService.count > 0 ? "\u{F009A}" : "\u{F009C}"
+        Icon {
+            text: NotificationService.doNotDisturb ? Icons.bellOff : NotificationService.count > 0 ? Icons.bellDot : Icons.bell
             color: !NotificationService.doNotDisturb && NotificationService.hasCritical ? Colors.notification.urgent : Colors.icon.active
-            font.family: Style.text.font
-            font.pixelSize: Style.text.iconSize
             anchors.verticalCenter: parent.verticalCenter
         }
 

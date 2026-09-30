@@ -1,3 +1,4 @@
+import "../icons"
 import "../style"
 import QtQuick
 
@@ -30,12 +31,10 @@ Rectangle {
             radius: width / 2
             color: root.checked ? Colors.icon.active : Colors.base.hover
 
-            Text {
+            Icon {
                 anchors.centerIn: parent
                 text: root.icon
                 color: root.checked ? Colors.text.inverted : Colors.icon.active
-                font.family: Style.text.font
-                font.pixelSize: Style.text.iconSize
             }
 
             Behavior on color {

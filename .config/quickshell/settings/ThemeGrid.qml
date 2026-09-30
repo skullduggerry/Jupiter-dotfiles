@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../icons"
 import "../panels"
 import "../services"
 import "../style"
@@ -64,7 +65,7 @@ Item {
 
         width: Style.wallpaper.searchWidth
         placeholder: "Search themes"
-        icon: "\u{F0349}"
+        icon: Icons.search
     }
 
     GridView {

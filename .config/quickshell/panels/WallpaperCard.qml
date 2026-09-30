@@ -1,3 +1,4 @@
+import "../icons"
 import "../services"
 import "../style"
 import QtQuick
@@ -58,11 +59,10 @@ Item {
             margins: Style.wallpaper.badgeInset
         }
 
-        Text {
+        Icon {
             anchors.centerIn: parent
-            text: "\u{F012C}"
+            text: Icons.check
             color: Colors.overlay.inverted
-            font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
         }
     }

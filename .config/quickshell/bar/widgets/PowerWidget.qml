@@ -1,3 +1,4 @@
+import "../../icons"
 import "../../services"
 import "../../style"
 import QtQuick
@@ -12,14 +13,11 @@ Item {
     implicitWidth: icon.implicitWidth + Style.widgets.padding * 2
     implicitHeight: Style.bar.height
 
-    Text {
+    Icon {
         id: icon
 
         anchors.centerIn: parent
-        text: "⏻"
-        color: Colors.icon.active
-        font.family: Style.text.font
-        font.pixelSize: Style.text.iconSize
+        text: Icons.power
     }
 
     MouseArea {
