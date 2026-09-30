@@ -42,6 +42,9 @@ Scope {
         WlrLayershell.namespace: "quickshell:launcher"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: window.visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        // Over the bar as well: placed below its exclusive zone, the scrim and
+        // the blur behind it stopped short at the bar's strip.
+        exclusionMode: ExclusionMode.Ignore
         color: Colors.base.scrim
 
         anchors {

@@ -9,7 +9,7 @@ Singleton {
     id: root
 
     property bool open: false
-    // One of SettingsContent's page names.
+    // One of SettingsContent's page names, or one of a page's tabs.
     property string page: "appearance"
 
     // An empty page keeps the one last shown.

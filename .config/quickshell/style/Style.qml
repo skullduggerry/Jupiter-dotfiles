@@ -195,8 +195,6 @@ QtObject {
         readonly property int fieldWidth: 210
         // A list opening in a page: fonts, resolutions, apps to add.
         readonly property int listHeight: 220
-        readonly property int previewWidth: 240
-        readonly property int previewHeight: 130
     }
     readonly property SettingsStyle settings: SettingsStyle {}
 
@@ -234,6 +232,10 @@ QtObject {
         readonly property int upcomingLookahead: 45
         readonly property int agendaTimeWidth: 48
         readonly property int upcomingTimeWidth: 80
+        // Open tasks shown under the agenda before their list scrolls.
+        readonly property int taskRows: 4
+        // A task's ring, where an event has a dot.
+        readonly property int taskRingSize: 8
     }
     readonly property CalendarStyle calendar: CalendarStyle {}
 

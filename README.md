@@ -14,7 +14,7 @@ git clone https://codeberg.org/skullduggery/Jupiter-installer.git ~/Jupiter-inst
 ~/Jupiter-installer/bootstrap.sh 2 3 4
 ```
 
-Then reboot. Running phase 4 again only does what is missing. To work on the dotfiles, run `scripts/install-hooks.sh` once in the clone. Wallpapers are not part of the repo: the Wallpaper page shows `~/Wallpapers`, which can be a link to a synced folder (`ln -s ~/Nextcloud/Home/Wallpapers ~/Wallpapers`), and the login screen shows the chosen one once `scripts/install-greeter.sh` runs again.
+Then reboot. Running phase 4 again only does what is missing. To work on the dotfiles, run `scripts/install-hooks.sh` once in the clone. Wallpapers are not part of the repo: Settings → Appearance → Wallpapers shows `~/Wallpapers`, which can be a link to a synced folder (`ln -s ~/Nextcloud/Home/Wallpapers ~/Wallpapers`), and the login screen shows the chosen one once `scripts/install-greeter.sh` runs again.
 
 ## Contents
 
@@ -48,6 +48,7 @@ Everything runs from the repo root.
 | `tests/greetd-auth-test.py` | The login screen's helper against a fake greetd: users and sessions, a wrong password, cancel and retry, starting the session. |
 | `tests/install-greeter-test.py` | Runs `install-greeter.sh` into a temporary folder and checks the result stands on its own: no symlinks, the session's monitor layout, a compositor config Hyprland accepts. |
 | `tests/nextcloud-principal-test.py` | The calendar finding your Nextcloud user id however it is spelled, and refusing to send the password over plain http. |
+| `tests/nextcloud-tasks-test.py` | The calendar's open tasks, dated or not, from task lists and calendars alike, in the order the dropdown lists them, against a stand-in Nextcloud. |
 | `tests/wallust-templates-test.py` | Every colour template renders for a dark and a light theme, and updating `kdeglobals` keeps what KDE apps wrote there. |
 
 `check.sh` runs the tests; each also runs alone with `python3 tests/<name>.py`.

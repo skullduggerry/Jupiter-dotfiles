@@ -17,7 +17,7 @@ SettingsApp 1.0 SettingsApp.qml
 SettingsContent 1.0 SettingsContent.qml
 SoundPage 1.0 SoundPage.qml
 StartupPage 1.0 StartupPage.qml
+StyleOptions 1.0 StyleOptions.qml
 ThemeCard 1.0 ThemeCard.qml
 ThemeGrid 1.0 ThemeGrid.qml
 WallpaperGrid 1.0 WallpaperGrid.qml
-WallpaperPage 1.0 WallpaperPage.qml

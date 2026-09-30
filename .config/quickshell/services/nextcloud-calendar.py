@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Fetch events from a Nextcloud calendar over CalDAV and print them as JSON.
+"""Fetch events and open tasks from Nextcloud over CalDAV and print them as JSON.
 
 Invoked by services/CalendarService.qml through Quickshell.Io.Process, which
 is why the contract is "one JSON object on stdout, always":
 
-    {"status": "ok", "events": [{...}, ...]}
+    {"status": "ok", "events": [{...}, ...], "tasks": [{...}, ...]}
     {"status": "unconfigured", "message": "..."}
     {"status": "error", "message": "..."}
 
@@ -38,6 +38,11 @@ PROPFIND for current-user-principal settles it.
 Recurring events are expanded by the server (RFC 4791 <C:expand/>), so this
 script never has to interpret an RRULE.
 
+Tasks are every VTODO not yet done, in any collection that holds them: the
+Tasks app keeps its lists as VTODO-only calendars, and a calendar can hold
+both. A task need not have a due date, so they are not fetched by time range;
+the server leaves out the completed ones instead.
+
 Standard library only: the `icalendar` and `caldav` packages are not
 dependencies of this shell, and parsing what a time-range CalDAV query
 returns needs very little of what they offer.
@@ -57,6 +62,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ElementTree
 from datetime import date, datetime, time, timedelta, timezone
+from typing import NamedTuple
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 DAV = "DAV:"
@@ -99,7 +105,7 @@ PROPFIND_BODY = """<?xml version="1.0" encoding="utf-8"?>
 </d:propfind>
 """
 
-REPORT_BODY = """<?xml version="1.0" encoding="utf-8"?>
+EVENTS_BODY = """<?xml version="1.0" encoding="utf-8"?>
 <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
   <d:prop>
     <c:calendar-data>
@@ -115,6 +121,35 @@ REPORT_BODY = """<?xml version="1.0" encoding="utf-8"?>
   </c:filter>
 </c:calendar-query>
 """
+
+# A done task carries the time it was completed, so the server can leave every
+# one of them out; they pile up, and nothing here shows them.
+TASKS_BODY = """<?xml version="1.0" encoding="utf-8"?>
+<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+  <d:prop>
+    <c:calendar-data/>
+  </d:prop>
+  <c:filter>
+    <c:comp-filter name="VCALENDAR">
+      <c:comp-filter name="VTODO">
+        <c:prop-filter name="COMPLETED">
+          <c:is-not-defined/>
+        </c:prop-filter>
+      </c:comp-filter>
+    </c:comp-filter>
+  </c:filter>
+</c:calendar-query>
+"""
+
+
+class Calendar(NamedTuple):
+    """A collection, and which of events and tasks it holds."""
+
+    href: str
+    name: str
+    colour: str
+    events: bool
+    tasks: bool
 
 
 class Unconfigured(Exception):
@@ -253,8 +288,8 @@ def normalise_colour(value: str) -> str:
     return "#" + digits.lower()
 
 
-def list_calendars(base: str, user: str, auth: str) -> list[tuple[str, str, str]]:
-    """Return (href, display name, colour) for every VEVENT collection of `user`."""
+def list_calendars(base: str, user: str, auth: str) -> list[Calendar]:
+    """Every collection of `user` that holds events, tasks or both."""
     home = calendar_home(base, user, auth)
     document = ElementTree.fromstring(request("PROPFIND", home, auth, PROPFIND_BODY, "1"))
 
@@ -264,24 +299,32 @@ def list_calendars(base: str, user: str, auth: str) -> list[tuple[str, str, str]
         if not href or href.rstrip("/") == home_path(home).rstrip("/"):
             continue
 
+        # Schedule inbox/outbox and subscriptions are not calendars here.
         resourcetype = response.find(".//d:resourcetype", NS)
         if resourcetype is None or resourcetype.find("c:calendar", NS) is None:
             continue
 
-        # Schedule inbox/outbox and subscriptions are calendar-shaped but
-        # hold no events worth listing; a collection that doesn't advertise
-        # VEVENT support (a contacts-only or VTODO-only list) is skipped too.
+        # A collection says what it holds, and one that says nothing holds
+        # anything (RFC 4791, 5.2.3). The Tasks app's lists are VTODO-only.
         components = {
             component.get("name")
             for component in response.findall(".//c:comp", NS)
         }
-        if components and "VEVENT" not in components:
+        events = not components or "VEVENT" in components
+        tasks = not components or "VTODO" in components
+        if not events and not tasks:
             continue
 
         name = response.findtext(".//d:displayname", default="", namespaces=NS)
         colour = response.findtext(".//a:calendar-color", default="", namespaces=NS)
         calendars.append(
-            (href, name or href.rstrip("/").rsplit("/", 1)[-1], normalise_colour(colour))
+            Calendar(
+                href,
+                name or href.rstrip("/").rsplit("/", 1)[-1],
+                normalise_colour(colour),
+                events,
+                tasks,
+            )
         )
     return calendars
 
@@ -291,25 +334,30 @@ def home_path(home: str) -> str:
     return urllib.parse.urlsplit(home).path
 
 
-def fetch_events(
-    base: str,
-    href: str,
-    name: str,
-    colour: str,
-    auth: str,
-    start: datetime,
-    end: datetime,
-) -> list[dict]:
-    url = base + href if href.startswith("/") else href
-    body = REPORT_BODY.format(start=as_caldav_utc(start), end=as_caldav_utc(end))
+def query(base: str, calendar: Calendar, auth: str, body: str) -> list[str]:
+    """The iCalendar text of every object a calendar-query REPORT matches."""
+    url = base + calendar.href if calendar.href.startswith("/") else calendar.href
     document = ElementTree.fromstring(request("REPORT", url, auth, body, "1"))
+    return [data.text for data in document.findall(".//c:calendar-data", NS) if data.text]
 
-    events = []
-    for data in document.findall(".//c:calendar-data", NS):
-        if not data.text:
-            continue
-        events.extend(parse_ics(data.text, name, colour))
-    return events
+
+def fetch_events(
+    base: str, calendar: Calendar, auth: str, start: datetime, end: datetime
+) -> list[dict]:
+    body = EVENTS_BODY.format(start=as_caldav_utc(start), end=as_caldav_utc(end))
+    return [
+        event
+        for ics in query(base, calendar, auth, body)
+        for event in parse_ics(ics, calendar.name, calendar.colour)
+    ]
+
+
+def fetch_tasks(base: str, calendar: Calendar, auth: str) -> list[dict]:
+    return [
+        task
+        for ics in query(base, calendar, auth, TASKS_BODY)
+        for task in parse_tasks(ics, calendar.name, calendar.colour)
+    ]
 
 
 def as_caldav_utc(moment: datetime) -> str:
@@ -425,35 +473,52 @@ def parse_duration(value: str) -> timedelta:
     )
 
 
-def parse_ics(ics: str, calendar_name: str, colour: str = "") -> list[dict]:
-    events = []
+def components(ics: str, kind: str) -> list[dict[str, tuple[str, dict[str, str]]]]:
+    """The properties of every `kind` component (VEVENT, VTODO) in `ics`.
+
+    What is nested inside one, a VALARM, is skipped: an alarm has a SUMMARY
+    and a DURATION of its own, which must not stand in for its event's.
+    """
+    found = []
     current: dict | None = None
+    depth = 0
 
     for line in unfold(ics):
         name, parameters, content = split_property(line)
-        if name == "BEGIN" and content == "VEVENT":
-            current = {}
-            continue
         if current is None:
-            continue
-        if name == "END" and content == "VEVENT":
-            event = build_event(current, calendar_name, colour)
-            if event:
-                events.append(event)
+            if name == "BEGIN" and content == kind:
+                current, depth = {}, 0
+        elif name == "BEGIN":
+            depth += 1
+        elif name == "END" and depth > 0:
+            depth -= 1
+        elif name == "END":
+            found.append(current)
             current = None
-            continue
-        if name in ("SUMMARY", "LOCATION", "STATUS"):
-            current[name] = unescape_text(content)
-        elif name in ("DTSTART", "DTEND", "DURATION"):
+        elif depth == 0:
             current[name] = (content, parameters)
 
-    return events
+    return found
+
+
+def text(fields: dict, name: str, default: str = "") -> str:
+    return unescape_text(fields[name][0]) if name in fields else default
+
+
+def parse_ics(ics: str, calendar_name: str, colour: str = "") -> list[dict]:
+    events = (build_event(fields, calendar_name, colour) for fields in components(ics, "VEVENT"))
+    return [event for event in events if event]
+
+
+def parse_tasks(ics: str, calendar_name: str, colour: str = "") -> list[dict]:
+    tasks = (build_task(fields, calendar_name, colour) for fields in components(ics, "VTODO"))
+    return [task for task in tasks if task]
 
 
 def build_event(fields: dict, calendar_name: str, colour: str = "") -> dict | None:
     if "DTSTART" not in fields:
         return None
-    if fields.get("STATUS") == "CANCELLED":
+    if text(fields, "STATUS") == "CANCELLED":
         return None
 
     start, all_day = parse_datetime(*fields["DTSTART"])
@@ -468,8 +533,8 @@ def build_event(fields: dict, calendar_name: str, colour: str = "") -> dict | No
         end = start
 
     return {
-        "summary": fields.get("SUMMARY", "(no title)"),
-        "location": fields.get("LOCATION", ""),
+        "summary": text(fields, "SUMMARY", "(no title)"),
+        "location": text(fields, "LOCATION"),
         # Always a full local date-time, never a bare date: QML parses
         # "2026-09-12" as UTC midnight but "2026-09-12T00:00:00" as local,
         # which would shift all-day events by the UTC offset.
@@ -483,6 +548,37 @@ def build_event(fields: dict, calendar_name: str, colour: str = "") -> dict | No
     }
 
 
+def build_task(fields: dict, calendar_name: str, colour: str = "") -> dict | None:
+    # The server leaves out tasks with a completion time; a client that only
+    # sets the status, and a cancelled task, are left out here.
+    if text(fields, "STATUS") in ("COMPLETED", "CANCELLED"):
+        return None
+    # Unexpanded, a recurring task's changed instances come back beside it,
+    # each another copy of the same task.
+    if "RECURRENCE-ID" in fields:
+        return None
+
+    due, all_day = parse_datetime(*fields["DUE"]) if "DUE" in fields else (None, False)
+    priority = text(fields, "PRIORITY")
+    return {
+        "summary": text(fields, "SUMMARY", "(no title)"),
+        # Empty for a task with no due date, which Nextcloud allows; otherwise
+        # a local date-time, as an event's start is.
+        "due": due.isoformat(timespec="seconds") if due else "",
+        "allDay": all_day,
+        # 1 is the highest, 9 the lowest, 0 unset (RFC 5545, 3.8.1.9).
+        "priority": int(priority) if priority.isdigit() else 0,
+        "calendar": calendar_name,
+        "colour": colour,
+    }
+
+
+def task_order(task: dict) -> tuple:
+    """Due ones first, the soonest (the overdue) at the top, then the rest;
+    within each, by priority, unset last."""
+    return (task["due"] == "", task["due"], task["priority"] or 10, task["summary"].lower())
+
+
 # --------------------------------------------------------------------------
 
 
@@ -490,8 +586,9 @@ def local_midnight(day: date) -> datetime:
     return datetime.combine(day, time()).astimezone()
 
 
-def collect(start: date, end: date) -> tuple[list[dict], str]:
-    """Return every event in the window, plus a note about any calendar lost."""
+def collect(start: date, end: date) -> tuple[list[dict], list[dict], str]:
+    """Return every event in the window and every open task, plus a note
+    about any calendar lost."""
     base, user, password = read_config()
     auth = base64.b64encode(f"{user}:{password}".encode()).decode()
 
@@ -503,30 +600,45 @@ def collect(start: date, end: date) -> tuple[list[dict], str]:
     window_end = local_midnight(end)
 
     events: list[dict] = []
+    tasks: list[dict] = []
     failed: list[str] = []
-    workers = min(MAX_PARALLEL_CALENDARS, len(calendars))
+    # Events and tasks are separate REPORTs, a calendar holding both costing
+    # two, and all of them share the pool.
+    jobs = [
+        (fetch_events, (base, calendar, auth, window_start, window_end), events, calendar.name)
+        for calendar in calendars
+        if calendar.events
+    ] + [
+        (fetch_tasks, (base, calendar, auth), tasks, calendar.name)
+        for calendar in calendars
+        if calendar.tasks
+    ]
     # Each worker only reads shared state and urllib opens its own connection
     # per call, so there is nothing to guard here.
-    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {
-            pool.submit(
-                fetch_events, base, href, name, colour, auth, window_start, window_end
-            ): name
-            for href, name, colour in calendars
-        }
-        for future, name in futures.items():
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=min(MAX_PARALLEL_CALENDARS, len(jobs))
+    ) as pool:
+        futures = [
+            (pool.submit(fetch, *arguments), into, name)
+            for fetch, arguments, into, name in jobs
+        ]
+        lost = 0
+        for future, into, name in futures:
             try:
-                events.extend(future.result())
+                into.extend(future.result())
             except Failed:
                 # One calendar timing out should cost its own events, not the
                 # other eight; the next refresh picks it back up.
-                failed.append(name)
+                lost += 1
+                if name not in failed:
+                    failed.append(name)
 
-    if len(failed) == len(calendars):
+    if lost == len(jobs):
         raise Failed(f"no calendar could be read ({', '.join(failed)})")
 
     events.sort(key=lambda event: (event["start"], event["summary"]))
-    return events, f"could not read {', '.join(failed)}" if failed else ""
+    tasks.sort(key=task_order)
+    return events, tasks, f"could not read {', '.join(failed)}" if failed else ""
 
 
 def main() -> int:
@@ -554,7 +666,7 @@ def main() -> int:
         return 1
 
     try:
-        events, warning = collect(arguments.start, arguments.end)
+        events, tasks, warning = collect(arguments.start, arguments.end)
     except Unconfigured as error:
         print(json.dumps({"status": "unconfigured", "message": str(error)}), flush=True)
         return 2
@@ -570,7 +682,10 @@ def main() -> int:
         )
         return 1
 
-    print(json.dumps({"status": "ok", "events": events, "message": warning}), flush=True)
+    print(
+        json.dumps({"status": "ok", "events": events, "tasks": tasks, "message": warning}),
+        flush=True,
+    )
     return 0
 
 

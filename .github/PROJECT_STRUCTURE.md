@@ -27,7 +27,8 @@ config/quickshell/
 │                          WorkspaceBlocks.
 ├── panels/                Panel content shown by more than one surface:
 │                          AudioPanel, BatteryPanel, BluetoothPanel,
-│                          BrightnessPanel, CalendarPanel, ClipboardPanel,
+│                          BrightnessPanel, CalendarPanel (+CalendarSetup,
+│                          CalendarTasks), ClipboardPanel,
 │                          NotificationPanel (+NotificationEntry), SystemPanel,
 │                          TogglesPanel (+ToggleTile), WifiPanel, WorkspacePanel;
 │                          and what they are built from: PanelFrame (a panel's
@@ -50,12 +51,13 @@ config/quickshell/
 ├── lock/                  Lock.qml (WlSessionLock) + LockSurface.qml (per monitor).
 └── settings/              SettingsApp.qml (scope/IPC/shortcuts/window) +
                            SettingsContent.qml (sidebar, page host), the pages
-                           (Appearance, Displays, Sound, Network, Bluetooth,
-                           Notifications, Power, Keybinds, Startup, Wallpaper
-                           with WallpaperGrid and ThemeGrid, About), the parts
-                           they share (Card, PanelCard, ScrollPage, Section,
-                           ActionRow, ChoiceField, KeyCap, ThemeCard) and their
-                           helpers: displays.py, autostart.py, startup-list.lua.
+                           (Appearance with its tabs StyleOptions, WallpaperGrid
+                           and ThemeGrid, Displays, Sound, Network, Bluetooth,
+                           Notifications, Power, Keybinds, Startup, About), the
+                           parts they share (Card, PanelCard, ScrollPage,
+                           Section, ActionRow, ChoiceField, KeyCap, ThemeCard)
+                           and their helpers: displays.py, autostart.py,
+                           startup-list.lua.
 ```
 
 ## Import graph
@@ -180,7 +182,7 @@ in it: copied as one, monitors.lua dangles and the config dies at `require`.
 | A new swipe zone | a panel, a zone name in `DropdownState` and its place in `step()`'s order, a `Component` in `Dropdown.qml` |
 | Anything fetched from outside | a `services/` singleton, with a helper script run through `Process` |
 | A new top-level surface | its own folder + `qmldir`, following `launcher/` for an overlay or `settings/` for an ordinary window |
-| A Settings page | an entry in `SettingsContent.pages` (name, title, glyph, search words) and a `Component` in its `Loader`; a page taller than the window is a `ScrollPage`; a quick-settings panel goes in a `PanelCard`, a group of rows in a `Card`, a note with its action under a list in an `ActionRow` |
+| A Settings page | an entry in `SettingsContent.pages` (name, title, glyph, search words, and the names of any tabs that `SettingsState.page` can open it on) and a `Component` in its `Loader`; a page taller than the window is a `ScrollPage`; a quick-settings panel goes in a `PanelCard`, a group of rows in a `Card`, a note with its action under a list in an `ActionRow` |
 | A switch between a few values | a `PillGroup` |
 | Something that has to run from login | a `services/` singleton with an `active` flag, bound to true by whatever is always built (the `WallpaperService` binding in `SettingsApp.qml`) |
 | A popup-like surface in the top right | publish what it covers with `PopupAreas.set()` (as `WidgetPopup` and `Dropdown` do), so toasts move below it |
@@ -254,7 +256,34 @@ in flight the server began failing TLS handshakes outright, so
 `MAX_PARALLEL_CALENDARS` is 4 — a fetch that half-fails is worse than one that
 takes a second longer. Since one calendar can now fail on its own, `collect()`
 returns what it did get plus the names it lost, and only raises when every
-calendar failed; the helper's `ok` payload carries that note in `message`.
+REPORT failed; the helper's `ok` payload carries that note in `message`.
+
+**Tasks are every open VTODO, dated or not** (`panels/CalendarTasks`, under the
+day's agenda). Nextcloud's Tasks app keeps each list as a VTODO-only calendar,
+which `list_calendars()` used to skip for holding no events, and a calendar can
+hold both; a collection advertising no components holds anything (RFC 4791,
+5.2.3). A task need not have a due date, so they are not asked for by time
+range. What bounds the answer is `COMPLETED` `is-not-defined`, which the server
+applies (done tasks only ever pile up); a client that sets only `STATUS`, a
+cancelled task and an unexpanded recurring task's changed instances (copies,
+by `RECURRENCE-ID`) are dropped by the helper. Each task list costs one more
+REPORT in the same pool: here three, and the whole fetch with 669 events stayed
+under a second. The list is due ones first, soonest at the top, then by
+priority (1 highest, unset last); a due date that has passed is
+`Colors.status.error` (an all-day one once its day is over). It shows at most
+`Style.calendar.taskRows` rows and scrolls past them, as the agenda above it
+does, so at the dropdown's greatest height it is the agenda that gives way; the
+section is gone when nothing is open. Tasks are read-only: ticking one off
+would mean writing the object back with `If-Match`, which nothing here does yet.
+The cache holds them beside the events; one written before tasks has none until
+the next fetch. `tests/nextcloud-tasks-test.py` runs the helper against a
+stand-in CalDAV server on loopback.
+
+**What is nested in a component is not the component's.** The parser took every
+property between `BEGIN:VEVENT` and `END:VEVENT`, a `VALARM` inside included, so
+an email alarm's own `SUMMARY` became the event's title ("Reminder"), and its
+`DURATION` could have become the event's length. `components()` skips nested
+components for events and tasks alike.
 
 A panel shown by a dropdown zone declares two properties, which are the whole
 contract:
@@ -692,18 +721,22 @@ used, cache (`free`'s buff/cache) and swap, with the uptime in its header.
 
 ## Wallpaper & Background
 
-The Settings app's Wallpaper page (`settings/WallpaperPage`) is the only place
-wallpapers and themes are chosen: there was a separate wallpaper window as
-well, which the owner found redundant and which went on 27 September. **SUPER+W**
-opens Settings on this page, and closes it when it is already showing it
-(`wallpaperToggle` → `SettingsState.toggle("wallpaper")`); the workspace
-dropdown's wallpaper card and Appearance's "Change Wallpaper…" lead here too.
+The Settings app's Appearance page is the only place wallpapers and themes are
+chosen, on its Wallpapers and Themes tabs. There was a separate wallpaper
+window as well, which the owner found redundant and which went on 27 September, and
+then a Wallpaper & Background page beside Appearance, which went the same way
+on 29 September. **SUPER+W** opens Settings on the Wallpapers tab, and closes
+it when it is already showing it (`wallpaperToggle` →
+`SettingsState.toggle("wallpaper")`); the workspace dropdown's wallpaper card
+leads there too.
 
 It follows the Figma file's "Wallpaper Selector" frame: 2:1 cards with a label
 pill and an applied badge (`panels/WallpaperCard`, which the workspace dropdown
 shows too), the category tabs and "APPLY TO: This Workspace / All Workspaces".
-Two tabs sit above them, Wallpapers (`WallpaperGrid`) and Themes (`ThemeGrid`,
-built the first time it is opened, as it runs palettes.py).
+The page's tabs sit above them: Style (`StyleOptions`, the designed Appearance
+page), Wallpapers (`WallpaperGrid`) and Themes (`ThemeGrid`). The last two are
+built the first time they are shown, and kept: the thumbnails decode and
+palettes.py runs when they are.
 
 **Wallpapers** are `~/Wallpapers` and its subfolders, one `FolderListModel`
 each, all watching their directory, so an import or a new folder shows up by
@@ -765,7 +798,7 @@ each step of a resize.
   Solid is opaque, for a wallpaper too light to read the bar over. A light
   theme's blur is 80%: at 50%, a light surface over a dark wallpaper went
   mid-grey and its dark text on it was unreadable. It is on the Appearance
-  page.
+  page's Style tab.
 
 **The wallpaper mode** is the row above the grid: **Static** keeps the pick,
 **Rotate** moves on to the next wallpaper in the grid's order, wrapping, every
@@ -790,7 +823,7 @@ restores whichever wallpaper was showing. The mode and interval persist in
 **The workspace dropdown** (`WorkspacePanel`, the dropdown's left zone, which
 the gesture and the bar's workspace dots open) ends with the same state: the
 current wallpaper as a `WallpaperCard`, which closes the dropdown and opens
-the Wallpaper page (the design's "Browse All Wallpapers →"), the Static/Rotate
+the Wallpapers tab (the design's "Browse All Wallpapers →"), the Static/Rotate
 choice in a compact `PillGroup` beside its title (with the interval while
 rotating), and the theme's name with its six ANSI swatches, as its card on the
 Themes tab draws them. The card is wider than the grid's 2:1
@@ -803,7 +836,7 @@ dropdown.
 window (`FloatingWindow`, class `org.quickshell`, title "Settings") that
 Hyprland tiles like any other, built by a `LazyLoader` only while open, so the
 wallpaper thumbnails are freed when it closes. **SUPER+I** toggles it
-(`settingsToggle`), SUPER+W opens it on the Wallpaper page, and so do `qs ipc
+(`settingsToggle`), SUPER+W opens it on the Wallpapers tab, and so do `qs ipc
 call settings toggle|open|close` and `openPage <name>`, the gear on the
 quick-settings Toggles page and the workspace dropdown's wallpaper. Escape or
 SUPER+C closes it. Whether it is open and on which page lives in
@@ -811,30 +844,38 @@ SUPER+C closes it. Whether it is open and on which page lives in
 the dropdown.
 
 The sidebar is the design's: the search field (filters by title and by a few
-search words per page; Enter opens the first match) and its nine entries, plus
-Keybinds and Startup, which the design does not have, after Power. Its
+search words per page; Enter opens the first match) and its nine entries but
+Wallpaper & Background, which is Appearance's tabs, plus Keybinds and Startup,
+which the design does not have, after Power. Its
 coloured dots are the design's placeholders for icons, so the entries carry
 `nf-md` glyphs in `Colors.icon.active`, the bar's icon rule. Measurements are
 the frame's at half its 2x size (`Style.settings`); text keeps the shell's
 sizes.
 
-- **Appearance** is the designed page. THEME is Light and Dark, and no Auto
+- **Appearance** is three tabs: the designed page (Style), then the design's
+  Wallpaper Selector as Wallpapers and Themes (see Wallpaper & Background). The
+  tab shown is `SettingsState.page` itself: `wallpaper` and `themes` are the
+  page's `tabs` in `SettingsContent.pages`, so they open it on theirs, the
+  sidebar selects Appearance for either, and its entry leaves the tab as it is.
+  A hidden tab is disabled as well, since the scope would otherwise hand the
+  keys back to its search field or font list. The design's WALLPAPER card and
+  its "Change Wallpaper…" went with the merge: the grid is a tab away.
+  On Style, THEME is Light and Dark, and no Auto
   (the owner's call): `Theme` remembers the last light and the last dark theme
   applied, whatever applied them, by the palette's lightness once both of
   apply.sh's files have settled (`rememberDebounce`), and the pills apply those
   two; the checked one is the current palette's lightness. ACCENT COLOR is six
   of the palette's colours; the design's pink is cyan, since a terminal palette
   has no pink. FONT is a searchable `ChoiceField` of every installed family,
-  each written in itself, the shell's own first. PANELS is Blur/Solid. The
-  WALLPAPER card's "Change Wallpaper…" turns to the Wallpaper page.
+  each written in itself, the shell's own first. PANELS is Blur/Solid.
 - Bluetooth (below), Notifications (Do Not Disturb, then the centre itself, so
   toasts give way while it is shown), Power (the Battery page where there is a
   laptop battery, else just the power modes) and About (host, system, kernel,
   Hyprland and Quickshell versions, then the usage dropdown's details) are what
   the quick settings already have, in a `PanelCard` (the dropdowns' frame, the
   page's column wide, as tall as the panel asks and the window allows).
-- Displays, Sound, Network, Keybinds, Startup and Wallpaper are pages of their
-  own, each built on what it shows, below. A page is built while it is shown
+- Displays, Sound, Network, Keybinds and Startup are pages of their own, each
+  built on what it shows, below. A page is built while it is shown
   and no longer; one taller than the window is a `ScrollPage` (a `Flickable`
   with a thin bar at its right edge).
 
@@ -952,7 +993,7 @@ when themes apply to the apps; see THEMING.md.
 
 ## Themes
 
-The palette `Colors` derives from (see Conventions) is chosen on the Wallpaper
+The palette `Colors` derives from (see Conventions) is chosen on the Appearance
 page's Themes tab, which lists every wallust theme: the ones in
 `config/wallust/colorschemes/` first, then wallust's 614 built-ins, each drawn
 in its own colours. `config/wallust/palettes.py` builds that list by rendering
@@ -1303,6 +1344,10 @@ y=0 is under the bar — adding the bar height to a top margin counts it twice.
 Its x=0 *is* the screen's left edge, while `QsWindow.itemRect()` reports in the
 item's own window frame; the bar's window starts `Style.bar.sideGap` in, and
 `QsWindow` exposes no absolute position, so that token reconciles the two.
+The launcher opts out with `exclusionMode: ExclusionMode.Ignore` and covers
+the bar too: below the bar, its scrim and the blur behind it stopped at the
+bar's strip, which looked cut off. It centres its box, so nothing in it
+depends on where y=0 is.
 
 **`sideGap` is where the bar's *window* starts; `edgeGap` is where the bar
 *looks* like it starts.** `BarContent` fills that window inset by one border
@@ -1489,6 +1534,18 @@ qs log -r '*.debug=true;*.info=true' -- /run/user/1000/quickshell/by-id/<id>/log
 
 A wrong Quickshell API can fail **silently** — see the `ObjectModel` note above.
 
+**A panel can be looked at without a screen.** `grim` waits forever on an
+output hypridle has switched off, and a locked session only shows the lock
+anyway. A scratch folder with links to `panels/`, `services/` and `style/`, and
+a `shell.qml` holding a `FloatingWindow` as tall as `Style.dropdown.maxHeight`,
+the panel in a surface with `Dropdown.qml`'s clamp, and a `Timer` that saves
+`grabToImage()` and calls `Qt.quit()`, renders it with
+`QT_QPA_PLATFORM=offscreen`; point `XDG_STATE_HOME` at a scratch folder too, so
+the real shell's state is not written. Size the surface, not the window: an
+offscreen window keeps the height it was first given. The calendar's tasks were
+checked this way, against the stand-in server of `tests/nextcloud-tasks-test.py`
+(its `serve()` takes any collections) and against the real one.
+
 ## Installing
 
 Setting a clone up is Jupiter-installer's job; README "Installing" lists the
@@ -1506,7 +1563,7 @@ copy of the working tree with its git-ignored files removed (a fresh clone),
 then that copy's own `hyprland.lua` in a nested Hyprland, hypridle and the
 keyring left out of its start list and `apply.sh` given `-s`. No config errors,
 the shell up with nothing in its log, the Oxocarbon-Dark files rendered by the
-start list's `apply.sh`, the Wallpaper page's empty state. Hyprland's own
+start list's `apply.sh`, the Wallpapers tab's empty state. Hyprland's own
 background shows until a wallpaper is picked, and every wallpaper preview logs
 "Cannot open …/whale.jpg" until then: `hyprpaper.conf` names that file, which
 only exists where `~/Wallpapers` is synced.
@@ -1521,12 +1578,12 @@ qs ipc call dropdown open quicksettings
 qs ipc call lock lock                  # no unlock IPC exists, by design
 qs ipc call lock locked
 qs ipc call settings toggle            # also open, close, openPage appearance
-qs ipc call settings openPage keybinds # displays, sound, network, wallpaper, …
+qs ipc call settings openPage keybinds # displays, sound, wallpaper, themes, …
 ~/.config/wallust/apply.sh Nord        # the shell follows; see Themes
 ```
 
 `SUPER+R` (launcher), `SUPER+L` (lock), `SUPER+B` (bar drawer), `SUPER+W`
-(Settings on the Wallpaper page), `SUPER+I` (Settings) and the power button
+(Settings on the Wallpapers tab), `SUPER+I` (Settings) and the power button
 (the power menu) are `GlobalShortcut`s bound with
 `hl.dsp.global(...)`; the three-finger swipe is an
 `hl.gesture` block calling `dropdown openAt`. All in

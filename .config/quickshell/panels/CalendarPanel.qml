@@ -7,7 +7,7 @@ import QtQuick
 Item {
     id: root
 
-    implicitHeight: Style.bar.padding * 2 + header.height + weekdays.height + grid.height + Style.bar.spacing + Style.border.width + Style.bar.spacing + agendaHeader.height + root.agendaHeight + status.height
+    implicitHeight: Style.bar.padding * 2 + header.height + weekdays.height + grid.height + Style.bar.spacing + Style.border.width + Style.bar.spacing + agendaHeader.height + root.agendaHeight + tasks.height + status.height
     readonly property int agendaHeight: setup.visible ? setup.implicitHeight + Style.bar.spacing : Math.max(Style.popup.itemHeight, agenda.contentHeight)
     readonly property date today: Time.now
     property date displayedMonth: new Date(root.today.getFullYear(), root.today.getMonth(), 1)
@@ -329,6 +329,21 @@ Item {
             }
         }
 
+        // At most a few rows under the agenda; at the dropdown's greatest
+        // height it is the agenda that gives way and scrolls.
+        CalendarTasks {
+            id: tasks
+
+            visible: CalendarService.tasks.length > 0 && !setup.visible
+            height: tasks.visible ? tasks.implicitHeight : 0
+
+            anchors {
+                bottom: status.top
+                left: parent.left
+                right: parent.right
+            }
+        }
+
         ListView {
             id: agenda
 
@@ -338,7 +353,7 @@ Item {
 
             anchors {
                 top: agendaHeader.bottom
-                bottom: status.top
+                bottom: tasks.top
                 left: parent.left
                 right: parent.right
             }

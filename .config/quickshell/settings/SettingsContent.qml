@@ -10,13 +10,15 @@ import QtQuick
 FocusScope {
     id: root
 
-    // Searched by title and by these words.
+    // Searched by title and by these words. A page's `tabs` are names
+    // SettingsState.page may hold for it too, each opening on that tab.
     readonly property var pages: [
         {
             name: "appearance",
             title: "Appearance",
             icon: "\u{F03D8}",
-            keywords: "theme light dark accent colour color font blur solid panels"
+            tabs: ["wallpaper", "themes"],
+            keywords: "theme themes light dark accent colour colours color colors font blur solid panels wallpaper background rotate image workspace"
         },
         {
             name: "displays",
@@ -67,12 +69,6 @@ FocusScope {
             keywords: "autostart login apps session launch boot"
         },
         {
-            name: "wallpaper",
-            title: "Wallpaper & Background",
-            icon: "\u{F0E09}",
-            keywords: "wallpaper background themes theme colours colors rotate image workspace"
-        },
-        {
             name: "about",
             title: "About",
             icon: "\u{F02FD}",
@@ -83,9 +79,15 @@ FocusScope {
         const query = search.text.trim().toLowerCase();
         return query === "" ? root.pages : root.pages.filter(page => page.title.toLowerCase().includes(query) || page.keywords.includes(query));
     }
-    readonly property var current: root.pages.find(page => page.name === SettingsState.page) || root.pages[0]
+    readonly property var current: root.pages.find(page => page.name === SettingsState.page || (page.tabs ?? []).includes(SettingsState.page)) || root.pages[0]
 
     signal closeRequested
+
+    // Keeps the tab of the page already shown.
+    function openPage(page) {
+        if (page.name !== root.current.name)
+            SettingsState.page = page.name;
+    }
 
     focus: true
     Keys.onEscapePressed: root.closeRequested()
@@ -125,7 +127,7 @@ FocusScope {
             // Enter opens the first page that matches.
             onAccepted: {
                 if (root.shown.length > 0)
-                    SettingsState.page = root.shown[0].name;
+                    root.openPage(root.shown[0]);
             }
 
             anchors {
@@ -207,7 +209,7 @@ FocusScope {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: SettingsState.page = entry.modelData.name
+                    onClicked: root.openPage(entry.modelData)
                 }
 
                 Behavior on color {
@@ -294,8 +296,6 @@ FocusScope {
                     return keybindsPage;
                 case "startup":
                     return startupPage;
-                case "wallpaper":
-                    return wallpaperPage;
                 case "about":
                     return aboutPage;
                 default:
@@ -365,12 +365,6 @@ FocusScope {
         id: startupPage
 
         StartupPage {}
-    }
-
-    Component {
-        id: wallpaperPage
-
-        WallpaperPage {}
     }
 
     Component {

@@ -10,6 +10,8 @@ Singleton {
     property string status: "idle"
     property string message: ""
     property var events: []
+    // Every open task, dated or not, in the helper's order: due ones first.
+    property var tasks: []
     property date lastUpdated: new Date(0)
     property date rangeStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
     property date rangeEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
@@ -152,8 +154,8 @@ Singleton {
         return Qt.formatDate(day, "yyyy-MM-dd");
     }
 
-    function adopt(raw) {
-        root.events = raw.map(event => ({
+    function adopt(rawEvents, rawTasks) {
+        root.events = rawEvents.map(event => ({
                     summary: event.summary,
                     location: event.location,
                     calendar: event.calendar,
@@ -162,16 +164,25 @@ Singleton {
                     start: new Date(event.start),
                     end: new Date(event.end)
                 }));
+        root.tasks = rawTasks.map(task => ({
+                    summary: task.summary,
+                    calendar: task.calendar,
+                    colour: task.colour || "",
+                    allDay: task.allDay,
+                    // null for a task with no due date.
+                    due: task.due !== "" ? new Date(task.due) : null
+                }));
     }
 
     // Keep the raw payload rather than the mapped events: it is what the
     // helper printed, so reading it back needs no second format.
-    function store(raw) {
+    function store(rawEvents, rawTasks) {
         cacheFile.setText(JSON.stringify({
             start: root.dayKey(root.fetchStart),
             end: root.dayKey(root.fetchEnd),
             updated: root.lastUpdated.toISOString(),
-            events: raw
+            events: rawEvents,
+            tasks: rawTasks
         }));
     }
 
@@ -188,7 +199,8 @@ Singleton {
         if (!cached || !cached.events)
             return;
 
-        root.adopt(cached.events);
+        // A cache from before tasks were fetched has none.
+        root.adopt(cached.events, cached.tasks ?? []);
         root.coveredStart = new Date(cached.start);
         root.coveredEnd = new Date(cached.end);
         root.lastUpdated = new Date(cached.updated);
@@ -207,13 +219,14 @@ Singleton {
         root.status = payload.status;
         root.message = payload.message || "";
         if (payload.status === "ok") {
-            root.adopt(payload.events);
+            root.adopt(payload.events, payload.tasks);
             root.lastUpdated = new Date();
             root.coveredStart = root.fetchStart;
             root.coveredEnd = root.fetchEnd;
-            root.store(payload.events);
+            root.store(payload.events, payload.tasks);
         } else if (payload.status === "unconfigured") {
             root.events = [];
+            root.tasks = [];
             root.coveredStart = new Date(0);
         }
         if (root.refetchWanted)

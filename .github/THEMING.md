@@ -6,7 +6,7 @@ covers the quickshell shell itself.
 ## The chain
 
 ```
-Settings → Wallpaper → Themes, or apply.sh by hand
+Settings → Appearance → Themes, or apply.sh by hand
         │
         ▼  config/wallust/apply.sh [--shell-only] THEME | --from IMAGE
    wallust theme THEME          a built-in
@@ -296,7 +296,7 @@ session to the login screen.
 `wallust run` on the default `fastresize` backend, which does not use it.
 
 `wallust` comes from the AUR (Jupiter-installer's `packages/aur.txt`); on the desktop it is still a
-cargo install in `~/.cargo/bin`, which `apply.sh` puts first on its PATH. The Wallpaper page's "Add from file…" needs `zenity`.
+cargo install in `~/.cargo/bin`, which `apply.sh` puts first on its PATH. The Wallpapers tab's "Add from file…" needs `zenity`.
 `apply.sh` also runs `python3` (the kdeglobals merge) and `gsettings` (glib2);
 the portal reads `color-scheme` through
 `xdg-desktop-portal-gtk`, which `hyprland-portals.conf` names after
