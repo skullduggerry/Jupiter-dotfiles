@@ -2,6 +2,8 @@ BatteryWidget 1.0 BatteryWidget.qml
 BluetoothWidget 1.0 BluetoothWidget.qml
 BrightnessWidget 1.0 BrightnessWidget.qml
 ClockWidget 1.0 ClockWidget.qml
+KeyboardWidget 1.0 KeyboardWidget.qml
+MediaWidget 1.0 MediaWidget.qml
 NotificationWidget 1.0 NotificationWidget.qml
 PowerAction 1.0 PowerAction.qml
 PowerWidget 1.0 PowerWidget.qml

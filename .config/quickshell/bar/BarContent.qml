@@ -36,9 +36,18 @@ Rectangle {
         SystemUsageWidget {
             screen: root.screen
         }
+        MediaWidget {
+            id: media
+
+            screen: root.screen
+            // Up to the clock, never under it.
+            maximumWidth: clock.x - Style.bar.spacing - left.x - media.x
+        }
     }
 
     ClockWidget {
+        id: clock
+
         anchors.centerIn: parent
         screen: root.screen
     }
@@ -57,7 +66,9 @@ Rectangle {
         NotificationWidget {
             screen: root.screen
         }
-
+        KeyboardWidget {
+            screen: root.screen
+        }
         TogglesWidget {
             pager: quickPager
             onExpandRequested: root.expandRequested()

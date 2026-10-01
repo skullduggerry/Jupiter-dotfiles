@@ -47,6 +47,10 @@ Item {
             XF86AudioRaiseVolume: "Volume Up",
             XF86AudioLowerVolume: "Volume Down",
             XF86AudioMute: "Mute",
+            XF86AudioPlay: "Play",
+            XF86AudioPause: "Pause",
+            XF86AudioNext: "Next",
+            XF86AudioPrev: "Previous",
             XF86MonBrightnessUp: "Brightness Up",
             XF86MonBrightnessDown: "Brightness Down"
         };

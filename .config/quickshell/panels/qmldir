@@ -8,6 +8,8 @@ CalendarTasks 1.0 CalendarTasks.qml
 ClipboardPanel 1.0 ClipboardPanel.qml
 DetailRow 1.0 DetailRow.qml
 InputField 1.0 InputField.qml
+MediaControls 1.0 MediaControls.qml
+MediaPanel 1.0 MediaPanel.qml
 NotificationEntry 1.0 NotificationEntry.qml
 NotificationPanel 1.0 NotificationPanel.qml
 PanelFrame 1.0 PanelFrame.qml

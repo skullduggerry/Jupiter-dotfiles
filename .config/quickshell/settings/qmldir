@@ -6,6 +6,7 @@ Card 1.0 Card.qml
 ChoiceField 1.0 ChoiceField.qml
 DisplaysPage 1.0 DisplaysPage.qml
 KeybindsPage 1.0 KeybindsPage.qml
+KeyboardPage 1.0 KeyboardPage.qml
 KeyCap 1.0 KeyCap.qml
 NetworkPage 1.0 NetworkPage.qml
 NotificationsPage 1.0 NotificationsPage.qml

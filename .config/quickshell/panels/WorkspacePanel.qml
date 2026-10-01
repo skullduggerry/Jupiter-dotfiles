@@ -8,7 +8,8 @@ import Quickshell
 import Quickshell.Hyprland
 
 // The monitor's workspaces, then what the desktop looks like: the wallpaper,
-// which leads to its settings, whether it rotates, and the theme.
+// which leads to its settings, whether it rotates, and the theme; then the
+// keyboard layouts.
 PanelFrame {
     id: root
 
@@ -256,6 +257,72 @@ PanelFrame {
                     color: Colors.text.base
                     font.family: Style.text.font
                     font.pixelSize: Style.text.smallSize
+                }
+            }
+        }
+
+        // The keyboard layouts, once there are several: the one in use by
+        // name, and a pill for each, as the bar's keyboard switches them.
+        Column {
+            visible: KeyboardLayout.layouts.length > 1
+            width: parent.width
+            spacing: Style.bar.spacing
+
+            Rectangle {
+                width: parent.width
+                height: Style.border.width
+                color: Colors.base.border
+            }
+
+            Item {
+                width: parent.width
+                height: Style.popup.itemHeight
+
+                Text {
+                    id: keyboardTitle
+
+                    text: "Keyboard"
+                    color: Colors.text.base
+                    font.family: Style.text.font
+                    font.pixelSize: Style.text.size
+
+                    anchors {
+                        left: parent.left
+                        verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                Text {
+                    text: KeyboardLayout.name
+                    color: Colors.text.muted
+                    font.family: Style.text.font
+                    font.pixelSize: Style.text.smallSize
+                    elide: Text.ElideRight
+
+                    anchors {
+                        left: keyboardTitle.right
+                        right: layouts.left
+                        leftMargin: Style.bar.spacing
+                        rightMargin: Style.bar.spacing
+                        verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                PillGroup {
+                    id: layouts
+
+                    compact: true
+                    choices: KeyboardLayout.layouts.map((label, index) => ({
+                                label: label,
+                                value: index
+                            }))
+                    current: KeyboardLayout.index
+                    onPicked: index => KeyboardLayout.select(index)
+
+                    anchors {
+                        right: parent.right
+                        verticalCenter: parent.verticalCenter
+                    }
                 }
             }
         }

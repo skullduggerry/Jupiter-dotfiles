@@ -58,9 +58,15 @@ FocusScope {
             keywords: "battery power mode profile saver performance balanced"
         },
         {
+            name: "keyboard",
+            title: "Keyboard",
+            icon: Icons.keyboard,
+            keywords: "keyboard layout layouts language input source variant us de qwerty qwertz azerty dvorak"
+        },
+        {
             name: "keybinds",
             title: "Keybinds",
-            icon: Icons.keyboard,
+            icon: Icons.command,
             keywords: "keyboard shortcuts keys hotkeys binds"
         },
         {
@@ -291,6 +297,8 @@ FocusScope {
                     return notificationsPage;
                 case "power":
                     return powerPage;
+                case "keyboard":
+                    return keyboardPage;
                 case "keybinds":
                     return keybindsPage;
                 case "startup":
@@ -352,6 +360,12 @@ FocusScope {
         id: powerPage
 
         PowerPage {}
+    }
+
+    Component {
+        id: keyboardPage
+
+        KeyboardPage {}
     }
 
     Component {

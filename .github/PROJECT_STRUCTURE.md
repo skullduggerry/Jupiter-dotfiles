@@ -1,8 +1,8 @@
 # Project structure — agent reference
 
 Working notes for Claude Code sessions on `config/quickshell/`. Rules for how
-to write code here live in `config/quickshell/llm.md`; this file is the map and
-the list of things that have already cost a bug. Colour, wallust templating and
+to write code here live in `.github/llm.md`; this file is the map and the list
+of things that have already cost a bug. Colour, wallust templating and
 Qt/KDE theming are in `.github/THEMING.md`.
 
 Installed: **Quickshell 0.3.1**, **Hyprland 0.56.2**, Arch Linux, Qt 6.
@@ -13,7 +13,6 @@ Installed: **Quickshell 0.3.1**, **Hyprland 0.56.2**, Arch Linux, Qt 6.
 config/quickshell/
 ├── shell.qml              Entry point: Bar, Dropdown, Launcher, Lock, Toasts,
 │                          Osd and the Settings app.
-├── llm.md                 Coding rules for agents.
 ├── style/                 Colors.qml, Style.qml — every colour and dimension —
 │                          and Theme.qml, the palette Colors derives from.
 ├── icons/                 Icons.qml (Lucide's glyphs by name, and the vendored
@@ -22,9 +21,9 @@ config/quickshell/
 │                          BatteryIcon and RingIcon (the usage meters).
 ├── services/              Singletons: data sources + cross-surface state.
 │                          Brightness, CalendarService (+ nextcloud-calendar.py),
-│                          DisplayChange, DropdownState, LauncherHistory,
-│                          LockService, NotificationService, OsdState,
-│                          PopupAreas, PowerButton,
+│                          DisplayChange, DropdownState, KeyboardLayout,
+│                          LauncherHistory, LockService, Media,
+│                          NotificationService, OsdState, PopupAreas, PowerButton,
 │                          QuickToggles (+ screen-record.sh),
 │                          Screens, SettingsState, SystemUsage, Time, Volume,
 │                          WallpaperService (+ wallpaper-import.sh),
@@ -33,6 +32,7 @@ config/quickshell/
 │                          AudioPanel, BatteryPanel, BluetoothPanel,
 │                          BrightnessPanel, CalendarPanel (+CalendarSetup,
 │                          CalendarTasks), ClipboardPanel,
+│                          MediaPanel (+MediaControls, which the bar shows too),
 │                          NotificationPanel (+NotificationEntry), SystemPanel,
 │                          TogglesPanel (+ToggleTile), WifiPanel, WorkspacePanel;
 │                          and what they are built from: PanelFrame (a panel's
@@ -59,7 +59,8 @@ config/quickshell/
                            SettingsContent.qml (sidebar, page host), the pages
                            (Appearance with its tabs StyleOptions, WallpaperGrid
                            and ThemeGrid, Displays, Sound, Network, Bluetooth,
-                           Notifications, Power, Keybinds, Startup, About), the
+                           Notifications, Power, Keyboard, Keybinds, Startup,
+                           About), the
                            parts they share (Card, PanelCard, ScrollPage,
                            Section, ActionRow, ChoiceField, KeyCap, ThemeCard)
                            and their helpers: displays.py, autostart.py,
@@ -728,6 +729,95 @@ used, cache (`free`'s buff/cache) and swap, with the uptime in its header.
   Graphics" shows as "AMD Ryzen 5 7640U", and Intel's `(R)`, `(TM)` and
   "CPU @ …" go the same way.
 
+## The media player
+
+The bar's left side ends with what is playing (`MediaWidget`): back, play or
+pause and skip, then the title and, when both fit, the artist. A click past the
+controls opens `MediaPanel` (`media-popup`): the cover, title, artist, album,
+a position bar to seek on, the same controls (`MediaControls`), and a pill per
+player when there is more than one. `services/Media` decides which player that
+is; XF86AudioPlay/Pause/Next/Prev reach it as the `mediaPlayPause`,
+`mediaNext` and `mediaPrevious` `GlobalShortcut`s (locked, like the volume
+keys).
+
+- **Everything is MPRIS** (`Quickshell.Services.Mpris`), so an app and a
+  browser tab are the same thing. Spotify's app is
+  `org.mpris.MediaPlayer2.spotify`; YouTube Music's (pear-desktop) is
+  `…YoutubeMusic` with its Shortcuts plugin on, else Electron's own Chromium
+  player. Brave Origin (`brave-origin-bin` 1.95 here) exports the tab playing
+  (YouTube, YouTube Music, Spotify's web player) as
+  `org.mpris.MediaPlayer2.brave.instance<pid>`, Identity "Brave Origin", no
+  DesktopEntry: Chromium's `system_media_controls_linux.cc`, renamed by Brave.
+- **A Chromium browser keeps an idle player**: no title, `mpris:length` 0,
+  Stopped, the whole time it runs. `Media.players` leaves out players without a
+  title, and playerctld, which only mirrors another one.
+- **The player shown is the one that started playing last**, or the one picked
+  with the pills, and it stays shown paused. One already playing when it turns
+  up counts as started: without that, pausing it handed the bar to whichever
+  player had registered first.
+- **Chromium writes each cover to a new temp file**
+  (`/tmp/.org.chromium.Chromium.XXXXXX`, deleted when replaced) and passes it
+  as `file://`; a page whose artwork it cannot fetch gets the browser's icon.
+  Spotify's are https.
+- **`position` does not update by itself** (Quickshell's MprisPlayer docs):
+  the open dropdown emits `positionChanged()` every
+  `Style.media.positionInterval` while playing. A seek waits until a drag has
+  rested `seekDelay`, then writes `position` (SetPosition with the track id),
+  and the bar shows where it is going meanwhile. Live streams have no length,
+  and no position bar.
+- The bar keeps the controls first, so they stay put when the title changes;
+  the title is cut at `Style.media.trackWidth`, and before the clock
+  (`maximumWidth` from `BarContent`), which a 1000 px wide output reached.
+
+Tested in the nested session against a stand-in MPRIS player (Python Gio,
+`Identity` Spotify and YouTube Music) and a throwaway Brave Origin profile
+(`--user-data-dir`, `--autoplay-policy=no-user-gesture-required`; a new
+profile first shows Origin's "Proceed with Origin for free on Linux" screen)
+playing a local page with Media Session metadata and handlers: the page got
+`nexttrack`, `previoustrack`, `seekto 135.0` from a click at three quarters of
+a 3:00 track, and `pause` from the media key.
+
+## Keyboard layouts
+
+The layouts are Hyprland's own, `input.kb_layout` and `kb_variant`, chosen on
+the Settings app's Keyboard page and shown and switched only while there are
+two or more: `KeyboardWidget` on the bar's left (the keyboard glyph and the
+layout's code; a click is the next layout, a right click opens the dropdown's
+workspace zone), whose last row is the layout's name and a pill per layout,
+and SUPER+SPACE, the `keyboardLayout` `GlobalShortcut`. A code listed twice
+gets its variant ("US INTL").
+
+- **The list is kept per machine, not in the repo**: the dotfiles are shared,
+  and a layout is the person's. `KeyboardLayout.setLayouts()` writes
+  `$XDG_STATE_HOME/quickshell/keyboard.lua` (`return { kb_layout = "us,de",
+  kb_variant = "," }`), which `config/hypr/modules/keybinds.lua` applies after
+  its own input settings at every start, as `monitors.lua` applies kept
+  monitor rules; Hyprland's default `us` until then. It applies at once too,
+  `hyprctl eval` with the same table, and switches back to the layout that
+  was in use, since a new keymap starts on the first. Writing the file does
+  not reload Hyprland (`dofile` is not watched: no `configreloaded`), and a
+  bad field fails Hyprland's own check pointing at keybinds.lua.
+  `scripts/install-greeter.sh` bakes it into the login screen's compositor
+  config, so a password is typed on the layout a session starts on.
+
+- **Quickshell 0.3.1 has no keyboard type.** Hyprland's `activelayout` event
+  names only the keyboard and the layout's long name (which can hold commas:
+  "English (US, intl., with dead keys)"), so `KeyboardLayout` reads
+  `hyprctl devices -j` back on it and on `configreloaded`.
+- **The keyboard read is `main`, the one typed on last, never a virtual one.**
+  Hyprland names those `hl-virtual-keyboard…` (KDE Connect's remote input, an
+  input method, a test's vkbd); they report the configured layouts but start on
+  the first, so a vkbd typing showed "US" over a physical keyboard on German.
+- **Switching is `hyprctl switchxkblayout all <index>`**: 0.56 has no Lua
+  dispatcher for it. `all` keeps every keyboard on the same layout, the K8's
+  second device and the power buttons included, which `next` would not once
+  they disagree.
+- **Hyprland 0.56 sends no `activelayout` for a switch back to the layout a
+  keyboard was on before its layouts changed** (`m_activeLayout` survives the
+  new keymap): on German, layouts reloaded (back to English), then index 1
+  again, and the event socket stayed silent. So the shell reads back after its
+  own switch; a switch from elsewhere in that state shows at the next event.
+
 ## Wallpaper & Background
 
 The Settings app's Appearance page is the only place wallpapers and themes are
@@ -877,8 +967,8 @@ the dropdown.
 
 The sidebar is the design's: the search field (filters by title and by a few
 search words per page; Enter opens the first match) and its nine entries but
-Wallpaper & Background, which is Appearance's tabs, plus Keybinds and Startup,
-which the design does not have, after Power. Its
+Wallpaper & Background, which is Appearance's tabs, plus Keyboard, Keybinds and
+Startup, which the design does not have, after Power. Its
 coloured dots are the design's placeholders for icons, so the entries carry
 Lucide glyphs in `Colors.icon.active`, the bar's icon rule. Measurements are
 the frame's at half its 2x size (`Style.settings`); text keeps the shell's
@@ -986,6 +1076,14 @@ against a stand-in BlueZ on a private bus (see the memory notes):
   which Quickshell 0.3 does not provide: here it is blueman-applet (its tray
   icon is hidden, the process stays for this). Devices that pair without one
   (headphones, speakers, most mice) need nothing.
+
+**Keyboard** is the layouts (see Keyboard layouts), in the order Hyprland has
+them: a click on one switches to it, ↑ moves one up (the first is the one a
+login starts on), × removes one but the last, and "Add layout…" searches
+XKB's own list, `/usr/share/X11/xkb/rules/base.lst` (the file Hyprland's wiki
+points to; 100 layouts and 500 variants), by name or as XKB writes it,
+`de(nodeadkeys)`. Its entry has the keyboard glyph the bar's layout shows, so
+Keybinds has Lucide's command glyph instead.
 
 **Keybinds** is `hyprctl binds -j`, read again on `configreloaded`. Hyprland
 reports a Lua bind only as `__lua` and a callback number, so the names are the
@@ -1618,13 +1716,15 @@ qs ipc call dropdown open quicksettings
 qs ipc call lock lock                  # no unlock IPC exists, by design
 qs ipc call lock locked
 qs ipc call settings toggle            # also open, close, openPage appearance
-qs ipc call settings openPage keybinds # displays, sound, wallpaper, themes, …
+qs ipc call settings openPage keybinds # keyboard, displays, sound, wallpaper, …
 ~/.config/wallust/apply.sh Nord        # the shell follows; see Themes
 ```
 
 `SUPER+R` (launcher), `SUPER+L` (lock), `SUPER+B` (bar drawer), `SUPER+W`
-(Settings on the Wallpapers tab), `SUPER+I` (Settings) and the power button
-(the power menu) are `GlobalShortcut`s bound with
+(Settings on the Wallpapers tab), `SUPER+I` (Settings), `SUPER+SPACE`
+(`keyboardLayout`), the media keys (`mediaPlayPause`, `mediaNext`,
+`mediaPrevious`) and the power button (the power menu) are `GlobalShortcut`s
+bound with
 `hl.dsp.global(...)`; the three-finger swipe is an
 `hl.gesture` block calling `dropdown openAt`. All in
 `config/hypr/modules/keybinds.lua`. Any of them can be fired without the key,
@@ -1668,8 +1768,8 @@ and does nothing; `/usr/share/hypr/stubs/hl.meta.lua` lists the dispatchers.
 - The Settings app's Startup page runs `lua` (the `lua` package, which Hyprland
   depends on) and `python3`, as do Displays (`python3`, `hyprctl`) and Network
   (`nmcli`, NetworkManager's). Kept monitor rules are
-  `$XDG_STATE_HOME/quickshell/monitors.{json,lua}`; nothing is kept until a
-  change is kept there.
+  `$XDG_STATE_HOME/quickshell/monitors.{json,lua}`, kept keyboard layouts
+  `keyboard.lua` beside them; nothing is kept until a change is made there.
 - A DBus-activated notification daemon will silently hold
   `org.freedesktop.Notifications` unless masked, and a shell-owned notification
   server cannot coexist with it. Masked here: `dunst`. `swaync` is not installed

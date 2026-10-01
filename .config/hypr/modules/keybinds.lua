@@ -22,6 +22,13 @@ hl.bind("XF86MonBrightnessDown", hl.dsp.global("quickshell:brightnessDown"), { l
 hl.bind("XF86AudioRaiseVolume",  hl.dsp.global("quickshell:volumeUp"), { locked = true, repeating = true, description = "Volume up" })
 hl.bind("XF86AudioLowerVolume",  hl.dsp.global("quickshell:volumeDown"), { locked = true, repeating = true, description = "Volume down" })
 hl.bind("XF86AudioMute",         hl.dsp.global("quickshell:volumeMute"), { locked = true, description = "Mute" })
+-- The player the bar shows (config/quickshell/services/Media.qml).
+hl.bind("XF86AudioPlay",  hl.dsp.global("quickshell:mediaPlayPause"), { locked = true, description = "Play or pause" })
+hl.bind("XF86AudioPause", hl.dsp.global("quickshell:mediaPlayPause"), { locked = true, description = "Play or pause" })
+hl.bind("XF86AudioNext",  hl.dsp.global("quickshell:mediaNext"), { locked = true, description = "Next track" })
+hl.bind("XF86AudioPrev",  hl.dsp.global("quickshell:mediaPrevious"), { locked = true, description = "Previous track" })
+-- The next of input.kb_layout's layouts (config/quickshell/services/KeyboardLayout.qml).
+hl.bind(vars.mainMod .. " + space", hl.dsp.global("quickshell:keyboardLayout"), { description = "Switch the keyboard layout" })
 -- The shell holds logind off the power button while unlocked
 -- (config/quickshell/services/PowerButton.qml); locked, logind powers off.
 hl.bind("XF86PowerOff", hl.dsp.global("quickshell:powerMenu"), { description = "Open the power menu" })
@@ -61,6 +68,18 @@ hl.config({
 		},
 	},
 })
+
+-- The keyboard layouts the Settings app's Keyboard page kept on this machine
+-- (Hyprland's own us until then). scripts/install-greeter.sh gives the login
+-- screen the same.
+local state = os.getenv("XDG_STATE_HOME")
+if state == nil or state == "" then
+	state = (os.getenv("HOME") or "") .. "/.local/state"
+end
+local ok, kept = pcall(dofile, state .. "/quickshell/keyboard.lua")
+if ok and type(kept) == "table" then
+	hl.config({ input = kept })
+end
 
 hl.gesture({
 	fingers = 3,

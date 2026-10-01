@@ -40,6 +40,14 @@ PROJECT_STRUCTURE.md); what is left needs real hands, eyes or hardware.
 - [ ] **Inline reply** from a real app (only a gdbus `Notify` has sent one).
 - [ ] **Toasts following focus** on two monitors: the fade-in, and typing in
       an app on the other monitor while a toast follows.
+- [ ] The **media player with real players**: Spotify's and YouTube Music's
+      apps (neither is installed here), YouTube, YouTube Music and Spotify in
+      Brave Origin (only a local page has played there), and the media keys
+      on a real keyboard.
+- [ ] **Keyboard layouts** typed on a real keyboard (us and de are kept on the
+      desktop; the K8 is two devices): the bar, SUPER+SPACE and a click, and the
+      login screen on the first after `scripts/install-greeter.sh` runs again.
+      The laptop has none kept yet: Settings → Keyboard there.
 
 ## Qt theming
 

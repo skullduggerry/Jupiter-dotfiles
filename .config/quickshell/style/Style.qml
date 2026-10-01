@@ -114,6 +114,19 @@ QtObject {
     }
     readonly property BatteryStyle battery: BatteryStyle {}
 
+    // The bar's player and its dropdown (panels/MediaPanel).
+    component MediaStyle: QtObject {
+        // The track's title and artist on the bar, at most this wide.
+        readonly property int trackWidth: 320
+        readonly property int artSize: 64
+        readonly property int artRadius: metrics.wallpaper.cardRadius
+        // How often an open dropdown asks the player where it is.
+        readonly property int positionInterval: 1000
+        // A drag along the track seeks once it has rested this long.
+        readonly property int seekDelay: 150
+    }
+    readonly property MediaStyle media: MediaStyle {}
+
     component LauncherStyle: QtObject {
         readonly property int width: 400
         readonly property int height: 300

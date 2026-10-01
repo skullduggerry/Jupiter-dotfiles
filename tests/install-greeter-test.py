@@ -6,7 +6,8 @@ Runs the real script into a temporary destination (a staging install, so
 self-contained: the `greeter` user cannot read $HOME, so a symlink left in it --
 etc/greetd/monitors.lua is one in the repo -- would dangle at boot and take the
 greeter's compositor config down with it. Monitor rules the Settings app kept
-are baked into the copy, applied after the config's own as in the session.
+are baked into the copy, applied after the config's own as in the session, and
+so are the keyboard layouts it kept.
 
     python3 tests/install-greeter-test.py        exit 0 on success
 """
@@ -80,11 +81,14 @@ def main() -> int:
         else:
             print("  [skip] Hyprland not installed, staged config not verified")
 
-        # A second install with a monitor rule the Settings app kept: appended
-        # to the copy, applied last, and still a config Hyprland takes.
+        # A second install with a monitor rule and keyboard layouts the
+        # Settings app kept: appended to the copies, applied last, and still a
+        # config Hyprland takes.
         kept = state / "quickshell/monitors.lua"
         kept.write_text('return {\n\t{ output = "desc:Test Monitor 1", mode = "1920x1080@60", '
                         'position = "0x0", scale = 1.25, transform = 0 },\n}\n')
+        (state / "quickshell/keyboard.lua").write_text(
+            '-- Written by the shell.\nreturn { kb_layout = "us,de", kb_variant = ",nodeadkeys" }\n')
         dest = tmp / "greetd-kept"
         run = subprocess.run(["bash", str(SCRIPT), str(dest)], capture_output=True, text=True,
                              env=dict(os.environ, XDG_STATE_HOME=str(state)))
@@ -102,11 +106,21 @@ def main() -> int:
                                         if key not in ("HOME", "XDG_STATE_HOME")})
             check("the kept rule is applied last", order.stdout.strip() == "desc:Test Monitor 1",
                   (order.stdout + order.stderr).strip())
+        if shutil.which("lua"):
+            stub = ('local layouts\nhl = { monitor = function() end, on = function() end,\n'
+                    '  config = function(values) if values.input then layouts = values.input.kb_layout end end }\n'
+                    f'package.path = "{dest}/?.lua;" .. package.path\n'
+                    f'dofile("{dest / "hyprland.lua"}")\nprint(layouts)\n')
+            layouts = subprocess.run(["lua", "-e", stub], capture_output=True, text=True,
+                                     env={key: value for key, value in os.environ.items()
+                                          if key not in ("HOME", "XDG_STATE_HOME")})
+            check("the greeter starts on the kept keyboard layouts", layouts.stdout.strip() == "us,de",
+                  (layouts.stdout + layouts.stderr).strip())
         if shutil.which("Hyprland"):
             verify = subprocess.run(["Hyprland", "--verify-config", "-c", str(dest / "hyprland.lua")],
                                     capture_output=True, text=True)
             output = (verify.stdout + verify.stderr).strip()
-            check("staged config with kept monitors verifies", "config ok" in output,
+            check("staged config with kept monitors and layouts verifies", "config ok" in output,
                   output.splitlines()[-1] if output else "")
 
         # A fresh install, before any wallpaper is on the disk: the greeter

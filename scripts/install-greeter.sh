@@ -14,7 +14,9 @@
 # goes for the monitor layout: etc/greetd/monitors.lua is a symlink to
 # config/hypr/modules/monitors.lua, and `install` copies what it points at.
 # What the Settings app kept for the monitors on this machine is appended to
-# that copy, since the greeter user has no state of its own to read it from.
+# that copy, since the greeter user has no state of its own to read it from;
+# the keyboard layouts it kept go into the compositor config the same way, so
+# a password is typed on the layout a session starts on.
 #
 # The wallpaper path is read from the hyprpaper config the desktop starts from
 # so the greeter shows the same image: the wallpaper app's saved one once
@@ -63,6 +65,18 @@ if [[ -r $kept ]]; then
         printf 'end)()) do\n\thl.monitor(rule)\nend\n'
     } >> "$dest/monitors.lua"
     echo "monitors    + $kept"
+fi
+
+# The same file config/hypr/modules/keybinds.lua applies to the session.
+kept=${XDG_STATE_HOME:-$owner_home/.local/state}/quickshell/keyboard.lua
+if [[ -r $kept ]]; then
+    {
+        printf '\n-- Kept by the Settings app, baked in by install-greeter.sh.\n'
+        printf 'hl.config({ input = (function()\n'
+        cat "$kept"
+        printf 'end)() })\n'
+    } >> "$dest/hyprland.lua"
+    echo "keyboard    + $kept"
 fi
 
 install -m 0644 "$repo/etc/greetd/quickshell/qmldir" "$dest/quickshell/qmldir"
