@@ -20,8 +20,10 @@ FocusScope {
     function showTab() {
         root.wallpapersOpened = root.wallpapersOpened || root.tab === "wallpaper";
         root.themesOpened = root.themesOpened || root.tab === "themes";
+        // A page opened on this tab runs this before the grid is built; the
+        // grid's Loader focuses it once it is.
         if (root.tab === "themes")
-            (themes.item as ThemeGrid).focusSearch();
+            (themes.item as ThemeGrid)?.focusSearch();
     }
 
     focus: true
@@ -89,6 +91,10 @@ FocusScope {
             visible: root.tab === "themes"
             enabled: root.tab === "themes"
             active: root.themesOpened
+            onLoaded: {
+                if (root.tab === "themes")
+                    (themes.item as ThemeGrid).focusSearch();
+            }
 
             sourceComponent: ThemeGrid {}
         }

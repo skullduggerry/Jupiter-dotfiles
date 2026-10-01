@@ -28,9 +28,8 @@ Item {
     // Open rather than toggle: a press can come in on both of the ACPI power
     // button devices, and a second toggle would close the menu again.
     Connections {
-        function onMenuRequested(screen: string) {
-            if (screen === root.screen.name)
-                powerPopup.visible = true;
+        function onMenuRequested() {
+            powerPopup.visible = true;
         }
 
         target: PowerButton

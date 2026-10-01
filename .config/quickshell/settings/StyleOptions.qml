@@ -10,6 +10,21 @@ Column {
     id: root
 
     readonly property bool light: Colors.palette.background.hslLightness > 0.5
+    // The TINT section's line: what the tint is now, and why.
+    readonly property string tintText: {
+        const least = root.percent(Colors.base.glassFloor);
+        const themes = root.light ? "light themes" : "dark themes";
+        const apps = Theme.applyToApps ? " Kitty follows at once, Qt apps when next opened." : "";
+        if (!Theme.adaptiveTint)
+            return `${least} in ${themes}, whatever the wallpaper behind.${apps}`;
+        if (Colors.base.glassCeiling <= Colors.base.glassFloor)
+            return `${least} in ${themes}, past where Adaptive would stop raising it.${apps}`;
+        return `At least ${least} in ${themes}, raised up to ${root.percent(Colors.base.glassCeiling)} where the wallpaper behind would make text hard to read: ${root.percent(Colors.base.opacity)} now.${apps}`;
+    }
+
+    function percent(share: real): string {
+        return Math.round(share * 100) + "%";
+    }
 
     spacing: Style.settings.spacing
 
@@ -120,37 +135,58 @@ Column {
         }
     }
 
-    // How much of the glass is tint: as much as the wallpaper behind needs for
-    // the text to read, or always the least (Colors.base.glassFloor).
+    // How much of the glass is the theme's background over the blur. The
+    // slider sets the least, for dark and for light themes apart; Adaptive
+    // raises it where the wallpaper behind would make text hard to read, and
+    // Static keeps to it. The line under the slider says which, in numbers.
     Section {
         visible: Theme.blur
         title: "TINT"
 
-        Row {
-            spacing: Style.settings.spacing
+        PillGroup {
+            choices: [
+                {
+                    label: "Adaptive",
+                    value: true
+                },
+                {
+                    label: "Static",
+                    value: false
+                }
+            ]
+            current: Theme.adaptiveTint
+            onPicked: adaptive => Theme.setAdaptiveTint(adaptive)
+        }
 
-            PillGroup {
-                choices: [
-                    {
-                        label: "Adaptive",
-                        value: true
-                    },
-                    {
-                        label: "Static",
-                        value: false
-                    }
-                ]
-                current: Theme.adaptiveTint
-                onPicked: adaptive => Theme.setAdaptiveTint(adaptive)
+        Row {
+            width: Style.settings.pageWidth
+            spacing: Style.widgets.spacing
+
+            PanelSlider {
+                width: parent.width - Style.settings.labelWidth - Style.widgets.spacing
+                anchors.verticalCenter: parent.verticalCenter
+                value: (Colors.base.glassFloor - Colors.tintLeast) / (Colors.tintMost - Colors.tintLeast)
+                onMoved: position => Theme.setTint(Colors.light, Math.round((Colors.tintLeast + position * (Colors.tintMost - Colors.tintLeast)) * 100) / 100)
             }
 
             Text {
+                width: Style.settings.labelWidth
                 anchors.verticalCenter: parent.verticalCenter
-                text: Math.round(Colors.base.opacity * 100) + "% opaque"
+                horizontalAlignment: Text.AlignRight
+                text: root.percent(Colors.base.glassFloor)
                 color: Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
             }
+        }
+
+        Text {
+            width: Style.settings.pageWidth
+            wrapMode: Text.WordWrap
+            text: root.tintText
+            color: Colors.text.muted
+            font.family: Style.text.font
+            font.pixelSize: Style.text.smallSize
         }
     }
 }

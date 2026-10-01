@@ -16,6 +16,11 @@ QtObject {
         readonly property int edgeGap: barMetrics.sideGap + metrics.border.width
         readonly property int topGap: 8
         readonly property int bottomGap: -2
+        // Where windows start: Hyprland's general:gaps_out, which
+        // config/hypr/styles/layout.lua sets. A small bar floating over them
+        // puts its frame on their top edge.
+        readonly property int windowGap: 16
+        readonly property int floatingGap: barMetrics.windowGap - metrics.border.width
         readonly property int radius: 10
         readonly property int padding: 12
         readonly property int spacing: 8

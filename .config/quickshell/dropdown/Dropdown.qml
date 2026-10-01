@@ -103,7 +103,9 @@ Scope {
                     return (window.width - surface.width) / 2;
                 }
             }
-            y: Style.popup.topMargin
+            // A small bar floating over this screen's windows reserves no
+            // strip, so the dropdown clears it by itself.
+            y: Style.popup.topMargin + (BarLayout.floats(window.screen) ? Style.bar.floatingGap + Style.bar.height + Style.bar.bottomGap : 0)
             width: Style.dropdown.width
             height: Math.max(Style.dropdown.minHeight, Math.min(Style.dropdown.maxHeight, Math.floor(content.implicitHeight)))
             focus: true

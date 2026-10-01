@@ -16,9 +16,13 @@ Singleton {
     // The first line of apply.sh's record; its own default before it ran.
     readonly property string theme: applied.text().split("\n")[0] || "Oxocarbon-Dark"
     readonly property bool blur: settings.blur
-    // Over blur, a surface as opaque as the wallpaper behind it needs (true),
-    // or always the least (Colors.base.glassFloor).
+    // Over blur, how much of a surface is the theme's background: at least
+    // darkTint or lightTint, as the theme is dark or light, which Static keeps
+    // to and Adaptive (true) raises where the wallpaper behind needs more
+    // (Colors.base.opacity).
     readonly property bool adaptiveTint: settings.adaptiveTint
+    readonly property real darkTint: settings.darkTint
+    readonly property real lightTint: settings.lightTint
     // screen name -> {bright, dark}: the wallpaper behind that screen's panels
     // at its brightest and darkest, as its bar measured it (BackdropProbe).
     // Colors takes the least readable; the greeter never measures.
@@ -84,6 +88,14 @@ Singleton {
 
     function setAdaptiveTint(enabled: bool) {
         settings.adaptiveTint = enabled;
+        writeDebounce.restart();
+    }
+
+    function setTint(light: bool, tint: real) {
+        if (light)
+            settings.lightTint = tint;
+        else
+            settings.darkTint = tint;
         writeDebounce.restart();
     }
 
@@ -213,6 +225,8 @@ Singleton {
 
             property bool blur: true
             property bool adaptiveTint: true
+            property real darkTint: 0.6
+            property real lightTint: 0.8
             property bool applyToApps: true
             property string accent: "blue"
             property string font: ""

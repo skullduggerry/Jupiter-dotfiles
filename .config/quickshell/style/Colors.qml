@@ -32,6 +32,11 @@ QtObject {
     readonly property real readableContrast: 4.5
     readonly property real glassKeeps: 0.9
     readonly property real glassStep: 0.02
+    // The tint the Settings app offers: more than Hyprland's ignore_alpha for
+    // the shell's layers (0.2, config/hypr/styles/layout.lua), below which a
+    // surface is not blurred at all, and short of Solid.
+    readonly property real tintLeast: 0.25
+    readonly property real tintMost: 0.9
     // The wallpaper at its least readable behind the panels, over every
     // screen: its brightest under light text, its darkest under dark text.
     // Transparent until a bar has measured one (Theme.backdrops).
@@ -62,11 +67,13 @@ QtObject {
         readonly property color base: root.palette.background
         readonly property color panel: "transparent"
         // Blur (frosted glass over Hyprland's blur) or Solid. Over blur the
-        // surface is at least glassFloor opaque, a light theme's dark text
-        // needing more of it; Adaptive raises it as far as muted text needs to
-        // read (readableContrast) over the wallpaper behind (root.backdrop).
-        readonly property real glassFloor: root.light ? 0.8 : 0.6
-        readonly property real glassCeiling: root.light ? 0.88 : 0.72
+        // surface is at least glassFloor opaque, the tint picked for dark or
+        // for light themes (dark text needs more of it); Adaptive raises it as
+        // far as muted text needs to read (readableContrast) over the
+        // wallpaper behind (root.backdrop), up to glassCeiling, past which
+        // glass stops looking like glass.
+        readonly property real glassFloor: Math.max(root.tintLeast, Math.min(root.tintMost, root.light ? Theme.lightTint : Theme.darkTint))
+        readonly property real glassCeiling: Math.max(baseColors.glassFloor, root.light ? 0.88 : 0.72)
         readonly property real opacity: !Theme.blur ? 1 : Theme.adaptiveTint ? root.glassOver(root.backdrop) : baseColors.glassFloor
         readonly property color surface: root.withAlpha(baseColors.base, baseColors.opacity)
         readonly property color hover: root.withAlpha(root.palette.foreground, 0.08)

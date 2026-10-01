@@ -17,6 +17,8 @@ Item {
     id: root
 
     required property ShellScreen screen
+    // Taken at the start: an unplugged screen is gone before its bar is.
+    property string name: ""
     readonly property HyprlandMonitor monitor: Hyprland.monitorFor(root.screen)
     // Nothing to read while nothing would use it.
     readonly property string wallpaper: Theme.blur && Theme.adaptiveTint && root.monitor ? WallpaperService.wallpaperFor(root.monitor.activeWorkspace) : ""
@@ -24,7 +26,7 @@ Item {
 
     function load() {
         if (root.source === "")
-            Theme.clearBackdrop(root.screen.name);
+            Theme.clearBackdrop(root.name);
         else
             canvas.loadImage(root.source);
     }
@@ -84,13 +86,16 @@ Item {
                     };
             }
         }
-        Theme.setBackdrop(root.screen.name, brightest.colour, darkest.colour);
+        Theme.setBackdrop(root.name, brightest.colour, darkest.colour);
     }
 
     visible: false
     onSourceChanged: root.load()
-    Component.onCompleted: root.load()
-    Component.onDestruction: Theme.clearBackdrop(root.screen.name)
+    Component.onCompleted: {
+        root.name = root.screen.name;
+        root.load();
+    }
+    Component.onDestruction: Theme.clearBackdrop(root.name)
 
     Image {
         id: picture
@@ -105,7 +110,7 @@ Item {
         id: canvas
 
         width: Style.backdrop.sampleWidth
-        height: Math.max(1, Math.round(canvas.width * root.screen.height / root.screen.width))
+        height: root.screen === null ? 1 : Math.max(1, Math.round(canvas.width * root.screen.height / root.screen.width))
         onPaint: root.measure()
         onImageLoaded: canvas.requestPaint()
     }

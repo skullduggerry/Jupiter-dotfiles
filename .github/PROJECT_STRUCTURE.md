@@ -20,9 +20,11 @@ config/quickshell/
 │                          icon size and colour), and the two drawn ones:
 │                          BatteryIcon and RingIcon (the usage meters).
 ├── services/              Singletons: data sources + cross-surface state.
-│                          Brightness, CalendarService (+ nextcloud-calendar.py),
+│                          BarLayout, Brightness,
+│                          CalendarService (+ nextcloud-calendar.py),
 │                          DisplayChange, DropdownState, KeyboardLayout,
-│                          LauncherHistory, LockService, Media,
+│                          AppTint (+ app-tint.sh), LauncherHistory,
+│                          LockService, Media,
 │                          NotificationService, OsdState, PopupAreas, PowerButton,
 │                          QuickToggles (+ screen-record.sh),
 │                          Screens, SettingsState, SystemUsage, Time, Volume,
@@ -40,8 +42,10 @@ config/quickshell/
 │                          switches), TextButton (a word or glyph to click),
 │                          SliderRow and VolumeRow, DetailRow, PanelSlider,
 │                          InputField, WallpaperCard.
-├── bar/                   Bar.qml (PanelWindow per screen) + BarContent.qml,
-│   │                      BarDrawer.qml (the right side's hidden icons), and
+├── bar/                   Bar.qml (a PanelWindow per screen) with the full
+│   │                      BarContent.qml on the main screen and
+│   │                      SmallBarContent.qml on the others, BarDrawer.qml
+│   │                      (the right side's hidden icons), and
 │   │                      BackdropProbe.qml (the wallpaper, measured for the
 │   │                      adaptive glass).
 │   └── widgets/           one file per widget, plus WidgetPopup.qml (the
@@ -184,7 +188,7 @@ in it: copied as one, monitors.lua dangles and the config dies at `require`.
 | --- | --- |
 | A colour | `style/Colors.qml`, in the feature group, derived from `Colors.palette`; over a picture, from `Colors.overlay` |
 | A spacing/size/radius/font value | `style/Style.qml`, same grouping |
-| A bar widget | `bar/widgets/` + its `qmldir` + a place in `BarContent.qml`; on the right, either an always-visible row or the `BarDrawer` |
+| A bar widget | `bar/widgets/` + its `qmldir` + a place in `BarContent.qml`; on the right, either an always-visible row or the `BarDrawer`; `SmallBarContent.qml` too if the other screens should show it |
 | A widget dropdown | wrap it in `WidgetPopup` — never hand-roll another catcher window |
 | A panel | a `PanelFrame` in `panels/` with `title`, `trailing` and an `implicitHeight` |
 | A quick-settings page | a panel in `panels/` + a `page*` index and `Component` in `QuickSettingsPanel` |
@@ -199,8 +203,8 @@ in it: copied as one, monitors.lua dangles and the config dies at `require`.
 
 A widget that needs to know its monitor (for `Hyprland.monitorFor()`, or so its
 popup opens on the right screen) declares `required property ShellScreen screen`
-and gets it passed down from `BarContent.qml`, which gets it from `Bar.qml`'s
-`PanelWindow.screen`.
+and gets it passed down from `BarContent.qml` or `SmallBarContent.qml`, which
+get it from `Bar.qml`'s `PanelWindow.screen`.
 
 `WidgetPopup` usage: set `anchorItem: root` so it opens under its own widget, a
 distinct `namespaceSuffix`, and put content as default-property children. See
@@ -559,9 +563,10 @@ each restarted it cleanly.
   and the log says `night light: hyprsunset exited with status 1`.
 - The tint is applied after screen capture, so a screenshot never shows it.
   Check it with `hyprctl hyprsunset temperature`, which answers `4000`.
-- **The bar is what constructs `QuickToggles`**, through the dots' glyph
-  binding. A singleton is built on first use, and that construction is what
-  restarts Night Light at login, so keep something on screen reading it.
+- **The bars are what construct `QuickToggles`**, through each bar window's
+  `caffeine` (for its inhibitor) and the full bar's dots. A singleton is built
+  on first use, and that construction is what restarts Night Light at login,
+  so keep something on screen reading it.
 
 **Airplane Mode goes through NetworkManager and BlueZ, not rfkill.** It is on
 when Wi-Fi and Bluetooth are both off, however they got that way, and switching
@@ -656,15 +661,72 @@ into a valid H.264 MP4 with its "Recording saved" toast.
 The Toggles page's header has a gear (`md-cog_outline`), the way into the
 Settings app from the quick settings.
 
+## The main bar and the small bars
+
+**One screen has the full bar; every other screen has a small one.**
+`services/BarLayout.qml` decides. `main` is the screen picked under MAIN BAR on
+the Settings app's Displays page, or, before any pick and while the picked one
+is unplugged, the screen at the layout's top left (smallest y, then smallest
+x). On the desktop that is DP-2, at 0,0, and HDMI-A-1 has the small bar. The
+pick is kept by port name in `Quickshell.statePath("bar.json")`, so it is per
+machine and survives a monitor being away. Hyprland's description would also
+survive a port change, but a `ShellScreen` has its name the moment the bar is
+built, while the description only arrives with Hyprland's monitor data, and
+keying on it would have the bars swap at every login.
+
+The small bar (`bar/SmallBarContent.qml`) is a pill, centred and only as wide
+as it needs. It holds the screen's workspace dots, the clock and the bell. Both
+sides are as wide as the wider of the dots and the bell, so the clock stays at
+the screen's centre however many workspaces there are. The widgets are the full
+bar's own, so the clock and the dots open the same dropdown zones and the bell
+opens the notification centre at the right edge. The dropdown zones keep their
+places across the screen: from a small bar, the workspaces panel opens at the
+left edge, not under the dots, exactly as the three-finger swipe opens it.
+
+**Each screen keeps one `PanelWindow`; a `Loader` swaps what is in it.** The
+window is anchored left and right for the full bar, and top only for the small
+one, which centres it at its content's width. A pick changes both anchors at
+runtime, with no new window. That matters for Caffeine: its inhibitors are on
+these windows, and Hyprland only weighs an inhibitor on a window that was
+mapped before it (see Quick toggles). Measured in a nested Hyprland, with
+hypridle on a 4 s timeout: Caffeine held idle off across a swap and released it
+again when switched off.
+
+**SMALL BARS: Own space or Over windows.** Own space reserves the same strip
+as the full bar. Over windows sets `exclusiveZone: 0`, so the windows on that
+screen start at the top gap and the pill floats over them, its frame on their
+top edge: the window starts at `Style.bar.floatingGap` (15), one border width
+short of `windowGap` (16, Hyprland's `gaps_out` in
+`config/hypr/styles/layout.lua`, mirrored by hand), and the frame is drawn one
+border inside it. Measured on HDMI-A-1: the pill's border and a tiled window's
+are both on row 16. At the full bar's 8px it sat across the windows' edge,
+7px above it. The full-screen overlays position themselves below the
+exclusive zones, so on such a screen nothing pushes them below the pill.
+`Dropdown` adds the floating bar's gap and height itself
+(`BarLayout.floats(screen)`), which leaves it the same distance under the pill
+as under the full bar. The notification centre, the toasts and the OSD open
+at the right edge, clear of a centred pill, so they need nothing.
+With one screen there is no choice to make, and the Displays page hides both
+sections.
+
+**The inhibitor reads Caffeine through a property of its window.** Bound to
+`QuickToggles.caffeine` itself, each bar's `IdleInhibitor` logged `Binding loop
+detected for property "enabled"` at start once the content was in the
+`Loader`. Bound to `bar.caffeine`, a plain property of the window that reads
+the same thing, it does not. Neither did a constant, `BarLayout.floating`, nor
+the old layout, in which `BarContent` was a direct child of the window and read
+`QuickToggles` before the inhibitor did. `enabled` is a C++ bindable
+(`Q_OBJECT_BINDABLE_PROPERTY`). Measured on Qt 6.11.2 and Quickshell 0.3.1.
+
 ## The bar's right side
 
 Only the icons worth a glance at any time are always there: the bell, the
 toggles dots, battery, power. The tray, brightness, Bluetooth, volume and Wi-Fi
 live in `bar/BarDrawer.qml`, a strip between the dots and the battery that is
 closed by default; on the desktop, which has no battery, that leaves bell, dots
-and power. **SUPER+B** opens and closes it on every screen at once: it is the
-`barExpand` `GlobalShortcut` in `Bar.qml`, which owns the one `expanded` flag
-that each screen's `BarContent` follows. Right-clicking the dots does the same;
+and power. **SUPER+B** opens and closes it: it is the `barExpand` `GlobalShortcut` in
+`Bar.qml`, which owns the one `expanded` flag that the full bar's `BarContent`
+follows, so the drawer stays as it was when the full bar moves screens. Right-clicking the dots does the same;
 a left click still opens the Toggles page.
 
 **The drawer is anchored between two rows, not placed inside one.** It animates
@@ -694,9 +756,10 @@ A popup already open when the drawer moves stays where it opened, since
 `WidgetPopup` only re-measures its anchor when that item's own `x` changes, and
 a moving row does not change it.
 
-**The power button opens the power menu** on the focused screen: `XF86PowerOff`
+**The power button opens the power menu** on the full bar: `XF86PowerOff`
 fires the `powerMenu` `GlobalShortcut` in `services/PowerButton.qml`, and the
-`PowerWidget` on that screen opens its popup. It opens rather than toggles, as
+one `PowerWidget`, on `BarLayout.main`, opens its popup; the small bars have
+none. It opens rather than toggles, as
 a press can come in on both ACPI power button devices (`hyprctl devices` lists
 `power-button` and `power-button-1`). logind powers off on that key unless a
 `handle-power-key` inhibitor is held, so the service keeps
@@ -894,16 +957,25 @@ each step of a resize.
 - **PANELS Blur / Solid** is `Theme.blur`, which sets `Colors.base.opacity`
   for every shell surface at once: the bar, the dropdowns and popups, toasts,
   the OSD, the launcher and the app windows. Solid is opaque. Blur is frosted
-  glass, and **TINT** (shown under Blur) says how much of it is tint:
-  - **Static** is `Colors.base.glassFloor`: 60%, 80% for a light theme. It
-    used to be 50% and 80%, over a blur of size 2 × 2 passes, and text went
-    unreadable over busy or bright wallpapers; the blur is now 6 × 3 with a
-    little noise (`config/hypr/styles/layout.lua`), so detail turns to colour.
-  - **Adaptive** (the default) goes as far above the floor as muted text needs
-    to read, up to `glassCeiling`: 72%, 88% for a light theme. the owner's call
-    (30 September): 92% read as a solid bar, and glass that stops looking like
-    glass is not worth the last bit of contrast; muted text went brighter
-    instead. Each bar's `BackdropProbe` draws its
+  glass, and **TINT** (shown under Blur) says how much of it is tint, the
+  theme's background laid over Hyprland's blur:
+  - **The slider** sets the least tint, `Colors.base.glassFloor`, from 25% to
+    90% (`Colors.tintLeast`, `tintMost`). Dark and light themes keep one each
+    (`Theme.darkTint`, `lightTint`, in appearance.json; 60% and 80% until
+    moved, the floors this used to have fixed), as dark text over the glass
+    needs more of it. 25% stays clear of the `ignore_alpha` 0.2 that
+    `config/hypr/styles/layout.lua` gives the shell's layers, below which a
+    surface is not blurred at all; 90% stops short of Solid, which the PANELS
+    row already is.
+  - **Static** keeps to it. The fixed floor used to be 50% and 80%, over a
+    blur of size 2 × 2 passes, and text went unreadable over busy or bright
+    wallpapers; the blur is now 6 × 3 with a little noise, so detail turns to
+    colour.
+  - **Adaptive** (the default) raises it as far as muted text needs to read,
+    up to `glassCeiling`: 72%, 88% for a light theme, or the slider's value
+    where that is higher. the owner's call (30 September): 92% read as a solid bar,
+    and glass that stops looking like glass is not worth the last bit of
+    contrast; muted text went brighter instead. Each bar's `BackdropProbe` draws its
     screen's wallpaper small in a hidden `Canvas`, cropped as hyprpaper's cover
     crops it, and averages blocks of its upper half about the blur's size
     (after Hyprland's blur contrast), reporting the brightest and darkest
@@ -912,7 +984,18 @@ each step of a resize.
     `Colors.glassOver()` steps the opacity until `text.muted` over the blend
     reaches WCAG AA, or 90% of the contrast it has on a solid surface in a theme
     whose muted text is softer than AA (Quiet's is 3.9:1). It follows the
-    wallpaper per workspace. The page shows the opacity in use.
+    wallpaper per workspace. Measured with a backdrop injected in a nested
+    Hyprland, floor 38%: a light grey (#d8d8d8) took it to 72%, a mid grey
+    (#707070) to 42%.
+  - **The line under the slider** says it in numbers: "At least 38% in dark
+    themes, raised up to 72% where the wallpaper behind would make text hard
+    to read: 42% now." Static says "38% in dark themes, whatever the wallpaper
+    behind." Both add "Kitty follows at once, Qt apps when next opened."
+    while themes apply to apps (below).
+  - `BackdropProbe` keeps its screen's name from the start. An unplugged
+    screen is null by the time its bar goes, so `clearBackdrop(screen.name)`
+    used to throw there and leave that screen's backdrop in `Theme.backdrops`,
+    still raising the tint.
   - A Canvas reads its image data in device pixels but draws in the window's
     units: on the 2× laptop panel, reading the logical size gave the top-left
     quarter of the picture, dark, and the bright corner behind the bar's icons
@@ -921,6 +1004,42 @@ each step of a resize.
     small `Image` only for its proportions.
 
   It is on the Appearance page's Style tab.
+
+**Kitty and the Qt apps follow the glass** while themes apply to apps (APPLY
+TO "Shell and apps"). `services/AppTint.qml` gets `Colors.base.opacity` from
+a binding in `SettingsApp.qml` and, 150 ms after it last changed, runs
+`services/app-tint.sh`. The script records `background_opacity` in
+`$XDG_STATE_HOME/quickshell/tint.conf` (whole, through a rename), which
+`config/kitty/kitty.conf` includes last, for the windows kitty opens next, and
+which `config/wallust/appearance.py` reads when a theme is applied. It writes
+the value into the Kvantum SVG's window and dialog backgrounds, the four
+elements marked `class="tint"` (`.github/THEMING.md`, Translucency), for the
+Qt apps that start next. And it sends the value to the open kittys with
+`kitten @ --to unix:$XDG_RUNTIME_DIR/kitty-<pid> set-background-opacity
+--all`. With APPLY TO on "Shell", the apps keep what they last had, as they
+keep the last colours. Solid makes them opaque too. `tests/app-tint-test.py`
+runs the script against a made-up home and checks that appearance.py renders
+what it recorded. Kitty's side of it:
+
+- `dynamic_background_opacity yes`, without which the command does nothing.
+- `listen_on unix:${XDG_RUNTIME_DIR}/kitty`: kitty appends `-<pid>`, so each
+  instance has a socket of its own, and removes it on exit.
+- `allow_remote_control password` with `remote_control_password ""
+  set-background-opacity`: without a password, that one command is all a
+  socket, or a program in the terminal, may send. Measured with kitty 0.49.1 in
+  a nested Hyprland: the opacity changed, `ls` and `get-text` were refused
+  ("Remote control is disabled"), and `send-text` never arrived (a `cat` in
+  the window got only what was typed), with no prompt shown. A request that
+  carries a password still makes kitty ask the user, which is kitty's own rule.
+- `listen_on` and `dynamic_background_opacity` are read at start only, so a
+  kitty that was already open needs one restart to follow.
+- Not a config reload (SIGUSR1): that resets every window's font size to the
+  config's and refreshes everything. Kitty's own auto-reload watches
+  kitty.conf, not what it includes.
+- A unix socket path is at most 107 bytes. Kitty ignores a longer `listen_on`
+  ("Invalid listen_on"), which a scratch `XDG_RUNTIME_DIR` in a test can hit.
+- Rewriting the file does not reload Hyprland, although `keyboard.lua`, which
+  Hyprland loads, is in the same folder: no `configreloaded` event came.
 
 **The wallpaper mode** is the row above the grid: **Static** keeps the pick,
 **Rotate** moves on to the next wallpaper in the grid's order, wrapping, every
@@ -1030,9 +1149,13 @@ to another port; ADAPTIVE SYNC is only written once touched, since an unset
 `vrr` follows `misc:vrr`. "Reset to config" drops the kept rule and runs
 `hyprctl reload`, the only way to lose a rule added at runtime.
 `scripts/install-greeter.sh` appends the kept rules to the login screen's copy
-of monitors.lua. NIGHT LIGHT has a warmth slider (2500–6500 K, kept in
-quick-toggles.json); a running hyprsunset takes a new value through `hyprctl
-hyprsunset temperature`, at most one call per 150 ms while dragging.
+of monitors.lua. With more than one screen, MAIN BAR (which screen has the
+full bar) and SMALL BARS (Own space or Over windows) come before NIGHT LIGHT.
+Like Night Light they are not monitor rules, so they apply at once, without
+Apply (see "The main bar and the small bars"). NIGHT LIGHT has a warmth slider
+(2500–6500 K, kept in quick-toggles.json); a running hyprsunset takes a new
+value through `hyprctl hyprsunset temperature`, at most one call per 150 ms
+while dragging.
 
 **Sound** is PipeWire's own lists (`Pipewire.nodes`, all bound with one
 `PwObjectTracker`): OUTPUT and INPUT as radio lists, choosing with
@@ -1135,7 +1258,7 @@ applying gives; about 0.3s for all of them.
 | --- | --- | --- |
 | `~/.cache/wallust/quickshell.json` | the palette | wallust, `templates/quickshell.json` |
 | `$XDG_STATE_HOME/wallust/theme` | the theme applied, then `all` or `shell-only` | `apply.sh` |
-| `$XDG_STATE_HOME/quickshell/appearance.json` | Blur/Solid, Adaptive/Static tint, Shell/Shell and apps, accent, font, the last light and dark theme | `Theme` |
+| `$XDG_STATE_HOME/quickshell/appearance.json` | Blur/Solid, Adaptive/Static tint, the dark and the light tint, Shell/Shell and apps, accent, font, the last light and dark theme | `Theme` |
 
 All three are watched, so `apply.sh Nord` from a terminal recolours the shell
 live and the Themes tab shows Nord as applied. Picking a theme runs `apply.sh`,
@@ -1479,9 +1602,14 @@ After copying several, run `hyprctl reload`.
 **A full-screen overlay is already positioned below the bar's exclusive zone.**
 The compositor hands such a window the screen minus every reserved strip, so its
 y=0 is under the bar — adding the bar height to a top margin counts it twice.
+The exception is a screen whose small bar floats over windows, which reserves
+nothing; there `Dropdown` adds the offset itself (`BarLayout.floats()`).
 Its x=0 *is* the screen's left edge, while `QsWindow.itemRect()` reports in the
 item's own window frame; the bar's window starts `Style.bar.sideGap` in, and
 `QsWindow` exposes no absolute position, so that token reconciles the two.
+That holds for the full bar only: a small bar's window is centred, so a widget
+there with an anchored `WidgetPopup` would open off its widget. None of its
+three has one (the bell's opens at the right edge on purpose).
 The launcher opts out with `exclusionMode: ExclusionMode.Ignore` and covers
 the bar too: below the bar, its scrim and the blur behind it stopped at the
 bar's strip, which looked cut off. It centres its box, so nothing in it
@@ -1770,6 +1898,7 @@ and does nothing; `/usr/share/hypr/stubs/hl.meta.lua` lists the dispatchers.
   (`nmcli`, NetworkManager's). Kept monitor rules are
   `$XDG_STATE_HOME/quickshell/monitors.{json,lua}`, kept keyboard layouts
   `keyboard.lua` beside them; nothing is kept until a change is made there.
+  The apps' tint is `tint.conf` beside them too, written at every start.
 - A DBus-activated notification daemon will silently hold
   `org.freedesktop.Notifications` unless masked, and a shell-owned notification
   server cannot coexist with it. Masked here: `dunst`. `swaync` is not installed

@@ -14,6 +14,19 @@ Scope {
         value: true
     }
 
+    // Kitty and the Qt apps follow the glass while themes apply to apps.
+    Binding {
+        target: AppTint
+        property: "active"
+        value: Theme.applyToApps
+    }
+
+    Binding {
+        target: AppTint
+        property: "opacity"
+        value: Colors.base.opacity
+    }
+
     IpcHandler {
         function toggle(): void {
             SettingsState.toggle("");

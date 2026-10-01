@@ -699,6 +699,42 @@ ScrollPage {
         }
     }
 
+    // Not monitor rules: these apply at once, like Night Light below.
+    Section {
+        visible: Quickshell.screens.length > 1
+        title: "MAIN BAR"
+
+        PillGroup {
+            width: root.columnWidth
+            choices: Quickshell.screens.map(screen => ({
+                        label: screen.name,
+                        value: screen.name
+                    }))
+            current: BarLayout.main?.name ?? ""
+            onPicked: name => BarLayout.setMain(name)
+        }
+    }
+
+    Section {
+        visible: Quickshell.screens.length > 1
+        title: "SMALL BARS"
+
+        PillGroup {
+            choices: [
+                {
+                    label: "Own space",
+                    value: false
+                },
+                {
+                    label: "Over windows",
+                    value: true
+                }
+            ]
+            current: BarLayout.floating
+            onPicked: floating => BarLayout.setFloating(floating)
+        }
+    }
+
     Section {
         title: "NIGHT LIGHT"
 

@@ -33,8 +33,10 @@ cannot be handed variables, so `apply.sh` renders from a temporary folder of
 symlinks to `templates/`, `colorschemes/` and `wallust.toml` (`-d`), in which
 `templates/appearance.jinja` is replaced by what `appearance.py` writes from
 the shell's `appearance.json`: `accent_color()` (the palette slot of the
-chosen accent) and `font_family()`. As committed, that file holds the
-defaults, so the templates render on their own too (the tests, `palettes.py`).
+chosen accent) and `font_family()`, and from the tint the shell recorded
+beside it (`tint.conf`) `window_opacity()`, the Qt apps' glass (below). As
+committed, that file holds the defaults, so the templates render on their own
+too (the tests, `palettes.py`).
 The shell passes its current choice as `APPEARANCE_ACCENT` and
 `APPEARANCE_FONT` as well, which win over the file: the first version read the
 file only and rendered the previous accent, because `Theme` debounces its
@@ -93,6 +95,8 @@ template render error is only a warning: wallust still exits 0.
 | The shell | at once: `style/Theme.qml` watches the palette file |
 | Open terminals, kitty's included | at once, from the escape sequences (not with `--shell-only`) |
 | New kitty, Qt windows | at start, from the files above |
+| kitty's background opacity | at once, from the shell's glass tint, over each kitty's socket (not with "Shell"); see PROJECT_STRUCTURE.md, Wallpaper & Background |
+| Qt apps' window glass | at their next start, from Kvantum's SVG, which the shell rewrites when the tint changes (not with "Shell") |
 | Running Qt apps, Dolphin included | colours and style at their next start, icons and font at once: see below |
 | GTK 4, Electron, browsers; Qt apps on an "automatic" theme of their own | dark or light at once, through the portal's `color-scheme` |
 | A running nvim | at once: `init.lua` watches `lua/colors.lua` and runs it again |
@@ -208,15 +212,27 @@ light palette.
 
 **Translucency**: Kvantum's `[%General] translucent_windows=true` +
 `composite=true`, which makes only the window *background* translucent — text
-and icons stay opaque, the same deal as kitty's `background_opacity 0.6`. Do
-**not** use `reduce_window_opacity`: that fades the whole window, text included.
-Hyprland blurs any translucent window already, so no window rule is needed.
+and icons stay opaque, the same deal as kitty's `background_opacity`. Do
+**not** use `reduce_window_opacity`: that fades the whole window, text
+included. Hyprland blurs any translucent window already, so no window rule is
+needed.
 
-The alpha lives in `[GeneralColors]` in the Kvantum template, as `#RRGGBBAA`
-(**not** Qt's `#AARRGGBB` — confirmed against KvMojave's `base.color=#242424cc`).
-`window.color` is `cc` (80%) and `base.color` `b3` (70%); those two suffixes are
-the knobs to tune. Note `strip` drops the leading `#`, so an alpha value has to
-be written `#{{background | strip}}cc`.
+**How translucent is the SVG's business, and it is the shell's tint.** Kvantum
+draws a window's and a dialog's background from the SVG (`[Window]` and
+`[Dialog]` have `interior=true`): KvMojave had `window-normal` (and
+`-inactive`) at `opacity:.93`, and the dialogs' gradients starting at
+`stop-opacity:.92`. `scripts/kvantum-template.py` puts
+`{{ window_opacity() }}` there instead and marks those four elements
+`class="tint"`, so the shell's `services/app-tint.sh` can write a new tint
+into the rendered SVG whenever it changes; a theme apply renders the one the
+shell last recorded. Running Qt apps take it at their next start, as they do
+colours. Measured in a nested Hyprland with blur off over a white
+background, Dolphin's places panel and file view: 186 grey at 0.30 and 46 at
+0.90, as 22 (the background) over 255 predicts; the toolbar stays opaque, as
+KvMojave draws it. `[GeneralColors]`' `window.color` (`cc`) and `base.color`
+(`b3`) changed no pixel there, nor in qt6ct, even at `ff` and `4d`: they are
+not the knob, and are left as they were. (Alphas there are `#RRGGBBAA`, not
+Qt's `#AARRGGBB`, and `strip` drops the `#`: `#{{background | strip}}cc`.)
 
 `QT_WAYLAND_DISABLE_WINDOWDECORATION=1` stops Qt drawing its own titlebar so
 Hyprland's border and 8px rounding are the only frame.
@@ -240,7 +256,9 @@ both files are templates:
   except a check mark drawn on the accent, which takes the background; black
   stayed black, since it is only ever a shadow or an outline at low opacity.
   The window buttons' traffic lights and the shadow hints kept their colours.
-  Change a role in the script rather than a colour in the template.
+  Windows and dialogs take the shell's tint where KvMojave was a little
+  translucent (Translucency, above). Change a role in the script rather than
+  a colour in the template.
 - **Selection is an accent tint under ordinary text.** Views disagree about
   which role draws selected text: Dolphin's Places panel uses Text, its file
   view HighlightedText. KvMojave drew a light grey under both, and the Places

@@ -48,6 +48,15 @@ PROJECT_STRUCTURE.md); what is left needs real hands, eyes or hardware.
       desktop; the K8 is two devices): the bar, SUPER+SPACE and a click, and the
       login screen on the first after `scripts/install-greeter.sh` runs again.
       The laptop has none kept yet: Settings → Keyboard there.
+- [ ] The **small bar on the real monitors**: Settings → Displays → MAIN BAR
+      on HDMI-A-1 and back, Over windows with a window maximised under the
+      pill, a game fullscreen on the full bar's screen with Caffeine on, and
+      the full bar's monitor switched off and on.
+- [ ] The **tint slider, kitty and Qt apps** by eye: drag it with a kitty
+      open beside the Settings app (open kittys need one restart first, for
+      the socket), reopen Dolphin after a change (only a white background with
+      blur off has shown it), a light theme's own value, and Adaptive over a
+      bright wallpaper (only an injected backdrop has raised it in a test).
 
 ## Qt theming
 

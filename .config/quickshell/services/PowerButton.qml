@@ -5,10 +5,10 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 
-// The power button opens the power menu on the focused screen's bar. logind
-// powers off on it unless someone holds a handle-power-key inhibitor, so the
-// shell holds one while the session is unlocked: on the lock screen, at the
-// greeter and with the shell gone, the button powers off as before.
+// The power button opens the power menu on the full bar (BarLayout.main).
+// logind powers off on it unless someone holds a handle-power-key inhibitor,
+// so the shell holds one while the session is unlocked: on the lock screen, at
+// the greeter and with the shell gone, the button powers off as before.
 Singleton {
     id: root
 
@@ -16,15 +16,11 @@ Singleton {
     // on first use.
     property bool active: false
 
-    // The output whose bar opens its power menu.
-    signal menuRequested(string screen)
+    signal menuRequested
 
     GlobalShortcut {
         name: "powerMenu"
-        onPressed: {
-            if (Hyprland.focusedMonitor !== null)
-                root.menuRequested(Hyprland.focusedMonitor.name);
-        }
+        onPressed: root.menuRequested()
     }
 
     // With a parent-death signal, so a shell that dies hands the button back.

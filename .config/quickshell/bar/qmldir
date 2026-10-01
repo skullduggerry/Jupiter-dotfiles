@@ -2,3 +2,4 @@ BackdropProbe 1.0 BackdropProbe.qml
 Bar 1.0 Bar.qml
 BarContent 1.0 BarContent.qml
 BarDrawer 1.0 BarDrawer.qml
+SmallBarContent 1.0 SmallBarContent.qml

@@ -16,6 +16,8 @@ the accent (color4) shifted towards white or black by as much as the original
 was lighter or darker than KvMojave's accent (#286adc). White is the text
 colour, except for check marks drawn on the accent, which take the background.
 Black stays black: it is only ever a shadow or an outline at low opacity.
+Windows and dialogs, which KvMojave drew a little translucent, take the
+shell's glass instead (appearance.jinja's window_opacity()).
 """
 import colorsys
 import pathlib
@@ -39,6 +41,12 @@ SELECTION = {"itemview-toggled": "selection(0.4)", "itemview-pressed": "selectio
 TINTED = ("menuitem", "menubaritem")
 AUTO_ID = re.compile(r"^(path|g|rect|use|circle|ellipse|stop|linearGradient|radialGradient|svg|defs)\d")
 COLOUR = re.compile(r"#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b")
+# The window backgrounds' opacity and the translucent end of the dialogs'
+# gradients. class="tint" marks them for the shell's services/app-tint.sh,
+# which writes a new tint into the rendered file.
+WINDOWS = ("window-normal", "window-normal-inactive")
+DIALOGS = ("dialog-normal", "dialog-normal-inactive")
+OPACITY = re.compile(r"\b((?:stop-)?opacity):[0-9.]+")
 
 
 def rgb(value):
@@ -77,6 +85,26 @@ def role(colour, context):
     return None
 
 
+# The gradient whose stops an element's fill ends up drawn with.
+def stops_of(element):
+    tag = re.search(r'<[^>]*\bid="%s"[^>]*>' % element, text).group(0)
+    target = re.search(r"fill:url\(#([\w-]+)\)", tag).group(1)
+    while True:
+        tag = re.search(r'<linearGradient\b[^>]*\bid="%s"[^>]*>' % target, text).group(0)
+        follow = re.search(r'xlink:href="#([\w-]+)"', tag)
+        if follow is None:
+            return target
+        target = follow.group(1)
+
+
+GLASS_GRADIENTS = {stops_of(dialog) for dialog in DIALOGS}
+
+
+def glass(attrs):
+    tinted, count = OPACITY.subn(r"\1:{{ window_opacity() }}", attrs, count=1)
+    return ' class="tint"' + tinted if count else attrs
+
+
 def rewrite(attrs, context):
     if context in SELECTION:
         return COLOUR.sub("{{ %s }}" % SELECTION[context], attrs, count=1)
@@ -89,20 +117,25 @@ def rewrite(attrs, context):
 
 
 TAG = re.compile(r"<(/?)([A-Za-z][\w:.-]*)((?:[^>\"']|\"[^\"]*\"|'[^']*')*?)(/?)>", re.S)
-out, stack, pos = [], [], 0
+out, stack, ids, pos = [], [], [], 0
 for m in TAG.finditer(text):
     out.append(text[pos:m.start()])
     closing, name, attrs, selfclose = m.groups()
     if closing:
         stack.pop()
+        ids.pop()
         out.append(m.group(0))
     else:
         found = re.search(r'\bid="([^"]*)"', attrs)
         own = found.group(1) if found and not AUTO_ID.match(found.group(1)) else None
         context = own or (stack[-1] if stack else None)
-        out.append("<%s%s%s>" % (name, rewrite(attrs, context), selfclose))
+        attrs = rewrite(attrs, context)
+        if own in WINDOWS or (name == "stop" and ids and ids[-1] in GLASS_GRADIENTS):
+            attrs = glass(attrs)
+        out.append("<%s%s%s>" % (name, attrs, selfclose))
         if not selfclose:
             stack.append(context)
+            ids.append(found.group(1) if found else None)
     pos = m.end()
 out.append(text[pos:])
 
@@ -110,5 +143,6 @@ HEADER = """{#- Rendered to ~/.config/Kvantum/Wallust/Wallust.svg: KvMojave's SV
     colours put on the palette, written by scripts/kvantum-template.py. Edit a
     colour by its role; see .github/THEMING.md. -#}
 {%- from "palette.jinja" import shade, accent, selection -%}
+{%- from "appearance.jinja" import window_opacity -%}
 """
 open(dst, "w").write(HEADER + "".join(out))

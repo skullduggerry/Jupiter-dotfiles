@@ -8,6 +8,7 @@ Rendered into a temporary directory with -s, so no terminal is touched.
 """
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -64,6 +65,9 @@ def test_templates(wallust):
                     ET.parse(out["kvantum-svg"])
                 except ET.ParseError as error:
                     failures.append(f"{theme}: the Kvantum SVG is not valid XML: {error}")
+                # Windows and dialogs at appearance.jinja's default glass.
+                glass = re.findall(r'class="tint"[^>]*?opacity:([0-9.]+)', out["kvantum-svg"].read_text())
+                check(glass == ["0.60"] * 4, f"{theme}: the Kvantum SVG's glass is {glass}, not four at 0.60")
             if out["color-scheme"].exists():
                 check(out["color-scheme"].read_text().strip() == f"prefer-{scheme}",
                       f"{theme}: color-scheme is not prefer-{scheme}")
