@@ -66,7 +66,8 @@ config/quickshell/
                            Notifications, Power, Keyboard, Keybinds, Startup,
                            About), the
                            parts they share (Card, PanelCard, ScrollPage,
-                           Section, ActionRow, ChoiceField, KeyCap, ThemeCard)
+                           Section, FormCard, FormRow, ActionRow, ChoiceField,
+                           KeyCap, ThemeCard)
                            and their helpers: displays.py, autostart.py,
                            startup-list.lua.
 ```
@@ -196,7 +197,7 @@ in it: copied as one, monitors.lua dangles and the config dies at `require`.
 | A new swipe zone | a panel, a zone name in `DropdownState` and its place in `step()`'s order, a `Component` in `Dropdown.qml` |
 | Anything fetched from outside | a `services/` singleton, with a helper script run through `Process` |
 | A new top-level surface | its own folder + `qmldir`, following `launcher/` for an overlay or `settings/` for an ordinary window |
-| A Settings page | an entry in `SettingsContent.pages` (name, title, glyph, search words, and the names of any tabs that `SettingsState.page` can open it on) and a `Component` in its `Loader`; a page taller than the window is a `ScrollPage`; a quick-settings panel goes in a `PanelCard`, a group of rows in a `Card`, a note with its action under a list in an `ActionRow` |
+| A Settings page | an entry in `SettingsContent.pages` (name, title, glyph, search words, and the names of any tabs that `SettingsState.page` can open it on) and a `Component` in its `Loader`; a page taller than the window is a `ScrollPage`; a quick-settings panel goes in a `PanelCard`, labelled settings in a `FormCard` of `FormRow`s, any other group of rows in a `Card`, a note with its action under a list in an `ActionRow` |
 | A switch between a few values | a `PillGroup` |
 | Something that has to run from login | a `services/` singleton with an `active` flag, bound to true by whatever is always built (the `WallpaperService` binding in `SettingsApp.qml`) |
 | A popup-like surface in the top right | publish what it covers with `PopupAreas.set()` (as `WidgetPopup` and `Dropdown` do), so toasts move below it |
@@ -679,9 +680,12 @@ as it needs. It holds the screen's workspace dots, the clock and the bell. Both
 sides are as wide as the wider of the dots and the bell, so the clock stays at
 the screen's centre however many workspaces there are. The widgets are the full
 bar's own, so the clock and the dots open the same dropdown zones and the bell
-opens the notification centre at the right edge. The dropdown zones keep their
-places across the screen: from a small bar, the workspaces panel opens at the
-left edge, not under the dots, exactly as the three-finger swipe opens it.
+opens the notification centre. **On a small bar's screen everything opens
+centred under the pill**: `WidgetPopup` and `Dropdown` both check
+`screen !== BarLayout.main`, so the notification centre and every dropdown
+zone (the three-finger swipe's and the arrow keys' too) open there, not at the
+screen's edges as on the full bar's screen. the owner asked for it on 2 October: at
+the edges they read as unrelated to the pill.
 
 **Each screen keeps one `PanelWindow`; a `Loader` swaps what is in it.** The
 window is anchored left and right for the full bar, and top only for the small
@@ -702,12 +706,13 @@ border inside it. Measured on HDMI-A-1: the pill's border and a tiled window's
 are both on row 16. At the full bar's 8px it sat across the windows' edge,
 7px above it. The full-screen overlays position themselves below the
 exclusive zones, so on such a screen nothing pushes them below the pill.
-`Dropdown` adds the floating bar's gap and height itself
-(`BarLayout.floats(screen)`), which leaves it the same distance under the pill
-as under the full bar. The notification centre, the toasts and the OSD open
-at the right edge, clear of a centred pill, so they need nothing.
+`Dropdown` and `WidgetPopup` add `Style.bar.floatingClearance` (the floating
+bar's gap and height) themselves (`BarLayout.floats(screen)`), which leaves
+them the same distance under the pill as under the full bar: measured, 15px
+either way. The toasts and the OSD open at the right edge, clear of a centred
+pill, so they need nothing.
 With one screen there is no choice to make, and the Displays page hides both
-sections.
+rows.
 
 **The inhibitor reads Caffeine through a property of its window.** Bound to
 `QuickToggles.caffeine` itself, each bar's `IdleInhibitor` logged `Binding loop
@@ -954,6 +959,17 @@ each step of a resize.
   the same image again is a no-op, a different one under a taken name gets a
   `-1`, and a cancelled dialog exits 1 without an error. Verified with a
   stand-in zenity, not the real dialog.
+- **BLUR**, under Blur, is Hyprland's own `decoration:blur:size`, 1 to 12
+  (`Style.blur`), behind every translucent surface, apps included.
+  `Theme.setBlurSize` keeps it in appearance.json (`blurSize`), applies it with
+  `hyprctl eval 'hl.config({ decoration = { blur = { size = N } } })'` (at most
+  one call per 150 ms while dragging) and writes
+  `$XDG_STATE_HOME/quickshell/blur.lua` (`return { size = N }`), which
+  `config/hypr/styles/layout.lua` applies after its own 6, so a login or a
+  config reload keeps it (checked in a nested Hyprland: set live to 3, a
+  reload brought the kept 10 back). The passes stay at 3. `BackdropProbe`'s
+  blocks grow and shrink with it (`Style.backdrop.blockSize` is at size
+  `blockBlurSize`, 6), so Adaptive measures what the blur actually averages.
 - **PANELS Blur / Solid** is `Theme.blur`, which sets `Colors.base.opacity`
   for every shell surface at once: the bar, the dropdowns and popups, toasts,
   the OSD, the launcher and the app windows. Solid is opaque. Blur is frosted
@@ -1108,7 +1124,11 @@ sizes.
   two; the checked one is the current palette's lightness. ACCENT COLOR is six
   of the palette's colours; the design's pink is cyan, since a terminal palette
   has no pink. FONT is a searchable `ChoiceField` of every installed family,
-  each written in itself, the shell's own first. PANELS is Blur/Solid.
+  each written in itself, the shell's own first. PANELS is Blur/Solid, the
+  blur's size and the tint (see Wallpaper & Background). Both are `FormCard`s,
+  a label column (`Style.settings.rowLabelWidth`) and the controls after it, as
+  on Displays: the owner found the page of one upper-case heading per control
+  cluttered (2 October).
 - Bluetooth (below), Notifications (Do Not Disturb, then the centre itself, so
   toasts give way while it is shown), Power (the Battery page where there is a
   laptop battery, else just the power modes) and About (host, system, kernel,
@@ -1122,16 +1142,18 @@ sizes.
 
 **Displays** reads `hyprctl monitors all -j` (again on Hyprland's monitor and
 `configreloaded` events): an ARRANGEMENT map of the enabled monitors at their
-logical size (scaled, turned for 90°/270°), then for the one clicked there
-RESOLUTION (a `ChoiceField`, from `availableModes`), REFRESH RATE, SCALE,
-ROTATION, ADAPTIVE SYNC and USE THIS DISPLAY (not offered for the last one on).
+logical size (scaled, turned for 90°/270°), then a card for the one clicked
+there, under its name: Use display (not offered for the last one on),
+Resolution, Refresh rate and Scale (`ChoiceField`s, from `availableModes`;
+each row's `z` is above the rows after it, which its list opens over),
+Rotation and Adaptive sync, with the Apply row at the card's foot.
 Changes wait in the page (`pending`, pruned back to nothing when set back) and
 apply together with Apply. Dragging a monitor on the map lands it against the
 side of the nearest other one it was dropped towards, edges within a tenth
 snapping into line and the two always overlapping along the shared edge
 (Hyprland finds monitors in a direction only across touching edges); a landing
 that would cover a third monitor is refused, and the layout then shifts to
-start at 0,0. SCALE offers only scales that leave whole logical pixels in 1/120
+start at 0,0. Scale offers only scales that leave whole logical pixels in 1/120
 steps (fractional scaling's unit) and at least 960 wide; Hyprland would correct
 any other.
 
@@ -1149,10 +1171,10 @@ to another port; ADAPTIVE SYNC is only written once touched, since an unset
 `vrr` follows `misc:vrr`. "Reset to config" drops the kept rule and runs
 `hyprctl reload`, the only way to lose a rule added at runtime.
 `scripts/install-greeter.sh` appends the kept rules to the login screen's copy
-of monitors.lua. With more than one screen, MAIN BAR (which screen has the
-full bar) and SMALL BARS (Own space or Over windows) come before NIGHT LIGHT.
-Like Night Light they are not monitor rules, so they apply at once, without
-Apply (see "The main bar and the small bars"). NIGHT LIGHT has a warmth slider
+of monitors.lua. ALL DISPLAYS, the second card, has what is not a monitor
+rule and so applies at once, without Apply: with more than one screen, Main
+bar (which screen has the full bar) and Small bars (Own space or Over windows;
+see "The main bar and the small bars"), then Night light and its Warmth slider
 (2500–6500 K, kept in quick-toggles.json); a running hyprsunset takes a new
 value through `hyprctl hyprsunset temperature`, at most one call per 150 ms
 while dragging.
@@ -1258,7 +1280,7 @@ applying gives; about 0.3s for all of them.
 | --- | --- | --- |
 | `~/.cache/wallust/quickshell.json` | the palette | wallust, `templates/quickshell.json` |
 | `$XDG_STATE_HOME/wallust/theme` | the theme applied, then `all` or `shell-only` | `apply.sh` |
-| `$XDG_STATE_HOME/quickshell/appearance.json` | Blur/Solid, Adaptive/Static tint, the dark and the light tint, Shell/Shell and apps, accent, font, the last light and dark theme | `Theme` |
+| `$XDG_STATE_HOME/quickshell/appearance.json` | Blur/Solid, the blur's size, Adaptive/Static tint, the dark and the light tint, Shell/Shell and apps, accent, font, the last light and dark theme | `Theme` |
 
 All three are watched, so `apply.sh Nord` from a terminal recolours the shell
 live and the Themes tab shows Nord as applied. Picking a theme runs `apply.sh`,
@@ -1897,7 +1919,8 @@ and does nothing; `/usr/share/hypr/stubs/hl.meta.lua` lists the dispatchers.
   depends on) and `python3`, as do Displays (`python3`, `hyprctl`) and Network
   (`nmcli`, NetworkManager's). Kept monitor rules are
   `$XDG_STATE_HOME/quickshell/monitors.{json,lua}`, kept keyboard layouts
-  `keyboard.lua` beside them; nothing is kept until a change is made there.
+  `keyboard.lua` and the blur's size `blur.lua` beside them; nothing is kept
+  until a change is made there.
   The apps' tint is `tint.conf` beside them too, written at every start.
 - A DBus-activated notification daemon will silently hold
   `org.freedesktop.Notifications` unless masked, and a shell-owned notification

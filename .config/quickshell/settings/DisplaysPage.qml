@@ -22,6 +22,7 @@ ScrollPage {
     readonly property var enabledMonitors: root.monitors.filter(monitor => !root.effective(monitor).disabled)
     readonly property var current: root.monitors.find(monitor => monitor.name === root.selected) || (root.monitors.length > 0 ? root.monitors[0] : null)
     readonly property var selectedState: root.current !== null ? root.effective(root.current) : null
+    readonly property bool selectedOff: root.selectedState?.disabled ?? false
     readonly property var keptRule: root.current !== null ? root.kept.find(rule => rule.output === root.selector(root.current)) || null : null
 
     function read() {
@@ -487,291 +488,303 @@ ScrollPage {
         }
     }
 
-    Text {
-        visible: root.current !== null
-        width: root.columnWidth
-        text: root.current !== null ? root.current.name + (root.current.description !== "" ? "  ·  " + root.current.description : "") : ""
-        color: Colors.text.base
-        font.family: Style.text.font
-        font.pixelSize: Style.text.size
-        font.weight: Font.Medium
-        elide: Text.ElideRight
-    }
-
+    // The display clicked on the map; its changes wait for Apply.
     Section {
-        visible: root.current !== null && !root.selectedState.disabled
-        title: "RESOLUTION"
-        // Above the sections after it, which its list opens over.
+        visible: root.current !== null
+        title: root.current !== null ? root.current.name : ""
+        // Above the sections after it, which its lists open over.
         z: 1
 
-        ChoiceField {
-            width: Style.settings.fieldWidth
-            choices: root.current !== null ? root.resolutions(root.current) : []
-            current: root.selectedState !== null ? root.selectedState.width + "x" + root.selectedState.height : ""
-            onPicked: value => root.pickResolution(value)
-        }
-    }
-
-    Section {
-        visible: root.current !== null && !root.selectedState.disabled
-        title: "REFRESH RATE"
-
-        PillGroup {
-            id: ratePills
-
-            readonly property var rates: root.current !== null ? root.rates(root.current) : []
-
+        FormCard {
             width: root.columnWidth
-            choices: ratePills.rates.map(rate => ({
-                        label: root.rateText(rate) + " Hz",
-                        value: rate
-                    }))
-            current: ratePills.rates.find(rate => Math.abs(root.selectedState.rate - rate) < 0.01)
-            onPicked: rate => root.change(root.current.name, {
-                    rate: rate
-                })
-        }
-    }
 
-    Section {
-        visible: root.current !== null && !root.selectedState.disabled
-        title: "SCALE"
+            // The last display in use cannot be switched off from here.
+            FormRow {
+                visible: root.selectedOff || root.enabledMonitors.length > 1
+                label: "Use display"
 
-        PillGroup {
-            id: scalePills
-
-            readonly property var scales: root.current !== null ? root.scales(root.current) : []
-
-            width: root.columnWidth
-            choices: scalePills.scales.map(scale => ({
-                        label: Math.round(scale * 100) + "%",
-                        value: scale
-                    }))
-            current: scalePills.scales.find(scale => Math.abs(root.selectedState.scale - scale) < 0.001)
-            onPicked: scale => root.change(root.current.name, {
-                    scale: scale
-                })
-        }
-    }
-
-    Section {
-        visible: root.current !== null && !root.selectedState.disabled
-        title: "ROTATION"
-
-        PillGroup {
-            choices: [
-                {
-                    label: "Normal",
-                    value: 0
-                },
-                {
-                    label: "90°",
-                    value: 1
-                },
-                {
-                    label: "180°",
-                    value: 2
-                },
-                {
-                    label: "270°",
-                    value: 3
+                PillGroup {
+                    current: !root.selectedOff
+                    onPicked: on => root.change(root.current.name, {
+                            disabled: !on
+                        })
                 }
-            ]
-            current: root.selectedState !== null ? root.selectedState.transform : -1
-            onPicked: transform => root.change(root.current.name, {
-                    transform: transform
-                })
-        }
-    }
+            }
 
-    Section {
-        visible: root.current !== null && !root.selectedState.disabled
-        title: "ADAPTIVE SYNC"
+            // Each list opens over the rows after it.
+            FormRow {
+                visible: !root.selectedOff
+                label: "Resolution"
+                z: 3
 
-        PillGroup {
-            choices: [
-                {
-                    label: "Off",
-                    value: 0
-                },
-                {
-                    label: "On",
-                    value: 1
-                },
-                {
-                    label: "Fullscreen only",
-                    value: 2
+                ChoiceField {
+                    choices: root.current !== null ? root.resolutions(root.current) : []
+                    current: root.selectedState !== null ? root.selectedState.width + "x" + root.selectedState.height : ""
+                    onPicked: value => root.pickResolution(value)
                 }
-            ]
-            current: root.selectedState !== null ? root.selectedState.vrr : -1
-            onPicked: vrr => root.change(root.current.name, {
-                    vrr: vrr
-                })
-        }
-    }
-
-    Section {
-        // The last display in use cannot be switched off from here.
-        visible: root.current !== null && (root.selectedState.disabled || root.enabledMonitors.length > 1)
-        title: "USE THIS DISPLAY"
-
-        PillGroup {
-            current: root.selectedState !== null && !root.selectedState.disabled
-            onPicked: on => root.change(root.current.name, {
-                    disabled: !on
-                })
-        }
-    }
-
-    // Apply and Discard; once applied, Keep and Revert with the seconds left.
-    Item {
-        visible: root.monitors.length > 0
-        width: root.columnWidth
-        height: Style.popup.itemHeight
-
-        Text {
-            text: {
-                if (DisplayChange.waiting)
-                    return "Keep these settings? Going back in " + DisplayChange.secondsLeft + " s";
-
-                if (DisplayChange.error !== "")
-                    return DisplayChange.error;
-
-                if (root.hasPending)
-                    return "Not applied yet";
-
-                return root.keptRule !== null ? "Kept by Settings, applied at every login" : "As the Hyprland config sets it";
-            }
-            color: DisplayChange.error !== "" && !DisplayChange.waiting ? Colors.status.error : Colors.text.muted
-            font.family: Style.text.font
-            font.pixelSize: Style.text.smallSize
-            elide: Text.ElideRight
-
-            anchors {
-                left: parent.left
-                right: buttons.left
-                rightMargin: Style.bar.spacing
-                verticalCenter: parent.verticalCenter
-            }
-        }
-
-        Row {
-            id: buttons
-
-            spacing: Style.bar.spacing
-
-            anchors {
-                right: parent.right
-                verticalCenter: parent.verticalCenter
             }
 
-            PillButton {
-                visible: DisplayChange.waiting
-                text: "Revert"
-                onClicked: DisplayChange.revert()
-            }
+            FormRow {
+                visible: !root.selectedOff
+                label: "Refresh rate"
+                z: 2
 
-            PillButton {
-                visible: DisplayChange.waiting
-                text: "Keep"
-                action: true
-                onClicked: DisplayChange.keep()
-            }
+                ChoiceField {
+                    id: rateField
 
-            PillButton {
-                visible: !DisplayChange.waiting && root.hasPending
-                text: "Discard"
-                onClicked: root.pending = {}
-            }
+                    readonly property var rates: root.current !== null ? root.rates(root.current) : []
 
-            PillButton {
-                visible: !DisplayChange.waiting && root.hasPending
-                text: "Apply"
-                action: true
-                onClicked: root.applyPending()
-            }
-
-            PillButton {
-                visible: !DisplayChange.waiting && !root.hasPending && root.keptRule !== null
-                text: "Reset to config"
-                onClicked: DisplayChange.forget(root.keptRule.output)
-            }
-        }
-    }
-
-    // Not monitor rules: these apply at once, like Night Light below.
-    Section {
-        visible: Quickshell.screens.length > 1
-        title: "MAIN BAR"
-
-        PillGroup {
-            width: root.columnWidth
-            choices: Quickshell.screens.map(screen => ({
-                        label: screen.name,
-                        value: screen.name
-                    }))
-            current: BarLayout.main?.name ?? ""
-            onPicked: name => BarLayout.setMain(name)
-        }
-    }
-
-    Section {
-        visible: Quickshell.screens.length > 1
-        title: "SMALL BARS"
-
-        PillGroup {
-            choices: [
-                {
-                    label: "Own space",
-                    value: false
-                },
-                {
-                    label: "Over windows",
-                    value: true
+                    choices: rateField.rates.map(rate => ({
+                                label: root.rateText(rate) + " Hz",
+                                value: rate
+                            }))
+                    current: rateField.rates.find(rate => Math.abs(root.selectedState?.rate - rate) < 0.01)
+                    onPicked: rate => root.change(root.current.name, {
+                            rate: rate
+                        })
                 }
-            ]
-            current: BarLayout.floating
-            onPicked: floating => BarLayout.setFloating(floating)
+            }
+
+            FormRow {
+                visible: !root.selectedOff
+                label: "Scale"
+                z: 1
+
+                ChoiceField {
+                    id: scaleField
+
+                    readonly property var scales: root.current !== null ? root.scales(root.current) : []
+
+                    choices: scaleField.scales.map(scale => ({
+                                label: Math.round(scale * 100) + "%",
+                                value: scale
+                            }))
+                    current: scaleField.scales.find(scale => Math.abs(root.selectedState?.scale - scale) < 0.001)
+                    onPicked: scale => root.change(root.current.name, {
+                            scale: scale
+                        })
+                }
+            }
+
+            FormRow {
+                visible: !root.selectedOff
+                label: "Rotation"
+
+                PillGroup {
+                    width: parent.width
+                    choices: [
+                        {
+                            label: "Normal",
+                            value: 0
+                        },
+                        {
+                            label: "90°",
+                            value: 1
+                        },
+                        {
+                            label: "180°",
+                            value: 2
+                        },
+                        {
+                            label: "270°",
+                            value: 3
+                        }
+                    ]
+                    current: root.selectedState !== null ? root.selectedState.transform : -1
+                    onPicked: transform => root.change(root.current.name, {
+                            transform: transform
+                        })
+                }
+            }
+
+            FormRow {
+                visible: !root.selectedOff
+                label: "Adaptive sync"
+
+                PillGroup {
+                    width: parent.width
+                    choices: [
+                        {
+                            label: "Off",
+                            value: 0
+                        },
+                        {
+                            label: "On",
+                            value: 1
+                        },
+                        {
+                            label: "Fullscreen only",
+                            value: 2
+                        }
+                    ]
+                    current: root.selectedState !== null ? root.selectedState.vrr : -1
+                    onPicked: vrr => root.change(root.current.name, {
+                            vrr: vrr
+                        })
+                }
+            }
+
+            Rectangle {
+                width: parent.width
+                height: Style.border.width
+                color: Colors.base.border
+            }
+
+            // Apply and Discard; once applied, Keep and Revert with the seconds left.
+            Item {
+                width: parent.width
+                height: Style.popup.itemHeight
+
+                Text {
+                    text: {
+                        if (DisplayChange.waiting)
+                            return "Keep these settings? Going back in " + DisplayChange.secondsLeft + " s";
+
+                        if (DisplayChange.error !== "")
+                            return DisplayChange.error;
+
+                        if (root.hasPending)
+                            return "Not applied yet";
+
+                        return root.keptRule !== null ? "Kept by Settings, applied at every login" : "As the Hyprland config sets it";
+                    }
+                    color: DisplayChange.error !== "" && !DisplayChange.waiting ? Colors.status.error : Colors.text.muted
+                    font.family: Style.text.font
+                    font.pixelSize: Style.text.smallSize
+                    elide: Text.ElideRight
+
+                    anchors {
+                        left: parent.left
+                        right: buttons.left
+                        rightMargin: Style.bar.spacing
+                        verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                Row {
+                    id: buttons
+
+                    spacing: Style.bar.spacing
+
+                    anchors {
+                        right: parent.right
+                        verticalCenter: parent.verticalCenter
+                    }
+
+                    PillButton {
+                        visible: DisplayChange.waiting
+                        text: "Revert"
+                        onClicked: DisplayChange.revert()
+                    }
+
+                    PillButton {
+                        visible: DisplayChange.waiting
+                        text: "Keep"
+                        action: true
+                        onClicked: DisplayChange.keep()
+                    }
+
+                    PillButton {
+                        visible: !DisplayChange.waiting && root.hasPending
+                        text: "Discard"
+                        onClicked: root.pending = {}
+                    }
+
+                    PillButton {
+                        visible: !DisplayChange.waiting && root.hasPending
+                        text: "Apply"
+                        action: true
+                        onClicked: root.applyPending()
+                    }
+
+                    PillButton {
+                        visible: !DisplayChange.waiting && !root.hasPending && root.keptRule !== null
+                        text: "Reset to config"
+                        onClicked: DisplayChange.forget(root.keptRule.output)
+                    }
+                }
+            }
         }
     }
 
+    // Not monitor rules: these apply at once.
     Section {
-        title: "NIGHT LIGHT"
+        title: "ALL DISPLAYS"
 
-        PillGroup {
-            current: QuickToggles.nightLight
-            onPicked: on => QuickToggles.setNightLight(on)
-        }
-
-        Row {
+        FormCard {
             width: root.columnWidth
-            spacing: Style.widgets.spacing
 
-            Text {
-                width: Style.settings.labelWidth
-                anchors.verticalCenter: parent.verticalCenter
-                text: "Warmth"
-                color: Colors.text.muted
-                font.family: Style.text.font
-                font.pixelSize: Style.text.smallSize
+            FormRow {
+                visible: Quickshell.screens.length > 1
+                label: "Main bar"
+
+                PillGroup {
+                    width: parent.width
+                    choices: Quickshell.screens.map(screen => ({
+                                label: screen.name,
+                                value: screen.name
+                            }))
+                    current: BarLayout.main?.name ?? ""
+                    onPicked: name => BarLayout.setMain(name)
+                }
             }
 
-            // Left is warm: the slider runs from the coolest to the warmest.
-            PanelSlider {
-                width: parent.width - Style.settings.labelWidth * 2 - Style.widgets.spacing * 2
-                anchors.verticalCenter: parent.verticalCenter
-                value: (QuickToggles.nightLightCoolest - QuickToggles.nightLightTemperature) / (QuickToggles.nightLightCoolest - QuickToggles.nightLightWarmest)
-                onMoved: position => QuickToggles.setNightLightTemperature(Math.round((QuickToggles.nightLightCoolest - position * (QuickToggles.nightLightCoolest - QuickToggles.nightLightWarmest)) / 100) * 100)
+            FormRow {
+                visible: Quickshell.screens.length > 1
+                label: "Small bars"
+
+                PillGroup {
+                    width: parent.width
+                    choices: [
+                        {
+                            label: "Own space",
+                            value: false
+                        },
+                        {
+                            label: "Over windows",
+                            value: true
+                        }
+                    ]
+                    current: BarLayout.floating
+                    onPicked: floating => BarLayout.setFloating(floating)
+                }
             }
 
-            Text {
-                width: Style.settings.labelWidth
-                anchors.verticalCenter: parent.verticalCenter
-                horizontalAlignment: Text.AlignRight
-                text: QuickToggles.nightLightTemperature + " K"
-                color: Colors.text.muted
-                font.family: Style.text.font
-                font.pixelSize: Style.text.smallSize
+            FormRow {
+                label: "Night light"
+
+                PillGroup {
+                    current: QuickToggles.nightLight
+                    onPicked: on => QuickToggles.setNightLight(on)
+                }
+            }
+
+            FormRow {
+                label: "Warmth"
+
+                Row {
+                    width: parent.width
+                    height: Style.popup.itemHeight
+                    spacing: Style.widgets.spacing
+
+                    // Left is warm: the slider runs from the coolest to the warmest.
+                    PanelSlider {
+                        width: parent.width - Style.settings.labelWidth - Style.widgets.spacing
+                        anchors.verticalCenter: parent.verticalCenter
+                        value: (QuickToggles.nightLightCoolest - QuickToggles.nightLightTemperature) / (QuickToggles.nightLightCoolest - QuickToggles.nightLightWarmest)
+                        onMoved: position => QuickToggles.setNightLightTemperature(Math.round((QuickToggles.nightLightCoolest - position * (QuickToggles.nightLightCoolest - QuickToggles.nightLightWarmest)) / 100) * 100)
+                    }
+
+                    Text {
+                        width: Style.settings.labelWidth
+                        anchors.verticalCenter: parent.verticalCenter
+                        horizontalAlignment: Text.AlignRight
+                        text: QuickToggles.nightLightTemperature + " K"
+                        color: Colors.text.muted
+                        font.family: Style.text.font
+                        font.pixelSize: Style.text.smallSize
+                    }
+                }
             }
         }
     }

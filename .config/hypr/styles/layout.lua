@@ -32,6 +32,17 @@ hl.config(
 	}
 )
 
+-- The blur size the shell's Settings app kept on this machine (Appearance →
+-- Style), in place of the 6 above.
+local state = os.getenv("XDG_STATE_HOME")
+if state == nil or state == "" then
+	state = (os.getenv("HOME") or "") .. "/.local/state"
+end
+local ok, kept = pcall(dofile, state .. "/quickshell/blur.lua")
+if ok and type(kept) == "table" then
+	hl.config({ decoration = { blur = kept } })
+end
+
 -- Ignore apps asking to be maximized, as kitty does whenever its last window
 -- was closed maximized: they would cover the windows they should tile beside.
 hl.window_rule({

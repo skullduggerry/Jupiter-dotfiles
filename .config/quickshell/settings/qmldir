@@ -5,6 +5,8 @@ BluetoothPage 1.0 BluetoothPage.qml
 Card 1.0 Card.qml
 ChoiceField 1.0 ChoiceField.qml
 DisplaysPage 1.0 DisplaysPage.qml
+FormCard 1.0 FormCard.qml
+FormRow 1.0 FormRow.qml
 KeybindsPage 1.0 KeybindsPage.qml
 KeyboardPage 1.0 KeyboardPage.qml
 KeyCap 1.0 KeyCap.qml

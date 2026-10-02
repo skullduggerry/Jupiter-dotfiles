@@ -16,6 +16,9 @@ Singleton {
     // The first line of apply.sh's record; its own default before it ran.
     readonly property string theme: applied.text().split("\n")[0] || "Oxocarbon-Dark"
     readonly property bool blur: settings.blur
+    // Hyprland's decoration:blur size, behind every translucent surface:
+    // set live, and kept in blur.lua for config/hypr/styles/layout.lua.
+    readonly property int blurSize: settings.blurSize
     // Over blur, how much of a surface is the theme's background: at least
     // darkTint or lightTint, as the theme is dark or light, which Static keeps
     // to and Adaptive (true) raises where the wallpaper behind needs more
@@ -84,6 +87,14 @@ Singleton {
     function setBlur(enabled: bool) {
         settings.blur = enabled;
         writeDebounce.restart();
+    }
+
+    function setBlurSize(size: int) {
+        settings.blurSize = size;
+        writeDebounce.restart();
+        // At most one hyprctl call per interval while the slider is dragged.
+        if (!blurThrottle.running)
+            blurThrottle.start();
     }
 
     function setAdaptiveTint(enabled: bool) {
@@ -172,6 +183,17 @@ Singleton {
     }
 
     Timer {
+        id: blurThrottle
+
+        interval: 150
+        onTriggered: {
+            const blur = `{ size = ${settings.blurSize} }`;
+            keptBlur.setText(`-- Written by the shell (config/quickshell/style/Theme.qml).\nreturn ${blur}\n`);
+            Quickshell.execDetached(["hyprctl", "eval", `hl.config({ decoration = { blur = ${blur} } })`]);
+        }
+    }
+
+    Timer {
         id: writeDebounce
 
         interval: 200
@@ -224,6 +246,7 @@ Singleton {
             id: settings
 
             property bool blur: true
+            property int blurSize: 6
             property bool adaptiveTint: true
             property real darkTint: 0.6
             property real lightTint: 0.8
@@ -233,6 +256,14 @@ Singleton {
             property string lightTheme: "Catppuccin-Latte"
             property string darkTheme: "Oxocarbon-Dark"
         }
+    }
+
+    FileView {
+        id: keptBlur
+
+        path: root.stateDir + "/quickshell/blur.lua"
+        preload: false
+        printErrors: false
     }
 
     FileView {

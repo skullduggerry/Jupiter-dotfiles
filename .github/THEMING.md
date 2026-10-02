@@ -159,7 +159,7 @@ Five pieces, each owning something different. Getting any one wrong looks like
 | The Wallust colour scheme | KDE apps' colours | `templates/kdeglobals`, rendered to `color-schemes/Wallust.colors` |
 | kdeglobals | which colour scheme, style and icon theme KDE apps load | `templates/kdeglobals`, merged by `kdeglobals.py` |
 | Kvantum theme | how widgets are drawn, window translucency, other Qt apps' colours | `templates/Wallust.kvconfig` + `templates/Wallust.svg` |
-| Hyprland `decoration:blur` | the blur behind it | `styles/layout.lua` |
+| Hyprland `decoration:blur` | the blur behind it | `styles/layout.lua`, its size from the Settings app's `blur.lua` when kept |
 
 **The Qt variables live in `config/uwsm/env`**, symlinked to
 `~/.config/uwsm/env` like the other config folders. uwsm starts Hyprland here

@@ -19,13 +19,13 @@ FocusScope {
             title: "Appearance",
             icon: Icons.palette,
             tabs: ["wallpaper", "themes"],
-            keywords: "theme themes light dark accent colour colours color colors font blur solid panels wallpaper background rotate image workspace"
+            keywords: "theme themes light dark accent colour colours color colors font blur strength tint glass solid panels wallpaper background rotate image workspace"
         },
         {
             name: "displays",
             title: "Displays",
             icon: Icons.monitor,
-            keywords: "monitor screen brightness night light warmth scale resolution refresh rate rotation arrangement adaptive sync vrr"
+            keywords: "monitor screen brightness night light warmth scale resolution refresh rate rotation arrangement adaptive sync vrr bar main small bars"
         },
         {
             name: "sound",

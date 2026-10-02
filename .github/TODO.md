@@ -48,10 +48,13 @@ PROJECT_STRUCTURE.md); what is left needs real hands, eyes or hardware.
       desktop; the K8 is two devices): the bar, SUPER+SPACE and a click, and the
       login screen on the first after `scripts/install-greeter.sh` runs again.
       The laptop has none kept yet: Settings → Keyboard there.
-- [ ] The **small bar on the real monitors**: Settings → Displays → MAIN BAR
+- [ ] The **small bar on the real monitors**: Settings → Displays → Main bar
       on HDMI-A-1 and back, Over windows with a window maximised under the
       pill, a game fullscreen on the full bar's screen with Caffeine on, and
       the full bar's monitor switched off and on.
+- [ ] The **blur slider** by eye on the real monitors (NVIDIA): its two ends
+      over a busy wallpaper, and whether a high size costs frames while
+      dragging windows. Only a nested Hyprland has taken it.
 - [ ] The **tint slider, kitty and Qt apps** by eye: drag it with a kitty
       open beside the Settings app (open kittys need one restart first, for
       the socket), reopen Dolphin after a change (only a white background with

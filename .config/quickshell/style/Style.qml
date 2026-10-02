@@ -21,6 +21,9 @@ QtObject {
         // puts its frame on their top edge.
         readonly property int windowGap: 16
         readonly property int floatingGap: barMetrics.windowGap - metrics.border.width
+        // How far down a small bar floating over windows reaches, which what
+        // opens under it there has to clear by itself.
+        readonly property int floatingClearance: barMetrics.floatingGap + barMetrics.height + barMetrics.bottomGap
         readonly property int radius: 10
         readonly property int padding: 12
         readonly property int spacing: 8
@@ -210,6 +213,8 @@ QtObject {
         readonly property int arrangementHeight: 160
         // The label either side of a slider row.
         readonly property int labelWidth: 56
+        // The label column of a card's rows (FormRow).
+        readonly property int rowLabelWidth: 120
         // The most of a page a card takes with more below it (Network's Wi-Fi),
         // and of a row a trailing detail (a startup command).
         readonly property real cardShare: 0.6
@@ -272,13 +277,24 @@ QtObject {
     component BackdropStyle: QtObject {
         readonly property int sampleWidth: 128
         readonly property real coverage: 0.5
+        // Blocks this many samples wide are about Hyprland's blur at
+        // blockBlurSize (size 6 × 3 passes); they follow Theme.blurSize.
         readonly property int blockSize: 4
+        readonly property int blockBlurSize: 6
         // Hyprland's decoration:blur contrast and brightness, its defaults,
         // which config/hypr/styles/layout.lua keeps.
         readonly property real blurContrast: 0.8916
         readonly property real blurBrightness: 1
     }
     readonly property BackdropStyle backdrop: BackdropStyle {}
+
+    // The sizes of Hyprland's decoration:blur the Settings app offers
+    // (Theme.blurSize); config/hypr/styles/layout.lua starts at 6.
+    component BlurStyle: QtObject {
+        readonly property int least: 1
+        readonly property int most: 12
+    }
+    readonly property BlurStyle blur: BlurStyle {}
 
     component LockStyle: QtObject {
         readonly property int fieldWidth: 320

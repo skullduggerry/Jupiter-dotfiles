@@ -48,7 +48,8 @@ Item {
 
     // Deliberately not anchored to the bell, which moves with the bar's
     // drawer: the centre opens at the right edge, exactly the column the
-    // toasts pop up in, so a notification is found where it was shown.
+    // toasts pop up in, so a notification is found where it was shown. From
+    // a small bar it opens under the pill, as everything there does.
     WidgetPopup {
         id: notificationPopup
 

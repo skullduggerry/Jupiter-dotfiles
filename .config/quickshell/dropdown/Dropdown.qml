@@ -94,6 +94,11 @@ Scope {
             }
 
             x: {
+                // A small bar is a pill at the screen's centre: every zone
+                // opens under it.
+                if (window.screen !== BarLayout.main)
+                    return (window.width - surface.width) / 2;
+
                 switch (DropdownState.zone) {
                 case DropdownState.zoneWorkspaces:
                     return Style.bar.edgeGap;
@@ -105,7 +110,7 @@ Scope {
             }
             // A small bar floating over this screen's windows reserves no
             // strip, so the dropdown clears it by itself.
-            y: Style.popup.topMargin + (BarLayout.floats(window.screen) ? Style.bar.floatingGap + Style.bar.height + Style.bar.bottomGap : 0)
+            y: Style.popup.topMargin + (BarLayout.floats(window.screen) ? Style.bar.floatingClearance : 0)
             width: Style.dropdown.width
             height: Math.max(Style.dropdown.minHeight, Math.min(Style.dropdown.maxHeight, Math.floor(content.implicitHeight)))
             focus: true

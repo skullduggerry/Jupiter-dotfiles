@@ -23,6 +23,8 @@ Item {
     // Nothing to read while nothing would use it.
     readonly property string wallpaper: Theme.blur && Theme.adaptiveTint && root.monitor ? WallpaperService.wallpaperFor(root.monitor.activeWorkspace) : ""
     readonly property string source: root.wallpaper === "" ? "" : "file://" + root.wallpaper
+    // The blur's size in the sample's units, which a stronger blur averages over.
+    readonly property real block: Style.backdrop.blockSize * Theme.blurSize / Style.backdrop.blockBlurSize
 
     function load() {
         if (root.source === "")
@@ -51,7 +53,7 @@ Item {
         // Each block's average is what the blur makes of that patch. The
         // drawing is in the window's units, the image data in its pixels.
         const ratio = root.screen.devicePixelRatio;
-        const block = Math.max(1, Math.round(Style.backdrop.blockSize * ratio));
+        const block = Math.max(1, Math.round(root.block * ratio));
         const columns = Math.floor(canvas.width * ratio / block);
         const rows = Math.max(1, Math.floor(canvas.height * ratio * Style.backdrop.coverage / block));
         const data = context.getImageData(0, 0, columns * block, rows * block).data;
@@ -91,6 +93,7 @@ Item {
 
     visible: false
     onSourceChanged: root.load()
+    onBlockChanged: root.load()
     Component.onCompleted: {
         root.name = root.screen.name;
         root.load();

@@ -104,8 +104,13 @@ PanelWindow {
     FocusScope {
         id: contentArea
 
-        y: root.contentTopMargin
+        // A small bar floating over this screen's windows reserves no strip,
+        // and is a pill at its centre, which everything opens under.
+        y: root.contentTopMargin + (BarLayout.floats(root.screen) ? Style.bar.floatingClearance : 0)
         x: {
+            if (root.screen !== BarLayout.main)
+                return (root.width - root.popupWidth) / 2;
+
             if (root.anchorItem === null)
                 return root.width - root.popupWidth - Style.bar.edgeGap;
 
