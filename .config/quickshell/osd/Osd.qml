@@ -97,7 +97,9 @@ Scope {
     Component {
         id: audioPanel
 
-        AudioPanel {}
+        AudioPanel {
+            showsApplet: false
+        }
     }
 
     Component {

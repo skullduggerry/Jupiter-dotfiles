@@ -8,6 +8,7 @@ NotificationWidget 1.0 NotificationWidget.qml
 PowerAction 1.0 PowerAction.qml
 PowerWidget 1.0 PowerWidget.qml
 QuickPager 1.0 QuickPager.qml
+ShelfWidget 1.0 ShelfWidget.qml
 SystemTrayWidget 1.0 SystemTrayWidget.qml
 SystemUsageWidget 1.0 SystemUsageWidget.qml
 TogglesWidget 1.0 TogglesWidget.qml

@@ -12,7 +12,7 @@ Installed: **Quickshell 0.3.1**, **Hyprland 0.56.2**, Arch Linux, Qt 6.
 ```
 config/quickshell/
 ├── shell.qml              Entry point: Bar, Dropdown, Launcher, Lock, Toasts,
-│                          Osd and the Settings app.
+│                          Osd, Overview and the Settings app.
 ├── style/                 Colors.qml, Style.qml — every colour and dimension —
 │                          and Theme.qml, the palette Colors derives from.
 ├── icons/                 Icons.qml (Lucide's glyphs by name, and the vendored
@@ -27,7 +27,8 @@ config/quickshell/
 │                          LockService, Media,
 │                          NotificationService, OsdState, PopupAreas, PowerButton,
 │                          QuickToggles (+ screen-record.sh),
-│                          Screens, SettingsState, SystemUsage, Time, Volume,
+│                          Screens, SettingsState, Shelf (+ shelf.sh),
+│                          SystemUsage, Time, Volume,
 │                          WallpaperService (+ wallpaper-import.sh),
 │                          WorkspaceBlocks.
 ├── panels/                Panel content shown by more than one surface:
@@ -35,13 +36,15 @@ config/quickshell/
 │                          BrightnessPanel, CalendarPanel (+CalendarSetup,
 │                          CalendarTasks), ClipboardPanel,
 │                          MediaPanel (+MediaControls, which the bar shows too),
-│                          NotificationPanel (+NotificationEntry), SystemPanel,
+│                          NotificationPanel (+NotificationEntry), ShelfPanel,
+│                          SystemPanel,
 │                          TogglesPanel (+ToggleTile), WifiPanel, WorkspacePanel;
 │                          and what they are built from: PanelFrame (a panel's
 │                          chrome), PillButton and PillGroup (the design's
 │                          switches), TextButton (a word or glyph to click),
 │                          SliderRow and VolumeRow, DetailRow, PanelSlider,
-│                          InputField, WallpaperCard.
+│                          InputField, WallpaperCard, AppletButton (a header's
+│                          way out to blueman and friends).
 ├── bar/                   Bar.qml (a PanelWindow per screen) with the full
 │   │                      BarContent.qml on the main screen and
 │   │                      SmallBarContent.qml on the others, BarDrawer.qml
@@ -59,6 +62,8 @@ config/quickshell/
 │                          The Figma file's "Search Box" is not built: the owner
 │                          kept this fullscreen launcher instead (27 September).
 ├── lock/                  Lock.qml (WlSessionLock) + LockSurface.qml (per monitor).
+├── overview/              Overview.qml (SUPER+Tab: scope, keys, a window per
+│                          screen) + WorkspacePreview.qml (one workspace's tile).
 └── settings/              SettingsApp.qml (scope/IPC/shortcuts/window) +
                            SettingsContent.qml (sidebar, page host), the pages
                            (Appearance with its tabs StyleOptions, WallpaperGrid
@@ -777,6 +782,15 @@ Measured: `systemd-inhibit --list` shows it as Quickshell, and a test shell in a
 nested Hyprland dropped its own on `LockService.lock()`, took it again on
 unlock and released it when killed.
 
+**The menu works from the keyboard.** Up and Down (Tab and Shift+Tab too)
+move one highlight through the actions, wrapping, and Enter or Space runs it;
+hovering moves the same highlight, so there is never a second one. Opened by
+the power button, Lock is highlighted from the start, never a destructive
+action, so a stray Enter only locks; opened by a click, nothing is until a key
+or the pointer picks one. The popup has the keyboard either way (`OnDemand`
+plus its focus grab): checked in a nested Hyprland, firing `powerMenu` and
+then pressing keys on a virtual keyboard, with no click in between.
+
 ## The usage dropdown
 
 Clicking the CPU/RAM meters opens `SystemPanel` (`usage-popup`): a bar per core,
@@ -844,6 +858,55 @@ profile first shows Origin's "Proceed with Origin for free on Linux" screen)
 playing a local page with Media Session metadata and handlers: the page got
 `nexttrack`, `previoustrack`, `seekto 135.0` from a click at three quarters of
 a 3:00 track, and `pause` from the media key.
+
+## The shelf
+
+`ShelfWidget`, on the full bar's left after the usage meters, opens
+`ShelfPanel` (`shelf-popup`): images, notes and files meant for every device.
+`services/Shelf` keeps them as plain files in `<Nextcloud sync folder>/Shelf`,
+so the desktop client does the syncing and the phone sees an ordinary folder.
+The sync folder is the first `localPath` in the client's own
+`~/.config/Nextcloud/nextcloud.cfg` (here `~/Nextcloud/`); without one the
+shelf is `$XDG_DATA_HOME/shelf` and says it is only on this machine.
+
+- **SUPER+SHIFT+V pastes the clipboard onto it** (`shelfPaste`), and the
+  header's paste glyph does the same: files copied in a file manager
+  (`text/uri-list`) are copied in, else an image (PNG first) becomes
+  `<date>.png`, else text `<date>.txt`. The note field writes `<first
+  line>.md`, as Nextcloud Notes names notes. From the shortcut the result is a
+  toast; there is no list to see it in.
+- **A KeePassXC copy is refused** (`x-kde-passwordManagerHint`, exit 3), since
+  everything here is uploaded.
+- **Files are written as `.<name>.part` and moved into place**, and only when
+  the reader succeeded with something. The client skips hidden files, so it
+  never uploads half a file, and `FolderListModel` hides them too. A clipboard
+  that changed under `wl-paste` used to leave an empty file. A copied file
+  whose name starts with a dot loses the dot, or it would be neither synced
+  nor listed.
+- The list is a `FolderListModel` sorted by time, newest first, watching the
+  folder, so what the client brings down appears by itself. It is pointed at
+  the folder only after `mkdir -p` has run, as a missing folder cannot be
+  watched. A click copies an item (text and images as themselves, anything
+  else as a `file://` URI) and closes the popup, a right click opens it with
+  `xdg-open`, `×` deletes it (the server's trash bin keeps synced ones).
+- Only the full bar has the widget, so SUPER+X opens it on `BarLayout.main`,
+  like the power menu.
+
+## The launcher's calculator
+
+A search that is only numbers, operators and the usual functions (`12*7-4`,
+`sqrt(2)/3`), or anything after a leading `=` (`= 5 km to mi`, `= 10 EUR to
+USD`), goes to **qalc** (`libqalculate`), and its answer is a row above the
+apps; Enter or a click copies it with qalc's `−` as `-` and closes. Without
+the gate, every app name would be a sum: qalc reads `firefox` as `0 B`. An
+answer that only repeats the sum (`3/0`) is not shown. Output follows
+`~/.config/qalculate/qalc.cfg` (mixed units: `3 mi + 188 yd + …`).
+
+**The command is set where the process starts, not bound.** `onExpressionChanged`
+runs before a `command` binding on the same property has followed it, so the
+first keystroke ran `qalc -t ""`, which never exits, and every later sum queued
+behind it as `stale`; nothing ever showed. One run takes ~45 ms, so there is no
+debounce: a run in flight marks `stale` and the latest sum runs after it.
 
 ## Keyboard layouts
 
@@ -1478,6 +1541,61 @@ The shell needs no restart afterwards. `NotificationService` logs `Registration
 will be attempted again if the active service is unregistered` on startup and
 takes the name the moment the other daemon drops it.
 
+## The overview
+
+**SUPER+Tab** (the `overview` `GlobalShortcut`; it used to be "Next window",
+`cycle_next`) shows every screen's workspaces at once, each screen its own,
+as tiles: the workspace's wallpaper (`WallpaperService.wallpaperFor`) and its
+windows where Hyprland has them, each a `ScreencopyView` of the toplevel
+(`HyprlandToplevel.wayland`), floating ones over the tiled. Tab and Right move
+the selection, Shift+Tab and Left back, through every workspace of every
+screen from the left, wrapping; Enter or Space goes there, Escape or a click
+beside the tiles closes, a click on a tile goes there and hovering selects.
+SUPER+Tab again goes to the selection, as Enter does (the owner's call, 2
+October; it stepped on at first, then closed it), and Escape leaves it as it was:
+Hyprland keeps its binds while a layer has the keyboard, so the shortcut fires
+again rather than reaching the overview.
+**1 to 9** (the keypad's too) go to that workspace of the selection's screen,
+by id as `config/hypr/modules/workspaces.lua` numbers them, so a number with
+no workspace makes one, as SUPER+1–9 do. Hyprland makes a new workspace on the
+focused monitor, so when the selection is on another one that monitor is
+focused first (the pointer moves there, as with SUPER+CTRL+arrows).
+Special workspaces are left out.
+
+**It opens with a zoom out.** On each screen the workspace on it starts at the
+whole screen and shrinks into its tile (`Style.overview.zoom`, out-cubic, its
+corners rounding as it goes), and the others pop in from
+`Style.overview.popFrom` of their size with an overshoot (out-back), each
+`Style.overview.stagger` after the one before, outwards from it. It is a
+`Scale` from the tile's corner plus a `Translate` by its place in the window,
+both driven by one `reveal`. Closing stays instant: the workspace switch is
+Hyprland's own slide (800 ms here, the global speed 8), and a zoom drawn over
+it would end on the old workspace while Hyprland is still sliding. The first
+frame already has the wallpaper and the captures (looked at in a nested
+Hyprland), so the zoom starts from a picture of the screen, not from outlines.
+
+- **Windows on hidden workspaces are captured too.** `ScreencopyView` takes a
+  `Toplevel` through `hyprland-toplevel-export-v1`, which Hyprland renders
+  for windows that are not on screen; checked in a nested Hyprland with
+  windows on a workspace shown on neither output. One frame each, not live:
+  the content `Loader` is only active while open, so each opening captures
+  afresh and nothing streams while it is shut.
+- **Positions come from `lastIpcObject`** (`at`, `size`, `floating`), in layout
+  coordinates, less the monitor's `x`/`y`. It is only fetched again on
+  request, so opening calls `Hyprland.refreshToplevels()`.
+- **One window per screen, one with the keyboard**: the screen it opened on
+  (`Screens.focused`) is `Exclusive`, the others `None`; the selection is the
+  scope's, so it moves across screens with nothing to hand over.
+- It draws under `Colors.overlay` (light on a dark scrim whatever the theme),
+  the number in the wallpaper cards' label pill; its own layer rule in
+  `config/hypr/styles/layout.lua` blurs what is behind, `no_anim` like the
+  launcher's.
+
+`qmllint` could not resolve `HyprlandToplevel.wayland`: Hyprland's IPC module
+names Wayland's `Toplevel` without depending on its module.
+`scripts/quickshell-types.py` now adds such cross-module `depends` lines to its
+copy of the qmldirs.
+
 ## Workspaces per monitor
 
 Every monitor numbers its own workspaces from 1, and none exist in advance.
@@ -1871,7 +1989,8 @@ qs ipc call settings openPage keybinds # keyboard, displays, sound, wallpaper, �
 ```
 
 `SUPER+R` (launcher), `SUPER+L` (lock), `SUPER+B` (bar drawer), `SUPER+W`
-(Settings on the Wallpapers tab), `SUPER+I` (Settings), `SUPER+SPACE`
+(Settings on the Wallpapers tab), `SUPER+I` (Settings), `SUPER+X` and
+`SUPER+SHIFT+V` (`shelfToggle`, `shelfPaste`), `SUPER+SPACE`
 (`keyboardLayout`), the media keys (`mediaPlayPause`, `mediaNext`,
 `mediaPrevious`) and the power button (the power menu) are `GlobalShortcut`s
 bound with

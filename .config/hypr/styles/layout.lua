@@ -59,6 +59,12 @@ hl.layer_rule({
     no_anim = true,
 })
 hl.layer_rule({
+    name = "qs-overview-blur",
+    match = { namespace = "^quickshell:overview$" },
+    blur = true,
+    no_anim = true,
+})
+hl.layer_rule({
     name = "qs-popup-blur",
     match = { namespace = "^quickshell:.*-popup$" },
     blur = true,

@@ -49,6 +49,9 @@ PanelFrame {
             text: !power.enabled ? "Blocked" : root.powered ? "On" : "Off"
             color: root.powered ? Colors.accent.primary : Colors.text.muted
             onClicked: root.adapter.enabled = !root.powered
+        },
+        AppletButton {
+            command: ["blueman-manager"]
         }
     ]
 

@@ -9,8 +9,14 @@ PanelFrame {
     implicitHeight: root.chromeHeight + rows.implicitHeight
     readonly property PwNode sink: Pipewire.defaultAudioSink
     readonly property PwNode source: Pipewire.defaultAudioSource
+    // Off in the OSD, which takes no clicks.
+    property bool showsApplet: true
 
     title: "Audio"
+    trailing: AppletButton {
+        visible: root.showsApplet
+        command: ["pavucontrol"]
+    }
 
     PwObjectTracker {
         objects: [root.sink, root.source].filter(node => node !== null)

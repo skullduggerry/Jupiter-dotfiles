@@ -266,10 +266,15 @@ PanelFrame {
         font.pixelSize: Style.text.size
     }
 
-    trailing: TextButton {
-        enabled: Networking.wifiHardwareEnabled
-        text: !Networking.wifiHardwareEnabled ? "Blocked" : Networking.wifiEnabled ? "On" : "Off"
-        color: Networking.wifiEnabled ? Colors.wifi.connected : Colors.text.muted
-        onClicked: Networking.wifiEnabled = !Networking.wifiEnabled
-    }
+    trailing: [
+        TextButton {
+            enabled: Networking.wifiHardwareEnabled
+            text: !Networking.wifiHardwareEnabled ? "Blocked" : Networking.wifiEnabled ? "On" : "Off"
+            color: Networking.wifiEnabled ? Colors.wifi.connected : Colors.text.muted
+            onClicked: Networking.wifiEnabled = !Networking.wifiEnabled
+        },
+        AppletButton {
+            command: ["nm-connection-editor"]
+        }
+    ]
 }

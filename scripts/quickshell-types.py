@@ -9,8 +9,9 @@ anything in this repo, so every Quickshell type would otherwise go unchecked:
 
 - property types name C++ classes without their namespace (`BluetoothAdapter`
   for `qs::bluetooth::BluetoothAdapter`) or by their QML name (`DBusMenuHandle`);
-- submodules extend core types without declaring `depends Quickshell`, and the
-  window types are an `optional import`; `prefer` points at resources only the
+- submodules extend core types without declaring `depends Quickshell`, or name
+  another submodule's types without depending on it (Hyprland's toplevels hand
+  out Wayland's `Toplevel`), and the window types are an `optional import`; `prefer` points at resources only the
   running shell can read;
 - core's value types (margins) do not resolve across its import cycle with the
   window module;
@@ -34,6 +35,9 @@ aliases = {}
 for name, exports in components:
     for alias in {name.rsplit('::', 1)[-1], *exports}:
         aliases.setdefault(alias, set()).add(name)
+modules = {path: re.search(r'^module (\S+)', (path.parent / 'qmldir').read_text(), re.M).group(1) for path in types}
+module_of = {name: modules[path] for path, text in types.items()
+             for name in re.findall(r'Component \{[^{}]*?\bname: "([^"]+)"', text, re.S)}
 core = types[source / 'quickshell-core.qmltypes']
 value_types = {re.search(r'name: "([^"]+)"', block).group(1): block
                for block in re.findall(r'^    Component \{\n.*?^    \}\n', core, re.S | re.M)
@@ -79,6 +83,12 @@ for path in source.rglob('*'):
         text = re.sub(r'^prefer .*\n', '', path.read_text(), flags=re.M).replace('optional import ', 'import ')
         if path.parent != source and 'depends Quickshell\n' not in text:
             text += 'depends Quickshell\n'
+        own = [types_path for types_path in types if types_path.parent == path.parent]
+        used = {module_of.get(resolve(name)) for types_path in own
+                for name in re.findall(r'\b(?:type|prototype): "([^"]+)"', types[types_path])}
+        for module in sorted(used - {None, 'Quickshell', *(modules[types_path] for types_path in own)}):
+            if f'depends {module}\n' not in text:
+                text += f'depends {module}\n'
         out.write_text(text)
     elif path.suffix == '.qml':
         out.write_text(path.read_text())

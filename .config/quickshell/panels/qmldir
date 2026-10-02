@@ -1,3 +1,4 @@
+AppletButton 1.0 AppletButton.qml
 AudioPanel 1.0 AudioPanel.qml
 BatteryPanel 1.0 BatteryPanel.qml
 BluetoothPanel 1.0 BluetoothPanel.qml
@@ -17,6 +18,7 @@ PanelSlider 1.0 PanelSlider.qml
 PillButton 1.0 PillButton.qml
 PillGroup 1.0 PillGroup.qml
 QuickSettingsPanel 1.0 QuickSettingsPanel.qml
+ShelfPanel 1.0 ShelfPanel.qml
 SliderRow 1.0 SliderRow.qml
 SystemPanel 1.0 SystemPanel.qml
 TextButton 1.0 TextButton.qml

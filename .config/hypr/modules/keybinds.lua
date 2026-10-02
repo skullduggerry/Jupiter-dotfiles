@@ -12,6 +12,9 @@ hl.bind(vars.mainMod .. " + L", hl.dsp.global("quickshell:lock"), { description 
 hl.bind(vars.mainMod .. " + B", hl.dsp.global("quickshell:barExpand"), { description = "Open or close the bar's drawer" })
 hl.bind(vars.mainMod .. " + W", hl.dsp.global("quickshell:wallpaperToggle"), { description = "Choose a wallpaper" })
 hl.bind(vars.mainMod .. " + I", hl.dsp.global("quickshell:settingsToggle"), { description = "Open Settings" })
+-- The shelf on the bar, a folder Nextcloud syncs (config/quickshell/services/Shelf.qml).
+hl.bind(vars.mainMod .. " + X", hl.dsp.global("quickshell:shelfToggle"), { description = "Open the shelf" })
+hl.bind(vars.mainMod .. " + SHIFT + V", hl.dsp.global("quickshell:shelfPaste"), { description = "Paste the clipboard onto the shelf" })
 hl.bind(vars.mainMod .. " + C", hl.dsp.window.close(), { description = "Close the window" })
 hl.bind(vars.mainMod .. " + PRINT", hl.dsp.exec_cmd("hyprshot -m window"), { description = "Screenshot of a window" })
 hl.bind("Print", hl.dsp.exec_cmd("hyprshot -m output"), { description = "Screenshot of a screen" })
@@ -51,10 +54,7 @@ hl.bind(vars.mainMod .. " + J", hl.dsp.layout("togglesplit"), { description = "S
 hl.bind(vars.mainMod .. " + G", hl.dsp.group.toggle(), { description = "Group or ungroup windows" })
 hl.bind(vars.mainMod .. " + S", hl.dsp.workspace.toggle_special("magic"), { description = "Show or hide the scratchpad" })
 hl.bind(vars.mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" }), { description = "Move the window to the scratchpad" })
-hl.bind(vars.mainMod .. " + Tab", function()
-  hl.dispatch(hl.dsp.window.cycle_next())
-  hl.dispatch(hl.dsp.window.bring_to_top())
-end, { description = "Next window" })
+hl.bind(vars.mainMod .. " + Tab", hl.dsp.global("quickshell:overview"), { description = "Show every workspace" })
 -- Workspace 1 to 9 of the focused monitor, i.e. the one the pointer is on.
 for number = 1, 9 do
   hl.bind(vars.mainMod .. " + " .. number, function() workspaces.focus(number) end, { description = "Go to that workspace" })

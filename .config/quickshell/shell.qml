@@ -4,6 +4,7 @@ import "./launcher"
 import "./lock"
 import "./notifications"
 import "./osd"
+import "./overview"
 import "./settings"
 import Quickshell
 
@@ -19,6 +20,8 @@ Scope {
     Toasts {}
 
     Osd {}
+
+    Overview {}
 
     SettingsApp {}
 }

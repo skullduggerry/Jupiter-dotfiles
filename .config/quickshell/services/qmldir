@@ -15,6 +15,7 @@ singleton PowerButton 1.0 PowerButton.qml
 singleton QuickToggles 1.0 QuickToggles.qml
 singleton Screens 1.0 Screens.qml
 singleton SettingsState 1.0 SettingsState.qml
+singleton Shelf 1.0 Shelf.qml
 singleton SystemUsage 1.0 SystemUsage.qml
 singleton Time 1.0 Time.qml
 singleton Volume 1.0 Volume.qml

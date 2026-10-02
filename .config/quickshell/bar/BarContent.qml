@@ -36,6 +36,9 @@ Rectangle {
         SystemUsageWidget {
             screen: root.screen
         }
+        ShelfWidget {
+            screen: root.screen
+        }
         MediaWidget {
             id: media
 

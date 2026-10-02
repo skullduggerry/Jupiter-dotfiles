@@ -243,6 +243,30 @@ QtObject {
     }
     readonly property AnimationStyle animation: AnimationStyle {}
 
+    // SUPER+Tab's overview: each screen's workspaces as tiles of this width at
+    // most, in rows of `columns`, kept `margin` from the screen's edges. As it
+    // opens, the workspace on screen shrinks from the whole screen into its
+    // tile (`zoom`), and the others pop in from `popFrom` of their size, each
+    // `stagger` after the one before it, outwards from that tile.
+    component OverviewStyle: QtObject {
+        readonly property int tileWidth: 560
+        readonly property int columns: 4
+        readonly property int spacing: 24
+        readonly property int margin: 48
+        readonly property int zoom: 320
+        readonly property int stagger: 45
+        readonly property real popFrom: 0.6
+    }
+    readonly property OverviewStyle overview: OverviewStyle {}
+
+    // The bar's shelf (panels/ShelfPanel): an image's row shows it this high,
+    // and a text file is previewed up to this size.
+    component ShelfStyle: QtObject {
+        readonly property int thumbnailHeight: 48
+        readonly property int previewBytes: 65536
+    }
+    readonly property ShelfStyle shelf: ShelfStyle {}
+
     component DropdownStyle: QtObject {
         readonly property int width: 320
         readonly property int minHeight: 120
