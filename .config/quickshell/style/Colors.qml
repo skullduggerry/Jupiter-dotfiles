@@ -193,7 +193,8 @@ QtObject {
         readonly property color field: Qt.rgba(1, 1, 1, 0.06)
         readonly property color fieldBorder: root.overlay.border
         readonly property color busy: root.accent.primary
-        readonly property color scrim: Qt.rgba(0, 0, 0, 0.45)
+        // As dark as the Lock & Login page says.
+        readonly property color scrim: Qt.rgba(0, 0, 0, LockLook.dim)
     }
     readonly property LockColors lock: LockColors {}
 

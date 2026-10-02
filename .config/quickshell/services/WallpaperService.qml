@@ -58,10 +58,6 @@ Singleton {
     property string error: ""
     // The tab's wallpapers, by name: what the grid shows and rotation walks.
     readonly property ListModel library: ListModel {}
-    // What hyprpaper shows on a monitor nobody named: hyprpaper.conf's, or the
-
-    // saved config's, until the shell sets another.
-    property string fallback: ""
     // monitor name -> the path hyprpaper was last told to show there by name
     property var shown: ({})
     // {monitor, path}, sent one at a time; monitor "" is the fallback
@@ -96,14 +92,14 @@ Singleton {
     }
 
     // Tells hyprpaper what each monitor should now show, where that is not what
-    // it shows already. A monitor never named still shows the fallback; once
-    // named, hyprpaper keeps it off the fallback, so it is named from then on.
+    // it was told already. Once named, hyprpaper keeps a monitor off the
+    // fallback, and hyprpaper outlives the shell: a monitor this shell has not
+    // named may be on an earlier one's pick, so it is named too, once.
     function sync() {
         const pending = root.queue.filter(job => job.monitor === "");
         for (const monitor of Hyprland.monitors.values) {
             const path = root.wallpaperFor(monitor.activeWorkspace);
-            const showing = root.shown[monitor.name] === undefined ? root.fallback : root.shown[monitor.name];
-            if (path !== "" && showing !== path)
+            if (path !== "" && root.shown[monitor.name] !== path)
                 pending.push({
                     monitor: monitor.name,
                     path: path
@@ -170,7 +166,6 @@ Singleton {
                 path: path
             }
         ]);
-        root.fallback = path;
         if (clearOwn && Object.keys(settings.workspaces).length > 0) {
             settings.workspaces = ({});
             writeDebounce.restart();
@@ -231,7 +226,6 @@ Singleton {
     Component.onCompleted: {
         settingsFile.text();
         chosen.path = root.pathIn(savedFile.text()) || root.pathIn(defaultFile.text());
-        root.fallback = chosen.path;
         root.sync();
     }
     onCategoryChanged: rebuildDebounce.restart()

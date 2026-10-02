@@ -14,7 +14,8 @@ config/quickshell/
 ├── shell.qml              Entry point: Bar, Dropdown, Launcher, Lock, Toasts,
 │                          Osd, Overview and the Settings app.
 ├── style/                 Colors.qml, Style.qml — every colour and dimension —
-│                          and Theme.qml, the palette Colors derives from.
+│                          Theme.qml, the palette Colors derives from, and
+│                          LockLook.qml, the lock and login screens' choices.
 ├── icons/                 Icons.qml (Lucide's glyphs by name, and the vendored
 │                          lucide.ttf + its LICENSE), Icon.qml (a glyph at the
 │                          icon size and colour), and the two drawn ones:
@@ -67,7 +68,7 @@ config/quickshell/
 └── settings/              SettingsApp.qml (scope/IPC/shortcuts/window) +
                            SettingsContent.qml (sidebar, page host), the pages
                            (Appearance with its tabs StyleOptions, WallpaperGrid
-                           and ThemeGrid, Displays, Sound, Network, Bluetooth,
+                           and ThemeGrid, Lock & Login (+LockPreview), Displays, Sound, Network, Bluetooth,
                            Notifications, Power, Keyboard, Keybinds, Startup,
                            About), the
                            parts they share (Card, PanelCard, ScrollPage,
@@ -859,6 +860,34 @@ playing a local page with Media Session metadata and handlers: the page got
 `nexttrack`, `previoustrack`, `seekto 135.0` from a click at three quarters of
 a 3:00 track, and `pause` from the media key.
 
+## Lock & Login
+
+`settings/LockPage` sets `style/LockLook`: a background for the lock screen
+and one for the login screen (the desktop's wallpaper, an image picked with
+zenity, or plain), and one style for both: blur while typing, always or never,
+how dark the scrim is (`Colors.lock.scrim` reads `LockLook.dim`), and the
+clock. Two `LockPreview`s at the top draw both screens from the same values,
+as they come up (so "while typing" shows sharp).
+
+- **LockLook lives in `style/`** because that is the folder the greeter gets a
+  copy of; like Theme it only reads until something is set, and never through
+  `Quickshell.statePath()`. Its file is `$XDG_STATE_HOME/quickshell/lockscreen.json`,
+  or `$LOCKSCREEN_STYLE`, which `etc/greetd/hyprland.lua` sets to the copy
+  installed beside the greeter.
+- **The lock screen follows at once; the login screen needs Apply.** It runs
+  `scripts/install-greeter.sh` through pkexec (the polkit agent asks for the
+  password), the same installer as by hand, which now takes the login
+  background from lockscreen.json (`wallpaper` reads the hyprpaper config as
+  before, `plain` removes `wallpaper.jpg`) and installs the file with an
+  `installedImage` key: the page compares that and the style with its own to
+  say "Up to date" or not, so a desktop wallpaper changed since shows as not
+  applied. Under pkexec the owner comes from `PKEXEC_UID`, and the repo is
+  found with `cd -P`: the page passes the path through `~/.config/quickshell`,
+  a link, resolved with `readlink -f` so pkexec names the real script.
+- Tested in the nested session: every control, a staged install through a
+  stand-in pkexec, the staged greeter run with no home reading its copy, and
+  the lock screen. `tests/install-greeter-test.py` covers an image and plain.
+
 ## The shelf
 
 `ShelfWidget`, on the full bar's left after the usage meters, opens
@@ -984,7 +1013,7 @@ each step of a resize.
 - **All Workspaces** (the default) sets the one for every workspace:
   `hyprctl hyprpaper wallpaper ",<path>,cover"`, the empty monitor being
   hyprpaper's fallback for every monitor not named, then each monitor by name
-  where one already is. It clears every workspace's own: "all" means all.
+  by name. It clears every workspace's own: "all" means all.
   About 5ms a call; a missing file exits 1 with `bad path`, shown in the footer.
 - **This Workspace** gives the focused workspace one of its own. hyprpaper sets
   a monitor, not a workspace, so the service watches every monitor's
@@ -993,9 +1022,14 @@ each step of a resize.
   `workspace-blocks.json` (see "Workspaces per monitor"): its id differs from
   session to session. The keys persist in `wallpaper.json`. Once hyprpaper has
   been told a monitor by name, the fallback no longer reaches it, so from then
-  on that monitor is always named; a monitor never named is taken to show the
-  fallback, which is also why the shell sends nothing at start unless some
-  workspace has its own. Tested in the nested session: workspace 1 on its own
+  on that monitor is always named. **hyprpaper outlives the shell**, so every
+  monitor is named once at start too: `shown` is only what this instance said,
+  and taking a monitor it had not named to show the fallback (as until
+  2 October) left one on a reloaded or restarted shell's predecessor's pick,
+  which no All Workspaces pick reached any more. That was "a new wallpaper
+  only shows on the second monitor": DP-2 had been named by an earlier
+  instance. Reproduced in the nested session by naming the output with
+  `hyprctl hyprpaper wallpaper` before starting the shell. Tested in the nested session: workspace 1 on its own
   wallpaper, 2 on the fallback, back and forth (`hyprctl hyprpaper listactive`),
   then All Workspaces clearing it.
 - **The choice persists as a hyprpaper config of its own**,

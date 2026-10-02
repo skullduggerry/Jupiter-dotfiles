@@ -13,6 +13,7 @@ so are the keyboard layouts it kept.
 """
 from __future__ import annotations
 
+import json
 import os
 import pathlib
 import shutil
@@ -131,6 +132,30 @@ def main() -> int:
                              env=dict(os.environ, XDG_STATE_HOME=str(state)))
         check("script succeeds without a wallpaper", run.returncode == 0, run.stderr.strip())
         check("no wallpaper installed", not (dest / "quickshell/wallpaper.jpg").exists())
+
+        # The Lock & Login page's choices: an image of its own for the login
+        # screen, then none, each with the choices installed beside it and the
+        # image they came from, which that page compares with its own.
+        own = tmp / "login.png"
+        own.write_bytes(b"not really a png")
+        look = state / "quickshell/lockscreen.json"
+        look.write_text(json.dumps({"loginBackground": "image", "loginImage": str(own), "dim": 0.3}))
+        dest = tmp / "greetd-look"
+        run = subprocess.run(["bash", str(SCRIPT), str(dest)], capture_output=True, text=True,
+                             env=dict(os.environ, XDG_STATE_HOME=str(state)))
+        check("script succeeds with a login image", run.returncode == 0, run.stderr.strip())
+        check("the login image is the wallpaper",
+              (dest / "quickshell/wallpaper.jpg").read_bytes() == own.read_bytes())
+        installed = json.loads((dest / "quickshell/lockscreen.json").read_text())
+        check("the choices are installed with their image",
+              installed.get("dim") == 0.3 and installed.get("installedImage") == str(own), str(installed))
+        check("the greeter is told where they are",
+              f"LOCKSCREEN_STYLE={dest}/quickshell/lockscreen.json" in (dest / "hyprland.lua").read_text())
+        look.write_text(json.dumps({"loginBackground": "plain"}))
+        run = subprocess.run(["bash", str(SCRIPT), str(dest)], capture_output=True, text=True,
+                             env=dict(os.environ, XDG_STATE_HOME=str(state)))
+        check("a plain login screen drops the wallpaper",
+              run.returncode == 0 and not (dest / "quickshell/wallpaper.jpg").exists(), run.stderr.strip())
 
     return report()
 

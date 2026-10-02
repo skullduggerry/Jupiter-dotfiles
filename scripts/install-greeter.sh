@@ -18,16 +18,20 @@
 # the keyboard layouts it kept go into the compositor config the same way, so
 # a password is typed on the layout a session starts on.
 #
-# The wallpaper path is read from the hyprpaper config the desktop starts from
-# so the greeter shows the same image: the wallpaper app's saved one once
-# something was picked there, config/hypr/hyprpaper.conf before that. Re-run it
-# after picking a new wallpaper, too.
+# The background is the Settings app's Lock & Login choice (lockscreen.json):
+# an image of its own, none, or by default the desktop's wallpaper, read from
+# the hyprpaper config the desktop starts from: the wallpaper app's saved one
+# once something was picked there, config/hypr/hyprpaper.conf before that.
+# Re-run it after picking a new wallpaper, too. That page runs this through
+# pkexec, hence PKEXEC_UID for whose home it is.
 set -euo pipefail
 
-repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# Physical: the Settings app reaches this through ~/.config/quickshell, a link.
+repo=$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 dest=${1:-/etc/greetd}
 
-owner_home=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
+owner=${SUDO_USER:-$(id -nu "${PKEXEC_UID:-$(id -u)}")}
+owner_home=$(getent passwd "$owner" | cut -d: -f6)
 
 # The same path config/hypr/modules/start.lua checks. sudo resets the
 # environment, so this falls back to the owner's home rather than root's.
@@ -37,9 +41,17 @@ config=$repo/.config/hypr/hyprpaper.conf
 wallpaper=$(sed -n 's/^[[:space:]]*path[[:space:]]*=[[:space:]]*//p' "$config" | tail -1)
 wallpaper=${wallpaper/#\~/$owner_home}
 
+look=${XDG_STATE_HOME:-$owner_home/.local/state}/quickshell/lockscreen.json
+background=wallpaper
+if [[ -r $look ]]; then
+    background=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("loginBackground", "wallpaper"))' "$look")
+    [[ $background == image ]] && wallpaper=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("loginImage", ""))' "$look")
+fi
+[[ $background == plain ]] && wallpaper=
+
 # A fresh install has no wallpaper yet; the greeter shows its plain background
 # until one is picked and this runs again.
-if [[ ! -r $wallpaper ]]; then
+if [[ -n $wallpaper && ! -r $wallpaper ]]; then
     echo "install-greeter: no wallpaper at '$wallpaper', installing without one" >&2
     wallpaper=
 fi
@@ -87,7 +99,22 @@ install -m 0755 "$repo/etc/greetd/quickshell/greetd-auth.py" \
 install -m 0644 "$repo"/.config/quickshell/style/*.qml "$dest/quickshell/style/"
 install -m 0644 "$repo/.config/quickshell/style/qmldir" "$dest/quickshell/style/qmldir"
 
-[[ -n $wallpaper ]] && install -m 0644 "$wallpaper" "$dest/quickshell/wallpaper.jpg"
+if [[ -n $wallpaper ]]; then
+    install -m 0644 "$wallpaper" "$dest/quickshell/wallpaper.jpg"
+else
+    rm -f "$dest/quickshell/wallpaper.jpg"
+fi
+
+# The Lock & Login choices, plus the image the background came from, by which
+# that page tells whether the login screen is up to date.
+python3 - "$look" "$wallpaper" "$dest/quickshell/lockscreen.json" <<'PY'
+import json, pathlib, sys
+look, image, out = sys.argv[1:]
+path = pathlib.Path(look)
+settings = json.loads(path.read_text()) if path.is_file() else {}
+settings["installedImage"] = image
+pathlib.Path(out).write_text(json.dumps(settings, indent=4) + "\n")
+PY
 
 # The repo copies name /etc/greetd directly so they read as the real thing.
 # Installing elsewhere (staging) rewrites those paths, so a staged tree is the

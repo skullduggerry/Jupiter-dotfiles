@@ -35,7 +35,7 @@ PanelWindow {
         id: wallpaper
 
         anchors.fill: parent
-        source: "file://" + Quickshell.shellDir + "/wallpaper.jpg"
+        source: LockLook.loginBackground === "plain" ? "" : "file://" + Quickshell.shellDir + "/wallpaper.jpg"
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         visible: false
@@ -48,7 +48,7 @@ PanelWindow {
         autoPaddingEnabled: false
         blurEnabled: true
         blurMax: Style.lock.blurMax
-        blur: root.engaged ? Style.lock.blurAmount : 0
+        blur: LockLook.blurFor(root.engaged)
 
         Behavior on blur {
             NumberAnimation {
@@ -68,6 +68,7 @@ PanelWindow {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
+            visible: LockLook.clock
             text: Qt.formatDateTime(clock.date, "HH:mm")
             color: Colors.text.base
             font.family: Style.text.font
@@ -76,6 +77,7 @@ PanelWindow {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
+            visible: LockLook.clock
             text: Qt.formatDateTime(clock.date, "ddd d MMM")
             color: Colors.text.muted
             font.family: Style.text.font

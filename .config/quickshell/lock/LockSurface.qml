@@ -18,7 +18,11 @@ WlSessionLockSurface {
         id: wallpaper
 
         anchors.fill: parent
-        source: WallpaperService.current !== "" ? "file://" + WallpaperService.current : ""
+        // LockLook's choice; plain is the background colour alone.
+        source: {
+            const path = LockLook.lockBackground === "image" ? LockLook.lockImage : LockLook.lockBackground === "wallpaper" ? WallpaperService.current : "";
+            return path !== "" ? "file://" + path : "";
+        }
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         visible: false
@@ -31,7 +35,7 @@ WlSessionLockSurface {
         autoPaddingEnabled: false
         blurEnabled: true
         blurMax: Style.lock.blurMax
-        blur: root.engaged ? Style.lock.blurAmount : 0
+        blur: LockLook.blurFor(root.engaged)
 
         Behavior on blur {
             NumberAnimation {
@@ -51,6 +55,7 @@ WlSessionLockSurface {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
+            visible: LockLook.clock
             text: Time.time
             color: Colors.lock.text
             font.family: Style.text.font
@@ -59,6 +64,7 @@ WlSessionLockSurface {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
+            visible: LockLook.clock
             text: Time.date
             color: Colors.lock.muted
             font.family: Style.text.font

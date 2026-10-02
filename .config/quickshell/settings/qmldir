@@ -10,6 +10,8 @@ FormRow 1.0 FormRow.qml
 KeybindsPage 1.0 KeybindsPage.qml
 KeyboardPage 1.0 KeyboardPage.qml
 KeyCap 1.0 KeyCap.qml
+LockPage 1.0 LockPage.qml
+LockPreview 1.0 LockPreview.qml
 NetworkPage 1.0 NetworkPage.qml
 NotificationsPage 1.0 NotificationsPage.qml
 PanelCard 1.0 PanelCard.qml

@@ -327,6 +327,13 @@ QtObject {
         readonly property int spacing: 18
         readonly property int blurMax: 48
         readonly property real blurAmount: 1
+        // The Lock & Login page's previews of both screens.
+        readonly property real previewRatio: 0.5625
+        readonly property int previewBlurMax: 8
+        readonly property int previewFieldWidth: 72
+        readonly property int previewFieldHeight: 10
+        // The darkest the page's Dim slider goes.
+        readonly property real dimMost: 0.9
     }
     readonly property LockStyle lock: LockStyle {}
 }

@@ -22,6 +22,12 @@ FocusScope {
             keywords: "theme themes light dark accent colour colours color colors font blur strength tint glass solid panels wallpaper background rotate image workspace"
         },
         {
+            name: "lockscreen",
+            title: "Lock & Login",
+            icon: Icons.lock,
+            keywords: "lock screen login greeter sign in background wallpaper image plain blur dim darkness clock password"
+        },
+        {
             name: "displays",
             title: "Displays",
             icon: Icons.monitor,
@@ -285,6 +291,8 @@ FocusScope {
             focus: true
             sourceComponent: {
                 switch (root.current.name) {
+                case "lockscreen":
+                    return lockPage;
                 case "displays":
                     return displaysPage;
                 case "sound":
@@ -324,6 +332,12 @@ FocusScope {
         id: appearancePage
 
         AppearancePage {}
+    }
+
+    Component {
+        id: lockPage
+
+        LockPage {}
     }
 
     Component {

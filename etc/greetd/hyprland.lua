@@ -28,6 +28,8 @@ hl.config({
 -- session -- see GreeterService.qml. Getting this wrong is not subtle: the
 -- first vt-2 attempt authenticated fine and then greetd sat waiting until it
 -- gave up with "check_children: greeter exited without creating a session".
+-- LOCKSCREEN_STYLE is the Lock & Login page's choices, installed beside the
+-- greeter, since it cannot read them from $HOME (style/LockLook.qml).
 hl.on("hyprland.start", function()
-	hl.exec_cmd("qs -p /etc/greetd/quickshell/shell.qml")
+	hl.exec_cmd("LOCKSCREEN_STYLE=/etc/greetd/quickshell/lockscreen.json qs -p /etc/greetd/quickshell/shell.qml")
 end)
