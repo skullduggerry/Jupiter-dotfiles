@@ -18,6 +18,12 @@ colour, except for check marks drawn on the accent, which take the background.
 Black stays black: it is only ever a shadow or an outline at low opacity.
 Windows and dialogs, which KvMojave drew a little translucent, take the
 shell's glass instead (appearance.jinja's window_opacity()).
+
+Arrows are line chevrons, as the shell draws them (Lucide's, muted, the text
+colour under the pointer): KvMojave's filled arrowheads stood out beside line
+icons. KvMojave has no plain arrow-* or menuitem-*-normal elements, and
+Kvantum draws a missing element from its built-in theme, in its own grey, so
+those are added as the toolbar's.
 """
 import colorsys
 import pathlib
@@ -47,6 +53,23 @@ COLOUR = re.compile(r"#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b")
 WINDOWS = ("window-normal", "window-normal-inactive")
 DIALOGS = ("dialog-normal", "dialog-normal-inactive")
 OPACITY = re.compile(r"\b((?:stop-)?opacity):[0-9.]+")
+# A chevron's colour by the state its element is drawn for: Colors.text.muted,
+# the text under the pointer or pressed, and the disabled text of the
+# kvconfig.
+CHEVRON = {"normal": "shade(0.7)", "focused": "foreground", "pressed": "foreground", "disabled": "shade(0.45)"}
+CHEVRON_STYLE = "fill:none;stroke:{{ %s }};stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round"
+# An arrowhead: an invisible 24 unit square, which is what Kvantum scales to
+# the indicator's size, then the filled head pointing up in it. The other
+# directions are <use>s turning these.
+ARROWHEAD = re.compile(
+    r'(<g id="(?P<id>(?:tarrow|flat-arrow)-up-\w+|menuitem-right-focused)"[^>]*>\s*'
+    r'<path style="opacity:0;[^"]*" d="m -607\.493,(?P<x>[0-9.]+) h 24 v 24 h -24 z" transform="rotate\(-90\)"/>\s*)'
+    r'<path style="[^"]*" d="[^"]*"/>')
+# The combo boxes' up-and-down arrow: its upper half, mirrored by a <use>.
+COMBO_ARROW = re.compile(
+    r'(<g id="carrow-(?P<state>normal|focused)"[^>]*>\s*<path style="opacity:0" d="m 178,518 v -24 h 24 v 24 z"/>\s*)'
+    r'<path style="[^"]*" (?P<id>id="path\d+") d="[^"]*"/>')
+STATES = ("normal", "focused", "pressed", "disabled")
 
 
 def rgb(value):
@@ -116,6 +139,31 @@ def rewrite(attrs, context):
     return COLOUR.sub(swap, attrs)
 
 
+def chevron(match):
+    state = match.group("id").rsplit("-", 1)[1]
+    x, y = float(match.group("x")) + 12, 595.493
+    d = "M %g,%g %g,%g %g,%g" % (x - 7, y + 3.5, x, y - 3.5, x + 7, y + 3.5)
+    return '%s<path style="%s" d="%s"/>' % (match.group(1), CHEVRON_STYLE % CHEVRON[state], d)
+
+
+def combo_chevron(match):
+    style = CHEVRON_STYLE % CHEVRON[match.group("state")]
+    return '%s<path style="%s" %s d="M 185,503 190,498 195,503"/>' % (match.group(1), style, match.group("id"))
+
+
+# Plain arrows (the breadcrumb's, spin boxes', tree expanders') are the
+# toolbar's; a menu's submenu arrow is pressed while its item is highlighted.
+def aliases():
+    uses = ['<use width="100%%" height="100%%" xlink:href="#tarrow-%s-%s" id="arrow-%s-%s"/>' % (d, s, d, s)
+            for d in ("up", "down", "left", "right") for s in STATES]
+    for d in ("right", "left"):
+        for s, source in (("normal", "arrow-%s-normal"), ("pressed", "menuitem-%s-focused"),
+                          ("disabled", "arrow-%s-disabled")):
+            uses.append('<use width="100%%" height="100%%" xlink:href="#%s" id="menuitem-%s-%s"/>'
+                        % (source % d, d, s))
+    return "\n".join(uses) + "\n"
+
+
 TAG = re.compile(r"<(/?)([A-Za-z][\w:.-]*)((?:[^>\"']|\"[^\"]*\"|'[^']*')*?)(/?)>", re.S)
 out, stack, ids, pos = [], [], [], 0
 for m in TAG.finditer(text):
@@ -138,6 +186,12 @@ for m in TAG.finditer(text):
             ids.append(found.group(1) if found else None)
     pos = m.end()
 out.append(text[pos:])
+svg = "".join(out)
+svg, heads = ARROWHEAD.subn(chevron, svg)
+svg, combos = COMBO_ARROW.subn(combo_chevron, svg)
+if (heads, combos) != (9, 2):
+    sys.exit("expected 9 arrowheads and 2 combo arrows in %s, found %d and %d" % (src, heads, combos))
+svg = svg.replace("</svg>", aliases() + "</svg>")
 
 HEADER = """{#- Rendered to ~/.config/Kvantum/Wallust/Wallust.svg: KvMojave's SVG with its
     colours put on the palette, written by scripts/kvantum-template.py. Edit a
@@ -145,4 +199,4 @@ HEADER = """{#- Rendered to ~/.config/Kvantum/Wallust/Wallust.svg: KvMojave's SV
 {%- from "palette.jinja" import shade, accent, selection -%}
 {%- from "appearance.jinja" import window_opacity -%}
 """
-open(dst, "w").write(HEADER + "".join(out))
+open(dst, "w").write(HEADER + svg)

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Apply a wallust theme to the shell and to every app template (kitty, nvim,
-# kdeglobals, Kvantum, qt6ct), then tell running apps. The shell's wallpaper app
-# (config/quickshell/wallpaper/) runs this with a theme; modules/start.lua runs
-# it bare at login.
+# kdeglobals, Kvantum, qt6ct, GTK), then tell running apps. The shell's
+# wallpaper app (config/quickshell/wallpaper/) runs this with a theme;
+# modules/start.lua runs it bare at login.
 #
 #     apply.sh                                 the last theme again, the same way
 #     apply.sh [--shell-only] THEME            a built-in (`wallust theme list`)
@@ -80,6 +80,9 @@ if ((!shell_only)); then
     # Dark or light, for everything that asks the desktop portal: GTK 4,
     # Electron, browsers, and Qt apps with a theme of their own on "automatic".
     gsettings set org.gnome.desktop.interface color-scheme "$(<"$HOME/.cache/wallust/color-scheme")" || true
+
+    # The Wallust GTK theme, named so that running GTK 3 apps load it again.
+    "$dir/gtk-theme.sh" || true
 fi
 
 mkdir -p "$(dirname "$state")"

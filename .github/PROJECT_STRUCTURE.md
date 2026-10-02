@@ -1067,6 +1067,8 @@ each step of a resize.
   reload brought the kept 10 back). The passes stay at 3. `BackdropProbe`'s
   blocks grow and shrink with it (`Style.backdrop.blockSize` is at size
   `blockBlurSize`, 6), so Adaptive measures what the blur actually averages.
+  Open apps follow at once: Dolphin's frames changed with each size (1, 8,
+  12; 2 October), if subtly over a soft wallpaper.
 - **PANELS Blur / Solid** is `Theme.blur`, which sets `Colors.base.opacity`
   for every shell surface at once: the bar, the dropdowns and popups, toasts,
   the OSD, the launcher and the app windows. Solid is opaque. Blur is frosted
@@ -1103,8 +1105,8 @@ each step of a resize.
   - **The line under the slider** says it in numbers: "At least 38% in dark
     themes, raised up to 72% where the wallpaper behind would make text hard
     to read: 42% now." Static says "38% in dark themes, whatever the wallpaper
-    behind." Both add "Kitty follows at once, Qt apps when next opened."
-    while themes apply to apps (below).
+    behind." Both add "Kitty and GTK 3 apps follow at once, Qt and GTK 4
+    apps when next opened." while themes apply to apps (below).
   - `BackdropProbe` keeps its screen's name from the start. An unplugged
     screen is null by the time its bar goes, so `clearBackdrop(screen.name)`
     used to throw there and leave that screen's backdrop in `Theme.backdrops`,
@@ -1118,16 +1120,21 @@ each step of a resize.
 
   It is on the Appearance page's Style tab.
 
-**Kitty and the Qt apps follow the glass** while themes apply to apps (APPLY
-TO "Shell and apps"). `services/AppTint.qml` gets `Colors.base.opacity` from
-a binding in `SettingsApp.qml` and, 150 ms after it last changed, runs
-`services/app-tint.sh`. The script records `background_opacity` in
-`$XDG_STATE_HOME/quickshell/tint.conf` (whole, through a rename), which
+**Kitty, the Qt apps and the GTK apps follow the glass** while themes apply
+to apps (APPLY TO "Shell and apps"). `services/AppTint.qml` gets
+`Colors.base.opacity` from a binding in `SettingsApp.qml` and, 150 ms after it
+last changed, runs `services/app-tint.sh`. The script records
+`background_opacity` in `$XDG_STATE_HOME/quickshell/tint.conf` (whole, through
+a rename), which
 `config/kitty/kitty.conf` includes last, for the windows kitty opens next, and
 which `config/wallust/appearance.py` reads when a theme is applied. It writes
 the value into the Kvantum SVG's window and dialog backgrounds, the four
 elements marked `class="tint"` (`.github/THEMING.md`, Translucency), for the
-Qt apps that start next. And it sends the value to the open kittys with
+Qt apps that start next; a running Qt app cannot take a new glass (THEMING.md,
+"What changes live"). It writes it into the GTK stylesheets' lines marked
+`/* glass */` and has `config/wallust/gtk-theme.sh` name the GTK theme anew,
+which running GTK 3 apps, the file dialogs' portal among them, load again at
+once (THEMING.md, "GTK apps"). And it sends the value to the open kittys with
 `kitten @ --to unix:$XDG_RUNTIME_DIR/kitty-<pid> set-background-opacity
 --all`. With APPLY TO on "Shell", the apps keep what they last had, as they
 keep the last colours. Solid makes them opaque too. `tests/app-tint-test.py`

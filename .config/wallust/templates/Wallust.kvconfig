@@ -11,7 +11,9 @@ left_tabs=false
 attach_active_tab=false
 embedded_tabs=true
 mirror_doc_tabs=false
-group_toolbar_buttons=true
+{# Flat until hovered, like the shell's buttons, rather than KvMojave's grey
+   segmented groups. -#}
+group_toolbar_buttons=false
 spread_progressbar=true
 composite=true
 menu_shadow_depth=7
@@ -306,11 +308,15 @@ text.margin.right=2
 [SizeGrip]
 indicator.element=resize-grip
 
+{# Toolbars and menu bars are the window's glass, as the shell's panels have
+   no bar of their own: KvMojave drew them opaque. -#}
 [Toolbar]
 inherits=PanelButtonCommand
 indicator.element=toolbar
 indicator.size=5
 text.margin=0
+interior=false
+frame=false
 interior.element=menubar
 frame.element=menubar
 text.normal.color={{ foreground }}
@@ -429,6 +435,8 @@ frame.expansion=0
 
 [MenuBar]
 inherits=PanelButtonCommand
+interior=false
+frame=false
 frame.element=menubar
 interior.element=menubar
 frame.expansion=0

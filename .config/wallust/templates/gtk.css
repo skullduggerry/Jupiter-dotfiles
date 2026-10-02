@@ -1,0 +1,68 @@
+{#- Rendered to ~/.config/gtk-4.0/gtk.css, which every GTK 4 app loads, and
+    included by gtk-3.0.css, the Wallust GTK 3 theme. libadwaita's named
+    colours, which adw-gtk3 (adw-gtk-theme) follows in GTK 3 too: the file
+    dialogs (xdg-desktop-portal-gtk), blueman, nm-connection-editor. See
+    .github/THEMING.md. -#}
+{%- from "palette.jinja" import shade, accent -%}
+{%- from "appearance.jinja" import window_opacity -%}
+/* Written by wallust from config/wallust/templates/gtk.css. */
+
+/* The glass: a window's background at the shell's tint, which Hyprland blurs
+   behind. services/app-tint.sh rewrites the lines marked glass. Every window
+   and dialog has the background class, and so do popovers, tooltips and the
+   windows menus open in (.popup), which keep their own colours. */
+.background:not(.popup):not(popover):not(tooltip) {
+    background-color: alpha({{ background }}, {{ window_opacity() }}); /* glass */
+}
+
+/* Everything inside a window shows its glass rather than lay a second tint
+   over it: the window's colour too, which toolbars, menu bars and tab bars
+   paint again. Transparent at the text's colour, not black's: GTK 3 mixes
+   without premultiplying, so the theme's mixes with these (a button, a
+   hovered row, an entry) come out as the text at low alpha, as the shell's
+   hovers and pills are. */
+@define-color window_bg_color alpha({{ foreground }}, 0);
+@define-color window_fg_color {{ foreground }};
+@define-color view_bg_color alpha({{ foreground }}, 0);
+@define-color view_fg_color {{ foreground }};
+@define-color headerbar_bg_color alpha({{ foreground }}, 0);
+@define-color headerbar_fg_color {{ foreground }};
+@define-color headerbar_border_color {{ foreground }};
+@define-color headerbar_backdrop_color alpha({{ foreground }}, 0);
+@define-color headerbar_shade_color {{ shade(0.354) }};
+@define-color headerbar_darker_shade_color {{ shade(0.354) }};
+@define-color sidebar_bg_color alpha({{ foreground }}, 0);
+@define-color sidebar_fg_color {{ foreground }};
+@define-color sidebar_backdrop_color alpha({{ foreground }}, 0);
+@define-color sidebar_border_color {{ shade(0.354) }};
+@define-color sidebar_shade_color {{ shade(0.354) }};
+@define-color card_bg_color alpha({{ foreground }}, 0.05);
+@define-color card_fg_color {{ foreground }};
+@define-color card_shade_color alpha(black, 0.36);
+@define-color thumbnail_bg_color alpha({{ foreground }}, 0.05);
+@define-color thumbnail_fg_color {{ foreground }};
+
+/* Menus, popovers and libadwaita's dialogs lie over the window's own content,
+   which no blur reaches: solid, as Kvantum's menus nearly are. */
+@define-color popover_bg_color {{ shade(0.06) }};
+@define-color popover_fg_color {{ foreground }};
+@define-color popover_shade_color alpha(black, 0.25);
+@define-color dialog_bg_color {{ shade(0.06) }};
+@define-color dialog_fg_color {{ foreground }};
+
+/* The Settings app's accent; red, green and yellow as kdeglobals has them. */
+@define-color accent_color {{ accent(0) }};
+@define-color accent_bg_color {{ accent(0) }};
+@define-color accent_fg_color {{ background }};
+@define-color destructive_color {{ color1 }};
+@define-color destructive_bg_color {{ color1 }};
+@define-color destructive_fg_color {{ background }};
+@define-color error_color {{ color1 }};
+@define-color error_bg_color {{ color1 }};
+@define-color error_fg_color {{ background }};
+@define-color success_color {{ color2 }};
+@define-color success_bg_color {{ color2 }};
+@define-color success_fg_color {{ background }};
+@define-color warning_color {{ color3 }};
+@define-color warning_bg_color {{ color3 }};
+@define-color warning_fg_color {{ background }};

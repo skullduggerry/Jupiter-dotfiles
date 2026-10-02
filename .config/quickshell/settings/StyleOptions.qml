@@ -14,7 +14,7 @@ Column {
     readonly property string tintText: {
         const least = root.percent(Colors.base.glassFloor);
         const themes = root.light ? "light themes" : "dark themes";
-        const apps = Theme.applyToApps ? " Kitty follows at once, Qt apps when next opened." : "";
+        const apps = Theme.applyToApps ? " Kitty and GTK 3 apps follow at once, Qt and GTK 4 apps when next opened." : "";
         if (!Theme.adaptiveTint)
             return `${least} in ${themes}, whatever the wallpaper behind.${apps}`;
         if (Colors.base.glassCeiling <= Colors.base.glassFloor)

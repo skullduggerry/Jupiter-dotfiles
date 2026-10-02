@@ -14,7 +14,8 @@ Scope {
         value: true
     }
 
-    // Kitty and the Qt apps follow the glass while themes apply to apps.
+    // Kitty, the Qt apps and the GTK apps follow the glass while themes apply
+    // to apps.
     Binding {
         target: AppTint
         property: "active"

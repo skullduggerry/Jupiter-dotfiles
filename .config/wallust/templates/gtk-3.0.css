@@ -1,0 +1,19 @@
+{#- Rendered to ~/.local/share/themes/Wallust/gtk-3.0/gtk.css, the GTK 3 theme
+    apply.sh names in gsettings: adw-gtk3, the libadwaita look for GTK 3 apps,
+    on the palette. A theme rather than ~/.config/gtk-3.0/gtk.css, which GTK 3
+    reads once per process: running apps load a theme again when it is named
+    (apply.sh, services/app-tint.sh), the file dialogs' long-running portal
+    included. -#}
+{%- from "palette.jinja" import scheme -%}
+{%- from "appearance.jinja" import window_opacity -%}
+@import url("file:///usr/share/themes/{{ "adw-gtk3" if scheme() == "light" else "adw-gtk3-dark" }}/gtk-3.0/gtk.css");
+{% include "gtk.css" %}
+/* GTK 3 draws a window's background below its title bar, not under it, so
+   the title bar needs the glass of its own: a header bar, or a box of them.
+   A header bar in selection mode keeps the accent. */
+headerbar.titlebar:not(.selection-mode),
+headerbar.titlebar:not(.selection-mode):backdrop,
+.titlebar:not(headerbar),
+.titlebar:not(headerbar):backdrop {
+    background-color: alpha({{ background }}, {{ window_opacity() }}); /* glass */
+}

@@ -4,7 +4,9 @@ kdeglobals.py merges without losing what KDE apps wrote.
 
 wallust only warns when a template fails to render and still exits 0, so a
 broken template would otherwise go unnoticed until the colours were wrong.
-Rendered into a temporary directory with -s, so no terminal is touched.
+Rendered into a temporary directory with -s, so no terminal is touched. The
+GTK stylesheets go through GTK's own parsers (PyGObject, which blueman brings),
+which skip what they cannot read with no more than a warning in the app.
 """
 import os
 import pathlib
@@ -27,6 +29,36 @@ failures = []
 def check(condition, message):
     if not condition:
         failures.append(message)
+
+
+GTK_PARSE = """
+import sys, gi
+gi.require_version("Gtk", sys.argv[1])
+from gi.repository import Gtk
+errors = []
+provider = Gtk.CssProvider()
+provider.connect("parsing-error", lambda p, section, error: errors.append(error.message))
+text = sys.stdin.read()
+try:
+    if hasattr(provider, "load_from_string"):
+        provider.load_from_string(text)
+    else:
+        provider.load_from_data(text.encode())
+except Exception:
+    pass
+print("\\n".join(errors))
+"""
+
+
+# What GTK's parser reports for a stylesheet; None without PyGObject or that
+# GTK. No display is needed to parse.
+def gtk_errors(version, text):
+    env = {k: v for k, v in os.environ.items() if k not in ("WAYLAND_DISPLAY", "DISPLAY")}
+    result = subprocess.run([sys.executable, "-c", GTK_PARSE, version], input=text, env=env,
+                            capture_output=True, text=True)
+    if result.returncode != 0:
+        return None
+    return [line for line in result.stdout.splitlines() if line]
 
 
 def find_wallust():
@@ -83,6 +115,22 @@ def test_templates(wallust):
                           f"{theme}: [Colors:View] has a value that is not R,G,B: {value}")
             if out["qt6ct"].exists():
                 check(f"icon_theme={icons}\n" in out["qt6ct"].read_text(), f"{theme}: qt6ct's icon theme is not {icons}")
+            variant = "adw-gtk3" if scheme == "light" else "adw-gtk3-dark"
+            for name, version in (("gtk3", "3.0"), ("gtk4-theme", "4.0")):
+                if out[name].exists():
+                    imports = re.findall(r'@import url\("file:///usr/share/themes/([^/]+)/gtk-(\d\.\d)/gtk\.css"\);',
+                                         out[name].read_text())
+                    check(imports == [(variant, version)], f"{theme}: {name} imports {imports}, not {variant}'s gtk-{version}")
+            # Windows' glass at appearance.jinja's default, and GTK 3's title bars'.
+            for name, count in (("gtk3", 2), ("gtk4", 1)):
+                if out[name].exists():
+                    glass = re.findall(r"alpha\(#[0-9A-Fa-f]{6}, ([0-9.]+)\); /\* glass \*/", out[name].read_text())
+                    check(glass == ["0.60"] * count, f"{theme}: {name}'s glass is {glass}, not {count} at 0.60")
+            # The repo's own CSS, not adw-gtk3's, which may not be installed here.
+            for name, version in (("gtk3", "3.0"), ("gtk4", "4.0")):
+                if out[name].exists():
+                    errors = gtk_errors(version, re.sub(r"(?m)^@import .*$", "", out[name].read_text()))
+                    check(not errors, f"{theme}: GTK {version} cannot read {name}: {errors}")
 
 
 def test_merge():

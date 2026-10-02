@@ -1,0 +1,6 @@
+{#- Rendered to ~/.local/share/themes/Wallust/gtk-4.0/gtk.css: GTK 4 apps
+    without libadwaita take the theme gsettings names, so this gives them
+    adw-gtk3's libadwaita look. Their colours, like every GTK 4 app's, come
+    from ~/.config/gtk-4.0/gtk.css (gtk.css). -#}
+{%- from "palette.jinja" import scheme -%}
+@import url("file:///usr/share/themes/{{ "adw-gtk3" if scheme() == "light" else "adw-gtk3-dark" }}/gtk-4.0/gtk.css");

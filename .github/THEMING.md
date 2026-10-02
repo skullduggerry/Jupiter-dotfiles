@@ -20,10 +20,14 @@ Settings → Appearance → Themes, or apply.sh by hand
         ├─ templates/qt6ct.conf       → ~/.config/qt6ct/qt6ct.conf                (Qt's style, icons, font)
         ├─ templates/Wallust.kvconfig → ~/.config/Kvantum/Wallust/Wallust.kvconfig (gitignored)
         ├─ templates/Wallust.svg      → ~/.config/Kvantum/Wallust/Wallust.svg      (gitignored)
+        ├─ templates/gtk-3.0.css      → ~/.local/share/themes/Wallust/gtk-3.0/gtk.css (GTK 3 apps)
+        ├─ templates/gtk-4.0.css      → ~/.local/share/themes/Wallust/gtk-4.0/gtk.css
+        ├─ templates/gtk.css          → ~/.config/gtk-4.0/gtk.css                 (GTK 4 apps' colours)
         └─ templates/color-scheme     → ~/.cache/wallust/color-scheme            (prefer-dark / prefer-light)
         │
         ├─ kdeglobals.py merges ~/.cache/wallust/kdeglobals into ~/.config/kdeglobals
-        └─ gsettings org.gnome.desktop.interface color-scheme ← color-scheme
+        ├─ gsettings org.gnome.desktop.interface color-scheme ← color-scheme
+        └─ gtk-theme.sh names the Wallust GTK theme (gsettings gtk-theme), see "GTK apps"
 
    then $XDG_STATE_HOME/wallust/theme: the theme's name, then "all" or "shell-only"
 ```
@@ -96,9 +100,12 @@ template render error is only a warning: wallust still exits 0.
 | Open terminals, kitty's included | at once, from the escape sequences (not with `--shell-only`) |
 | New kitty, Qt windows | at start, from the files above |
 | kitty's background opacity | at once, from the shell's glass tint, over each kitty's socket (not with "Shell"); see PROJECT_STRUCTURE.md, Wallpaper & Background |
-| Qt apps' window glass | at their next start, from Kvantum's SVG, which the shell rewrites when the tint changes (not with "Shell") |
+| Qt apps' window glass | at their next start, from Kvantum's SVG, which the shell rewrites when the tint changes (not with "Shell"); a running one cannot take it, below |
 | Running Qt apps, Dolphin included | colours and style at their next start, icons and font at once: see below |
-| GTK 4, Electron, browsers; Qt apps on an "automatic" theme of their own | dark or light at once, through the portal's `color-scheme` |
+| The blur behind any window | at once: it is Hyprland's |
+| GTK 3 apps, the file dialogs included | colours and glass at once: the theme is named anew (see "GTK apps") |
+| GTK 4 apps | colours and glass at their next start, dark or light at once |
+| Electron, browsers; Qt apps on an "automatic" theme of their own | dark or light at once, through the portal's `color-scheme` |
 | A running nvim | at once: `init.lua` watches `lua/colors.lua` and runs it again |
 
 **Running Qt apps keep their colours until they restart.** Outside Plasma
@@ -110,6 +117,25 @@ after a switch between dark and light an open Dolphin shows the new icons on
 the old colours until it is restarted. Restyling in place was
 plasma-integration's platform theme, which comes with Plasma itself (see
 "Packages").
+
+**Nor does a running Qt app take a new glass, and cannot.** Kvantum makes a
+window translucent when it first polishes it, and paints the background only
+of windows it made so. The one way left to make a running app read the SVG
+again is to rebuild the style in place: qt6ct's proxy style does, when the
+style it names changes (`kvantum` and `kvantum-dark` are both Kvantum here;
+`[KDE] widgetStyle=qt6ct-style` puts KDE apps on that proxy too). Tried on
+2 October against a Dolphin on a scratch config: the rebuilt Kvantum took the
+windows for ones the app had made translucent itself and painted no
+background, so the views went from alpha 107 (the 0.42 tint) to 0, the window
+see-through but for the toolbar and the text. Touching qt6ct's folder without
+changing the name rebuilds nothing (`Qt6CTProxyStyle::reloadSettings()`
+compares it). So kitty and GTK 3 apps follow the tint at once and Qt apps at
+their next start, as the line under the TINT slider says; a Dolphin that
+D-Bus started for `org.freedesktop.FileManager1` (`dolphin --daemon`, for a
+browser's "show in folder") keeps the glass it started with while it runs.
+The blur does reach open windows at once: Hyprland's `decoration:blur:size`
+changed Dolphin's frames as it changed (checked at 1, 8 and 12), if subtly
+over a soft wallpaper.
 
 **nvim** runs `lua/colors.lua` from `init.lua`, which was commented out until
 the template mapped the palette properly: it used to put the terminal's slots
@@ -279,6 +305,33 @@ Known and left alone: Dolphin's small status bar elides its text under Kvantum
 ("3 fil…(9 B)"), where Fusion shows "3 files (9 B)". It did so before the
 templates too.
 
+### Toolbars and arrows
+
+**Toolbars and menu bars are the window's glass, their buttons flat** (the owner,
+2 October: KvMojave's grey segmented button groups, on a black bar over a
+window of glass, looked out of place). `[Toolbar]` and `[MenuBar]` draw no
+interior or frame, so the window's background shows through (measured:
+Dolphin's toolbar at alpha 107, as its views, where it was 255), and with
+`group_toolbar_buttons=false` Kvantum frames an auto-raised tool button only
+when it is not in its normal state: hovered, pressed or checked.
+
+**Arrows are line chevrons**, as the shell draws them: Lucide's proportions,
+in `text.muted` (`shade(0.7)`), the text colour hovered or pressed, the
+disabled text disabled. `scripts/kvantum-template.py` draws them in place of
+KvMojave's filled arrowheads (`tarrow`, a tool button's menu arrow;
+`flat-arrow`; the combo boxes' `carrow`; a submenu's) and adds what KvMojave
+lacks: `arrow-*` (the breadcrumb's, spin boxes', tree expanders') and a
+submenu arrow's normal, pressed and disabled states. Kvantum draws an element
+a theme lacks from its own built-in theme, in that theme's grey, whatever the
+palette: Dolphin's breadcrumb arrow was `#b4b4b4`, and a highlighted menu
+entry, drawn in the pressed state, fell back the same way. Checked in Dolphin
+and in an offscreen gallery of the states (`QT_QPA_PLATFORM=offscreen`).
+
+Known and left alone: a checked tool button is KvMojave's light
+`tbutton-toggled` under the text colour, low in contrast on a dark palette;
+Dolphin's floating status bar is opaque, as Dolphin paints it in the window
+colour.
+
 ### Apps outside this
 
 - **KeePassXC is Qt 5** (2.7). qt6ct and Kvantum here are Qt 6 only, so it
@@ -288,6 +341,70 @@ templates too.
   theme on "Classic".
 - **Apps with a theme of their own** (PrismLauncher, OnlyOffice's bundled Qt)
   are not on this path at all.
+
+## GTK apps (the file dialogs, blueman)
+
+A browser's upload and download dialogs are xdg-desktop-portal-gtk's, a GTK 3
+process that runs from login (`hyprland-portals.conf` names it after
+Hyprland's own portal). blueman-manager and nm-connection-editor, which the
+quick settings' applet buttons open, and the applets' own prompts are GTK 3
+too; zenity is GTK 4 with libadwaita. Until 2 October nothing themed them, and
+GTK 3 drew its built-in Adwaita, light, whatever the palette.
+
+| Piece | Owns | Where |
+| --- | --- | --- |
+| `adw-gtk-theme` (adw-gtk3) | libadwaita's look for GTK 3, drawn with libadwaita's named colours | Jupiter-installer's `packages/core.txt` |
+| The Wallust GTK theme | GTK 3 apps' colours and glass; the look of GTK 4 apps without libadwaita | `templates/gtk-3.0.css`, `gtk-4.0.css`, rendered to `~/.local/share/themes/Wallust/` |
+| `~/.config/gtk-4.0/gtk.css` | every GTK 4 app's colours and glass, libadwaita's included, which ignores theme names | `templates/gtk.css` |
+| gsettings `gtk-theme` | which theme GTK 3 apps (and GTK 4 ones without libadwaita) load | `gtk-theme.sh` |
+
+**Why adw-gtk3.** GTK 3's built-in Adwaita draws with literal colours: its dark
+stylesheet uses colour literals 1215 times (107 different) and its named
+colours 3 times, and exports 36 of them for apps to read, not to recolour it
+by. adw-gtk3 draws with libadwaita's named colours (`@window_bg_color` alone
+225 times), and libadwaita 1.9 feeds its CSS variables from the same names
+(`--window-bg-color: @window_bg_color`), so the `@define-color`s of
+`templates/gtk.css` recolour both. `gtk-3.0.css` imports it as `adw-gtk3` or
+`adw-gtk3-dark` by `scheme()`, then includes `gtk.css`. The accent is the
+Settings app's, as in kdeglobals; its font is not passed on, as GTK's is
+gsettings' `font-name`, which Chromium-based browsers take for their own
+interface too.
+
+**The glass is one layer**, as in Kvantum. Every `.background` (each window
+and dialog, but not popovers, tooltips or the windows menus open in, `.popup`)
+is the background at the shell's tint, in the lines marked `/* glass */`,
+which `app-tint.sh` rewrites. Everything inside a window is transparent,
+the window's own colour included, which toolbars, menu bars and tab bars paint
+again: blueman's menu bar and toolbar were darker bands until it was.
+Transparent at the text's colour, not black's: GTK 3's `mix()` does not
+premultiply, and adw-gtk3 fills buttons and entries with `mix(fg, surface,
+0.9)`, which with transparent black came out as a dark smudge at half alpha
+(the file dialog's path bar); with the text's colour it is the text at 10%,
+as the shell's pills are. GTK 3 draws a window's background below a
+client-side title bar, not under it (measured: alpha 0 in the file dialog's
+header), so `gtk-3.0.css` gives title bars the glass of their own. Menus,
+popovers and libadwaita's dialogs are solid (`shade(0.06)`): they lie over the
+window's own content, which no blur reaches, and Kvantum's menus nearly are
+(90%).
+
+**Running GTK 3 apps load the theme again when it is named anew**, the portal
+among them, which otherwise kept the theme it started with until the next
+login. Naming the theme already named does nothing: dconf drops a write that
+changes nothing (measured: a repeated `gsettings set` sent no notification;
+only the first, from unset, did). So the theme has a second name,
+`Wallust-2`, a link to the same folder, and `gtk-theme.sh` names the one not
+in use: after `apply.sh` renders, and with `--reload` (only while one of the
+two is named, so a theme picked by hand stays) after `app-tint.sh` writes a
+tint. GTK 4 reads `~/.config/gtk-4.0/gtk.css` once per app, at start.
+
+Verified on 2 October on a workspace not shown, captured with `grim -T` (alpha
+kept): a GTK 3 file chooser and blueman-manager from a scratch theme, zenity's
+list (libadwaita), all glass at alpha 107 for a 0.42 tint, headers included; a
+running GTK 3 app re-tinted as the theme was renamed (107, 230, 76, 107); and
+the session's own portal, running since login, showing an `OpenFile` request
+in the theme after `apply.sh`. `tests/app-tint-test.py` and
+`tests/wallust-templates-test.py` (GTK's own parsers read the rendered CSS)
+cover the files.
 
 ## Hyprland blur rules
 
@@ -304,8 +421,9 @@ exactly this reason.
 
 ## Packages
 
-Required: `dolphin`, `qt6-wayland`, `qt6ct`, `kvantum` and `breeze-icons`, all
-in Jupiter-installer's `packages/core.txt`, which its phase 2 installs. Nothing
+Required: `dolphin`, `qt6-wayland`, `qt6ct`, `kvantum`, `breeze-icons` and
+`adw-gtk-theme`, all in Jupiter-installer's `packages/core.txt`, which its
+phase 2 installs. Nothing
 from Plasma: `plasma-integration` needs `xdg-desktop-portal-kde`, which needs
 `plasma-workspace`, and with it KWin and 66 packages more, and adds a Plasma
 session to the login screen.

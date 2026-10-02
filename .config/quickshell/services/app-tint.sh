@@ -5,7 +5,8 @@
 # reads it when a theme is applied. Kvantum's SVG gets it where windows and
 # dialogs are drawn, for the Qt apps that start next, and the open kittys are
 # sent it over their sockets ($XDG_RUNTIME_DIR/kitty-<pid>), which take no
-# other command without a password. Run by AppTint.
+# other command without a password. The GTK themes get it too, and the GTK 3
+# apps that are running load theirs again. Run by AppTint.
 set -uo pipefail
 
 state=${XDG_STATE_HOME:-$HOME/.local/state}/quickshell
@@ -17,6 +18,13 @@ mv "$state/tint.conf.new" "$state/tint.conf"
 # The elements scripts/kvantum-template.py marks class="tint", one per line.
 svg=$HOME/.config/Kvantum/Wallust/Wallust.svg
 [[ -f $svg ]] && sed -i -E "/class=\"tint\"/ s/(opacity:)[0-9.]+/\1$1/" "$svg"
+
+# The lines config/wallust/templates/gtk.css marks glass, in the GTK 3 theme
+# and in every GTK 4 app's stylesheet, as wallust.toml renders them.
+for css in "$HOME/.local/share/themes/Wallust/gtk-3.0/gtk.css" "$HOME/.config/gtk-4.0/gtk.css"; do
+    [[ -f $css ]] && sed -i -E "/\/\* glass \*\// s/(alpha\(#[0-9A-Fa-f]{6}, )[0-9.]+\)/\1$1)/" "$css"
+done
+"$(dirname "$(readlink -f "$0")")/../../wallust/gtk-theme.sh" --reload
 
 for socket in "$XDG_RUNTIME_DIR"/kitty-*; do
     # A kitty that crashed leaves its socket behind.
