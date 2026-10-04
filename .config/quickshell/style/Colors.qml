@@ -179,6 +179,14 @@ QtObject {
     }
     readonly property OverlayColors overlay: OverlayColors {}
 
+    // Left Ctrl tapped twice (cursor/): the overlay's scrim, darker, over
+    // everything but the pointer's circle, ringed in the accent.
+    component CursorFinderColors: QtObject {
+        readonly property color scrim: root.withAlpha(root.overlay.scrim, 0.55)
+        readonly property color ring: root.accent.primary
+    }
+    readonly property CursorFinderColors cursorFinder: CursorFinderColors {}
+
     component PillColors: QtObject {
         readonly property color idle: root.withAlpha(root.palette.foreground, 0.05)
         readonly property color selected: root.withAlpha(root.palette.foreground, 0.14)

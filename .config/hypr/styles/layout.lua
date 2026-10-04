@@ -65,6 +65,18 @@ hl.layer_rule({
     no_anim = true,
 })
 hl.layer_rule({
+    name = "qs-shortcuts-blur",
+    match = { namespace = "^quickshell:shortcuts$" },
+    blur = true,
+    no_anim = true,
+})
+-- Not blurred: what is around the pointer is the point.
+hl.layer_rule({
+    name = "qs-cursorfinder",
+    match = { namespace = "^quickshell:cursorfinder$" },
+    no_anim = true,
+})
+hl.layer_rule({
     name = "qs-popup-blur",
     match = { namespace = "^quickshell:.*-popup$" },
     blur = true,

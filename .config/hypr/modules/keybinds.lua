@@ -1,3 +1,4 @@
+local cursor = require("modules.cursor")
 local vars = require("modules.vars")
 local workspaces = require("modules.workspaces")
 -- Every bind carries a description: hyprctl binds reports Lua binds only as a
@@ -55,6 +56,10 @@ hl.bind(vars.mainMod .. " + G", hl.dsp.group.toggle(), { description = "Group or
 hl.bind(vars.mainMod .. " + S", hl.dsp.workspace.toggle_special("magic"), { description = "Show or hide the scratchpad" })
 hl.bind(vars.mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" }), { description = "Move the window to the scratchpad" })
 hl.bind(vars.mainMod .. " + Tab", hl.dsp.global("quickshell:overview"), { description = "Show every workspace" })
+hl.bind(vars.mainMod .. " + slash", hl.dsp.global("quickshell:shortcutsToggle"), { description = "Show the keyboard shortcuts" })
+-- Left Ctrl tapped twice shows where the pointer is (modules/cursor.lua),
+-- seen on the release and passed on to the window, so Ctrl stays Ctrl.
+hl.bind("Control_L", cursor.tap, { release = true, non_consuming = true, ignore_mods = true, description = "Find the pointer (tap twice)" })
 -- Workspace 1 to 9 of the focused monitor, i.e. the one the pointer is on.
 for number = 1, 9 do
   hl.bind(vars.mainMod .. " + " .. number, function() workspaces.focus(number) end, { description = "Go to that workspace" })

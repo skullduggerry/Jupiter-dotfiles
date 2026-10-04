@@ -4,7 +4,9 @@ singleton Brightness 1.0 Brightness.qml
 singleton CalendarService 1.0 CalendarService.qml
 singleton DisplayChange 1.0 DisplayChange.qml
 singleton DropdownState 1.0 DropdownState.qml
+singleton Keybinds 1.0 Keybinds.qml
 singleton KeyboardLayout 1.0 KeyboardLayout.qml
+singleton Keymap 1.0 Keymap.qml
 singleton LauncherHistory 1.0 LauncherHistory.qml
 singleton LockService 1.0 LockService.qml
 singleton Media 1.0 Media.qml

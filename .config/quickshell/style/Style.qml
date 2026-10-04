@@ -259,6 +259,33 @@ QtObject {
     }
     readonly property OverviewStyle overview: OverviewStyle {}
 
+    // SUPER+/'s shortcuts overlay: its sections in columns this wide, as many
+    // as fit up to `columns`, `margin` from the screen's edges, and the
+    // keyboard at `keySize` a key, down to `keyLeast` on a short screen; a
+    // legend too big for its key shrinks, down to `legendLeast`. A search or
+    // a key under the pointer fades the binds that do not match to `faded`.
+    component ShortcutsStyle: QtObject {
+        readonly property int columnWidth: 380
+        readonly property int columns: 3
+        readonly property int margin: 48
+        readonly property int keySize: 36
+        readonly property int keyLeast: 26
+        readonly property int legendLeast: 7
+        readonly property real faded: 0.35
+    }
+    readonly property ShortcutsStyle shortcuts: ShortcutsStyle {}
+
+    // Left Ctrl tapped twice: every screen dims but a circle of `radius`
+    // around the pointer, ringed `ring` wide, which closes in from `zoomFrom`
+    // times its size over `zoom` ms as it appears.
+    component CursorFinderStyle: QtObject {
+        readonly property int radius: 80
+        readonly property int ring: 2
+        readonly property real zoomFrom: 6
+        readonly property int zoom: 450
+    }
+    readonly property CursorFinderStyle cursorFinder: CursorFinderStyle {}
+
     // The bar's shelf (panels/ShelfPanel): an image's row shows it this high,
     // and a text file is previewed up to this size.
     component ShelfStyle: QtObject {

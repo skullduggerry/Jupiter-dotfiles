@@ -12,7 +12,8 @@ Installed: **Quickshell 0.3.1**, **Hyprland 0.56.2**, Arch Linux, Qt 6.
 ```
 config/quickshell/
 ├── shell.qml              Entry point: Bar, Dropdown, Launcher, Lock, Toasts,
-│                          Osd, Overview and the Settings app.
+│                          Osd, Overview, Shortcuts, CursorFinder and the
+│                          Settings app.
 ├── style/                 Colors.qml, Style.qml — every colour and dimension —
 │                          Theme.qml, the palette Colors derives from, and
 │                          LockLook.qml, the lock and login screens' choices.
@@ -23,7 +24,8 @@ config/quickshell/
 ├── services/              Singletons: data sources + cross-surface state.
 │                          BarLayout, Brightness,
 │                          CalendarService (+ nextcloud-calendar.py),
-│                          DisplayChange, DropdownState, KeyboardLayout,
+│                          DisplayChange, DropdownState, Keybinds,
+│                          KeyboardLayout, Keymap (+ keymap.py),
 │                          AppTint (+ app-tint.sh), LauncherHistory,
 │                          LockService, Media,
 │                          NotificationService, OsdState, PopupAreas, PowerButton,
@@ -45,7 +47,9 @@ config/quickshell/
 │                          switches), TextButton (a word or glyph to click),
 │                          SliderRow and VolumeRow, DetailRow, PanelSlider,
 │                          InputField, WallpaperCard, AppletButton (a header's
-│                          way out to blueman and friends).
+│                          way out to blueman and friends), KeybindRow and
+│                          KeyCap (a bind and its keys, as the Keybinds page
+│                          and the shortcuts overlay list them).
 ├── bar/                   Bar.qml (a PanelWindow per screen) with the full
 │   │                      BarContent.qml on the main screen and
 │   │                      SmallBarContent.qml on the others, BarDrawer.qml
@@ -65,6 +69,10 @@ config/quickshell/
 ├── lock/                  Lock.qml (WlSessionLock) + LockSurface.qml (per monitor).
 ├── overview/              Overview.qml (SUPER+Tab: scope, keys, a window per
 │                          screen) + WorkspacePreview.qml (one workspace's tile).
+├── shortcuts/             Shortcuts.qml (SUPER+/: scope, IPC, shortcut, window),
+│                          ShortcutsContent.qml (the panel) + KeyboardView.qml
+│                          (the keyboard it draws).
+├── cursor/                CursorFinder.qml (Left Ctrl twice: the spotlight).
 └── settings/              SettingsApp.qml (scope/IPC/shortcuts/window) +
                            SettingsContent.qml (sidebar, page host), the pages
                            (Appearance with its tabs StyleOptions, WallpaperGrid
@@ -73,7 +81,7 @@ config/quickshell/
                            About), the
                            parts they share (Card, PanelCard, ScrollPage,
                            Section, FormCard, FormRow, ActionRow, ChoiceField,
-                           KeyCap, ThemeCard)
+                           ThemeCard)
                            and their helpers: displays.py, autostart.py,
                            startup-list.lua.
 ```
@@ -81,9 +89,9 @@ config/quickshell/
 ## Import graph
 
 `style/` and `services/` are leaves — they import nothing from this project.
-`panels/` imports those two only. `bar/`, `dropdown/`, `launcher/`, `lock/`,
-`notifications/`, `osd/` and `settings/` sit on top and may import any of the
-three. It is a DAG, deliberately:
+`panels/` imports those two only. `bar/`, `cursor/`, `dropdown/`, `launcher/`,
+`lock/`, `notifications/`, `osd/`, `overview/`, `settings/` and `shortcuts/`
+sit on top and may import any of the three. It is a DAG, deliberately:
 
 - **Shared state goes down into `services/`.** `DropdownState` and `LockService`
   live there because the bar's clock and workspace dots open dropdown zones and
@@ -1336,13 +1344,16 @@ points to; 100 layouts and 500 variants), by name or as XKB writes it,
 `de(nodeadkeys)`. Its entry has the keyboard glyph the bar's layout shows, so
 Keybinds has Lucide's command glyph instead.
 
-**Keybinds** is `hyprctl binds -j`, read again on `configreloaded`. Hyprland
+**Keybinds** lists `services/Keybinds` in `KeybindRow`s, as the shortcuts
+overlay does: `hyprctl binds -j`, read again on `configreloaded`. Hyprland
 reports a Lua bind only as `__lua` and a callback number, so the names are the
 `description` every bind in `config/hypr/modules/keybinds.lua` carries (the
 wiki's way, `hl.bind(keys, action, { description = "…" })`). Binds with the
 same description, modifiers and submap are one row, the keys side by side or a
 run of digits as a range (SUPER + 1–9); an undescribed bind shows as "No
-description". "Edit keybinds.lua" opens it with `xdg-open`, detached
+description", a bind on a keycode has `code:N` for its key. A key is labelled
+as the key it is on says in the layout in use (`Keymap.label`; see "The
+shortcuts overlay"). "Edit keybinds.lua" opens it with `xdg-open`, detached
 (`Quickshell.execDetached`), since a `Process` child dies with its page.
 
 **Startup** has two lists. STARTED BY HYPRLAND is `config/hypr/modules/startup.lua`,
@@ -1639,6 +1650,88 @@ names Wayland's `Toplevel` without depending on its module.
 `scripts/quickshell-types.py` now adds such cross-module `depends` lines to its
 copy of the qmldirs.
 
+## The shortcuts overlay
+
+**SUPER+/** (the `shortcutsToggle` `GlobalShortcut`; `qs ipc call shortcuts
+toggle|open|close`) shows Hyprland's binds over the focused screen: the
+Settings app's Keybinds page as an overview, from the same `services/Keybinds`,
+so the two cannot drift. A `PanelWindow` like the launcher's (scrim,
+`OnDemand` keyboard, over the bars, its own blur rule with `no_anim`); the
+panel is built while open. Escape, a click beside it or the shortcut closes.
+
+- **Sections** are found, not configured: a bind goes to the first of
+  WORKSPACES, MONITORS, SCREENSHOTS, WINDOWS with one of that section's words
+  in its description, else GENERAL; one whose keys are all XF86 to HARDWARE
+  KEYS. The order matters ("Move the window to that workspace" is a workspace
+  bind). Sections come in the order keybinds.lua first has one, each into the
+  column shortest so far, up to `Style.shortcuts.columns` of them.
+- **A search fades, it does not filter**: rows that do not match drop to
+  `Style.shortcuts.faded` and the layout stays put (filtering re-balanced the
+  columns and resized the panel at every keystroke). It selects the first
+  match; Up/Down/Tab walk the matches in reading order, hovering selects.
+- **The keyboard** (`KeyboardView`) is a tenkeyless board in the layout in use,
+  the selected bind's keys in the accent and every key some bind is pressed
+  with tinted, modifiers included: a modifier is its left key
+  (`Keybinds.modifiers`), so what is tinted is what can light up. The key
+  under the pointer is lit too and fades the binds that do not use it; the
+  line above the board names the selection, or the binds on the key, or else
+  says what the tint means. Keys the board has no place for (media and power
+  keys) get a row of their own above it, with Lucide glyphs where it has one.
+  On a short screen the board shrinks, down to `keyLeast` a key, before the
+  sections scroll.
+- **What a key says comes from xkbcommon**: `services/Keymap` runs
+  `keymap.py` with Hyprland's layouts, rules, model and options, which prints
+  every key's symbols and text at levels one and two for each layout (de: ß ?,
+  dead keys as their accent, Y and Z swapped, AltGr). It runs again when the
+  layouts change and on `configreloaded`; switching layouts needs no new run.
+  `tests/keymap-test.py` runs it against xkbcommon with a stand-in hyprctl.
+  **A bind's key is looked up in the first layout**, as Hyprland does while
+  `input:resolve_binds_by_sym` is off (its default; `m_xkbTranslationState`
+  is the whole keymap at layout 0), so on us,de with de in use SUPER + slash is
+  the key de labels `-`, and the overlay and the Keybinds page both say
+  `SUPER -`. With the option on, the layout in use is the one looked in.
+- **ISO or ANSI is the layout's**, since nothing reports the hardware: ISO
+  when the key left of Z (`LSGT`) types something no other key does (`<` on
+  de, gb's `\`, not us's `<`, which is Shift and comma). ISO draws that key
+  and a two-row Enter, met by a Tab a quarter wider than a real one.
+
+## The cursor finder
+
+**Left Ctrl tapped twice** shows where the pointer is, as PowerToys' Find My
+Mouse does: every screen dims (`Colors.cursorFinder.scrim`) but a circle
+around the pointer, which closes in from `Style.cursorFinder.zoomFrom` times
+its size and follows the pointer until a key is pressed or the pointer has
+rested `rest` (500 ms) after moving, or `linger` (2 s) if it never moved.
+Over a fullscreen window (a game) it does nothing.
+
+- **Hyprland sees the taps** (`config/hypr/modules/cursor.lua`). A
+  `hl.on("input.keyboard.key")` hook gets every key event of every keyboard,
+  before binds, as (xkb keycode, ms, state). A tap is a press and a release
+  with no other key between them, so Ctrl + C then Ctrl + V is none; the two
+  presses come within `doubleTap` (400 ms) and the pointer moves at most
+  `slop` (8 px) between them. A release bind on `Control_L` (`non_consuming`,
+  `ignore_mods`) does the counting, so Ctrl reaches the window as always and
+  the Keybinds page and the overlay list it ("Find the pointer (tap twice)").
+  A release bind alone would count Ctrl + C: Hyprland does not check for keys
+  between a modifier's press and release.
+- **The shell takes no input**: `cursor/CursorFinder.qml` is a window per
+  screen with an empty mask and no keyboard, so a click lands where it would
+  have and nothing is typed into it. Hyprland says where the pointer is:
+  `hl.dsp.event()` posts `custom>>cursorfinder show|move X Y` and `… hide`
+  on the event socket, read through `Hyprland.rawEvent`, with a repeating
+  `hl.timer` reading `hl.get_cursor_pos()` every 8 ms while it shows. The
+  timer is made on first use; a config reload drops it before it could say
+  hide, so `configreloaded` hides the spotlight in the shell as well.
+- **The hole** is the inside of a `Rectangle` border wider than the window
+  (`reach`, out to its far corner), so the circle can sit across two screens.
+  It is not blurred (its layer rule only has `no_anim`): Hyprland's blur
+  washed out what is around the pointer, which is the point.
+- Tested in a nested Hyprland with a virtual keyboard and pointer: the double
+  tap, Ctrl + C then Ctrl + V, slow taps, a key between, the pointer moved
+  between the taps, a fullscreen window, Ctrl + A still selecting in a field,
+  following a glide (an update every 8 ms), rest and any-key hiding, two
+  outputs, and a config reload while it showed.
+
 ## Workspaces per monitor
 
 Every monitor numbers its own workspaces from 1, and none exist in advance.
@@ -1758,10 +1851,27 @@ call site — 42 of them for a month grid; `CalendarPanel.dotColours()` logged 7
 every time the calendar opened until 27 September, after Qt 5's qmlformat had
 cut its `: list<color>` down to `: list`. A function with no annotation at all
 is plain JavaScript and logs nothing, which is why `dotColours(day)`,
-`modifierNames(mask)`, `DisplaysPage.rule()` and `landing()` have none.
+`DisplaysPage.rule()`, `landing()` and `KeyboardView.layout()` have none.
 
 **`state` is taken.** Every `Item` has a `state` (its `States`), so a page's own
 `property var state` clashes; the Displays page calls it `selectedState`.
+`top` is taken too (final in `QQuickItem`), and qmllint says so.
+
+**A delegate over a JS array holds a copy of its element.** A `Repeater`
+whose model is an array of objects gives each delegate a converted copy, so
+`===` and `includes()` against the original objects are false, silently: the
+shortcuts overlay's selection highlighted nothing and every row stayed faded
+until rows were compared by `Keybinds`' `index`. Measured with nested
+Repeaters in `qml` on Qt 6.11.2, both with literal arrays and arrays set
+from JavaScript.
+
+**Qt 6.11's JavaScript has holes.** `Array.prototype.flat()` and `flatMap()`
+do not exist (TypeError at the binding; spread into `concat` instead). And
+array destructuring inside a loop fills a missing element from the previous
+turn rather than from its default: `const [name, width = 1] = entry` over
+`[["A"], ["B", 2], ["C"]]` gave C the width 2, and `const [, action, x] =
+text.split(" ")` kept the last turn's `x`. Index the array instead
+(`entry[1] ?? 1`). Both measured with `qml` on Qt 6.11.2.
 
 **A `Binding` destroyed with its object leaves its target as it is.** It only
 restores when `when` turns false. A Settings page is destroyed when you leave
@@ -2028,11 +2138,14 @@ qs ipc call lock lock                  # no unlock IPC exists, by design
 qs ipc call lock locked
 qs ipc call settings toggle            # also open, close, openPage appearance
 qs ipc call settings openPage keybinds # keyboard, displays, sound, wallpaper, …
+qs ipc call shortcuts toggle           # also open, close
+hyprctl dispatch 'hl.dsp.event("cursorfinder show 960 540")'  # then "… hide"
 ~/.config/wallust/apply.sh Nord        # the shell follows; see Themes
 ```
 
 `SUPER+R` (launcher), `SUPER+L` (lock), `SUPER+B` (bar drawer), `SUPER+W`
-(Settings on the Wallpapers tab), `SUPER+I` (Settings), `SUPER+X` and
+(Settings on the Wallpapers tab), `SUPER+I` (Settings), `SUPER+/`
+(`shortcutsToggle`), `SUPER+X` and
 `SUPER+SHIFT+V` (`shelfToggle`, `shelfPaste`), `SUPER+SPACE`
 (`keyboardLayout`), the media keys (`mediaPlayPause`, `mediaNext`,
 `mediaPrevious`) and the power button (the power menu) are `GlobalShortcut`s
@@ -2079,7 +2192,8 @@ and does nothing; `/usr/share/hypr/stubs/hl.meta.lua` lists the dispatchers.
   Record `wf-recorder` and `xdg-user-dir`; both run under `setpriv`.
 - The Settings app's Startup page runs `lua` (the `lua` package, which Hyprland
   depends on) and `python3`, as do Displays (`python3`, `hyprctl`) and Network
-  (`nmcli`, NetworkManager's). Kept monitor rules are
+  (`nmcli`, NetworkManager's). `services/keymap.py` loads `libxkbcommon.so.0`
+  (Hyprland's own dependency) through ctypes. Kept monitor rules are
   `$XDG_STATE_HOME/quickshell/monitors.{json,lua}`, kept keyboard layouts
   `keyboard.lua` and the blur's size `blur.lua` beside them; nothing is kept
   until a change is made there.
