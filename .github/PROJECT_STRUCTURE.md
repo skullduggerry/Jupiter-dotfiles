@@ -929,7 +929,9 @@ USD`), goes to **qalc** (`libqalculate`), and its answer is a row above the
 apps; Enter or a click copies it with qalc's `−` as `-` and closes. Without
 the gate, every app name would be a sum: qalc reads `firefox` as `0 B`. An
 answer that only repeats the sum (`3/0`) is not shown. Output follows
-`~/.config/qalculate/qalc.cfg` (mixed units: `3 mi + 188 yd + …`).
+`.config/qalculate/qalc.cfg` (mixed units: `3 mi + 188 yd + …`), which is in
+the repo so every machine answers alike; `qalc -t` never writes it, but an
+interactive `qalc` saves its settings there on exit.
 
 **The command is set where the process starts, not bound.** `onExpressionChanged`
 runs before a `command` binding on the same property has followed it, so the
