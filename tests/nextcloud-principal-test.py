@@ -58,8 +58,8 @@ check("encoded principal",
       "Jane%20Doe")
 
 check("no trailing slash",
-      helper.principal_id(multistatus("/remote.php/dav/principals/users/alice")),
-      "alice")
+      helper.principal_id(multistatus("/remote.php/dav/principals/users/jane")),
+      "jane")
 
 # Missing property must fall back, not raise or return a stray path segment.
 check("property absent", helper.principal_id(multistatus(None)), "")
