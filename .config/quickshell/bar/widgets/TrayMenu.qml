@@ -15,7 +15,7 @@ WidgetPopup {
     function openAt(menu: QsMenuHandle, anchor: Item) {
         root.menuStack = [menu];
         root.anchorItem = anchor;
-        root.visible = true;
+        root.open = true;
     }
 
     function enterSubmenu(entry: QsMenuEntry) {
@@ -118,7 +118,7 @@ WidgetPopup {
                         return;
                     }
                     entryRow.modelData.triggered();
-                    root.visible = false;
+                    root.open = false;
                 }
             }
         }

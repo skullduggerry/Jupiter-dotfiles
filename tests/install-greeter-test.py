@@ -133,7 +133,7 @@ def main() -> int:
         check("script succeeds without a wallpaper", run.returncode == 0, run.stderr.strip())
         check("no wallpaper installed", not (dest / "quickshell/wallpaper.jpg").exists())
 
-        # The Lock & Login page's choices: an image of its own for the login
+        # The Lock Screen tab's choices: an image of its own for the login
         # screen, then none, each with the choices installed beside it and the
         # image they came from, which that page compares with its own.
         own = tmp / "login.png"

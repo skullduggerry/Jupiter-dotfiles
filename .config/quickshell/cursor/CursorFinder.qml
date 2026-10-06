@@ -8,7 +8,7 @@ import Quickshell.Wayland
 
 // Where the pointer is, when Left Ctrl is tapped twice: every screen dims but
 // a circle around the pointer, which closes in on it and then follows it.
-// config/hypr/modules/cursor.lua sees the taps and says where the pointer
+// .config/hypr/modules/cursor.lua sees the taps and says where the pointer
 // goes, in custom events ("cursorfinder show X Y", "… move X Y", "… hide"),
 // so this takes no input at all: clicks and keys go where they always would.
 Scope {

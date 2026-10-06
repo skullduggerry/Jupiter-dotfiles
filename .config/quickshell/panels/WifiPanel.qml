@@ -77,11 +77,13 @@ PanelFrame {
         }
     }
 
+    // Only a shown panel touches the scanner: the pagers build every page up
+    // front, and an unseen one turned it off under a shown one.
     Binding {
         target: root.device
         property: "scannerEnabled"
-        value: root.active
-        when: root.device !== null
+        value: true
+        when: root.active && root.device !== null
     }
 
     Item {

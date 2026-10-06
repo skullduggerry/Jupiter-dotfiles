@@ -35,7 +35,7 @@ Item {
 
     MouseArea {
         anchors.fill: parent
-        onClicked: usagePopup.visible = !usagePopup.visible
+        onClicked: usagePopup.open = !usagePopup.open
     }
 
     WidgetPopup {

@@ -12,7 +12,6 @@ import Quickshell.Io
 PanelFrame {
     id: root
 
-    readonly property bool wantsKeyboard: true
     readonly property string statusText: Shelf.error !== "" ? Shelf.error : Shelf.synced ? "" : "Only on this machine: no Nextcloud folder found"
     readonly property list<string> imageSuffixes: ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"]
     readonly property list<string> textSuffixes: ["txt", "md"]

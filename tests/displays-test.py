@@ -2,7 +2,7 @@
 """The Settings app's monitor helper, and monitors.lua picking up what it kept.
 
 `apply` has to hand hyprctl Lua that hl.monitor takes, `save` has to leave a
-file that config/hypr/modules/monitors.lua applies after its own rules (the
+file that .config/hypr/modules/monitors.lua applies after its own rules (the
 newest matching rule is the one Hyprland uses), and bad input must never reach
 either. monitors.lua runs under plain lua with a stand-in `hl` that records
 its calls; hyprctl is a stand-in on PATH that records what it was asked.

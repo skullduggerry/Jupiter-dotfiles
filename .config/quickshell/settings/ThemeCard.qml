@@ -6,7 +6,7 @@ import QtQuick
 Rectangle {
     id: root
 
-    // One entry of config/wallust/palettes.py's output.
+    // One entry of .config/wallust/palettes.py's output.
     required property var modelData
     readonly property var colours: root.modelData.palette
     readonly property bool applied: Theme.theme === root.modelData.name

@@ -26,12 +26,12 @@ Item {
 
     MouseArea {
         anchors.fill: parent
-        onClicked: shelfPopup.visible = !shelfPopup.visible
+        onClicked: shelfPopup.open = !shelfPopup.open
     }
 
     Connections {
         function onToggleRequested() {
-            shelfPopup.visible = !shelfPopup.visible;
+            shelfPopup.open = !shelfPopup.open;
         }
 
         target: Shelf
@@ -55,7 +55,7 @@ Item {
             onLoaded: (panel.item as ShelfPanel).focusNote()
 
             sourceComponent: ShelfPanel {
-                onPicked: shelfPopup.visible = false
+                onPicked: shelfPopup.open = false
             }
         }
     }

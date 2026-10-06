@@ -5,7 +5,7 @@
     .github/THEMING.md. -#}
 {%- from "palette.jinja" import shade, accent -%}
 {%- from "appearance.jinja" import window_opacity -%}
-/* Written by wallust from config/wallust/templates/gtk.css. */
+/* Written by wallust from .config/wallust/templates/gtk.css. */
 
 /* The glass: a window's background at the shell's tint, which Hyprland blurs
    behind. services/app-tint.sh rewrites the lines marked glass. Every window

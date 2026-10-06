@@ -6,10 +6,10 @@ import Quickshell.Hyprland
 import Quickshell.Io
 
 // Hyprland's binds as it has them loaded (`hyprctl binds`), named by the
-// descriptions config/hypr/modules/keybinds.lua gives them: Lua binds report
+// descriptions .config/hypr/modules/keybinds.lua gives them: Lua binds report
 // no more than a callback number. Binds sharing a description and modifiers
 // are one row (SUPER + 1–9), and a config reload reads them again. The
-// Settings app's Keybinds page and the shortcuts overlay show them.
+// Settings app's Keybinds tab and the shortcuts overlay show them.
 Singleton {
     id: root
 

@@ -32,11 +32,11 @@ Singleton {
             root.select((root.index + 1) % root.layouts.length);
     }
 
-    // Kept on this machine for config/hypr/modules/keybinds.lua, which applies
+    // Kept on this machine for .config/hypr/modules/keybinds.lua, which applies
     // it at every start, and applied now, staying on the layout in use.
     function setLayouts(codes: list<string>, variants: list<string>) {
         const input = `{ kb_layout = ${JSON.stringify(codes.join(","))}, kb_variant = ${JSON.stringify(variants.join(","))} }`;
-        kept.setText(`-- Written by the shell (config/quickshell/services/KeyboardLayout.qml).\nreturn ${input}\n`);
+        kept.setText(`-- Written by the shell (.config/quickshell/services/KeyboardLayout.qml).\nreturn ${input}\n`);
         applier.keep = Math.max(0, codes.findIndex((code, position) => code === root.codes[root.index] && variants[position] === root.variants[root.index]));
         applier.command = ["hyprctl", "eval", `hl.config({ input = ${input} })`];
         applier.running = true;

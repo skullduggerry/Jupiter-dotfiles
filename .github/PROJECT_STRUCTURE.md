@@ -1,6 +1,6 @@
 # Project structure — agent reference
 
-Working notes for Claude Code sessions on `config/quickshell/`. Rules for how
+Working notes for Claude Code sessions on `.config/quickshell/`. Rules for how
 to write code here live in `.github/llm.md`; this file is the map and the list
 of things that have already cost a bug. Colour, wallust templating and
 Qt/KDE theming are in `.github/THEMING.md`.
@@ -10,7 +10,7 @@ Installed: **Quickshell 0.3.1**, **Hyprland 0.56.2**, Arch Linux, Qt 6.
 ## Layout
 
 ```
-config/quickshell/
+.config/quickshell/
 ├── shell.qml              Entry point: Bar, Dropdown, Launcher, Lock, Toasts,
 │                          Osd, Overview, Shortcuts, CursorFinder and the
 │                          Settings app.
@@ -24,7 +24,8 @@ config/quickshell/
 ├── services/              Singletons: data sources + cross-surface state.
 │                          BarLayout, Brightness,
 │                          CalendarService (+ nextcloud-calendar.py),
-│                          DisplayChange, DropdownState, Keybinds,
+│                          DisplayChange, DropdownState,
+│                          Idle (+ hypridle-restart.sh), Keybinds,
 │                          KeyboardLayout, Keymap (+ keymap.py),
 │                          AppTint (+ app-tint.sh), LauncherHistory,
 │                          LockService, Media,
@@ -39,16 +40,18 @@ config/quickshell/
 │                          BrightnessPanel, CalendarPanel (+CalendarSetup,
 │                          CalendarTasks), ClipboardPanel,
 │                          MediaPanel (+MediaControls, which the bar shows too),
-│                          NotificationPanel (+NotificationEntry), ShelfPanel,
-│                          SystemPanel,
+│                          NotificationPanel (+NotificationEntry),
+│                          QuickSettingsPanel (the pages the pager and the
+│                          dropdown swipe through), ShelfPanel, SystemPanel,
 │                          TogglesPanel (+ToggleTile), WifiPanel, WorkspacePanel;
 │                          and what they are built from: PanelFrame (a panel's
-│                          chrome), PillButton and PillGroup (the design's
-│                          switches), TextButton (a word or glyph to click),
+│                          chrome), PopupFrame (the glass a dropdown is drawn
+│                          on, and its swoosh), PillButton and PillGroup (the
+│                          design's switches), TextButton (a word or glyph to click),
 │                          SliderRow and VolumeRow, DetailRow, PanelSlider,
 │                          InputField, WallpaperCard, AppletButton (a header's
 │                          way out to blueman and friends), KeybindRow and
-│                          KeyCap (a bind and its keys, as the Keybinds page
+│                          KeyCap (a bind and its keys, as the Keybinds tab
 │                          and the shortcuts overlay list them).
 ├── bar/                   Bar.qml (a PanelWindow per screen) with the full
 │   │                      BarContent.qml on the main screen and
@@ -63,6 +66,8 @@ config/quickshell/
 ├── dropdown/              Dropdown.qml — one overlay for all three swipe zones
 │                          (workspaces, calendar, quick settings).
 ├── notifications/         Toasts.qml (the popup stack window) + Toast.qml.
+├── osd/                   Osd.qml (the media keys, and the volume or
+│                          brightness reading they change).
 ├── launcher/              Launcher.qml (scope/IPC/shortcut) + LauncherContent.qml.
 │                          The Figma file's "Search Box" is not built: the owner
 │                          kept this fullscreen launcher instead (27 September).
@@ -74,11 +79,13 @@ config/quickshell/
 │                          (the keyboard it draws).
 ├── cursor/                CursorFinder.qml (Left Ctrl twice: the spotlight).
 └── settings/              SettingsApp.qml (scope/IPC/shortcuts/window) +
-                           SettingsContent.qml (sidebar, page host), the pages
-                           (Appearance with its tabs StyleOptions, WallpaperGrid
-                           and ThemeGrid, Lock & Login (+LockPreview), Displays, Sound, Network, Bluetooth,
-                           Notifications, Power, Keyboard, Keybinds, Startup,
-                           About), the
+                           SettingsContent.qml (sidebar, tabs, page host), the
+                           pages (Appearance with its tabs StyleOptions,
+                           WallpaperGrid, ThemeGrid and LockPage (+LockPreview),
+                           Displays, Sound, Network & Bluetooth's tabs
+                           NetworkPage and BluetoothPage, Notifications, Power,
+                           Keyboard's KeyboardPage and KeybindsPage, About's
+                           AboutPage and StartupPage), the
                            parts they share (Card, PanelCard, ScrollPage,
                            Section, FormCard, FormRow, ActionRow, ChoiceField,
                            ThemeCard)
@@ -117,7 +124,7 @@ called and logs an error where it cannot. Checked by loading the style folder
 alone with `HOME=/nonexistent`: default colours, nothing spawned, no error.
 
 The monitor layout is shared the same way: `etc/greetd/monitors.lua` is a
-symlink to `config/hypr/modules/monitors.lua`, which the greeter's compositor
+symlink to `.config/hypr/modules/monitors.lua`, which the greeter's compositor
 config `require`s and the script installs as a copy. That config used to carry
 the laptop's panel alone, so on the desktop both outputs came up unconfigured.
 `tests/install-greeter-test.py` stages an install and fails on any symlink left
@@ -179,7 +186,9 @@ in it: copied as one, monitors.lua dangles and the config dies at `require`.
   at 20% and red at 10%, and the bell is `Colors.notification.urgent` while
   something critical waits (unless Do Not Disturb is on). The workspace dots and
   the pager's page dots keep their dim tone, because they are position
-  indicators rather than icons and have no glyph to carry state instead.
+  indicators rather than icons and have no glyph to carry state instead, and so
+  do the media controls a player does not offer (`MediaControls`: back, play,
+  skip), which are buttons that would do nothing.
 - **Colours are derived from a theme, not written down.** `Colors.palette`
   holds eight inputs (background, foreground, and the ANSI red, green, yellow,
   blue, purple and cyan slots) and every other colour is computed from them:
@@ -204,7 +213,7 @@ in it: copied as one, monitors.lua dangles and the config dies at `require`.
 | A colour | `style/Colors.qml`, in the feature group, derived from `Colors.palette`; over a picture, from `Colors.overlay` |
 | A spacing/size/radius/font value | `style/Style.qml`, same grouping |
 | A bar widget | `bar/widgets/` + its `qmldir` + a place in `BarContent.qml`; on the right, either an always-visible row or the `BarDrawer`; `SmallBarContent.qml` too if the other screens should show it |
-| A widget dropdown | wrap it in `WidgetPopup` — never hand-roll another catcher window |
+| A widget dropdown | wrap it in `WidgetPopup` — never hand-roll another catcher window — and open and close it with `open` |
 | A panel | a `PanelFrame` in `panels/` with `title`, `trailing` and an `implicitHeight` |
 | A quick-settings page | a panel in `panels/` + a `page*` index and `Component` in `QuickSettingsPanel` |
 | A panel shown by two surfaces | `panels/`, importing only `services/` and `style/` |
@@ -225,11 +234,14 @@ get it from `Bar.qml`'s `PanelWindow.screen`.
 distinct `namespaceSuffix`, and put content as default-property children. See
 `PowerWidget.qml`. Leaving `anchorItem` unset puts the popup at the right edge
 instead, on `Style.bar.edgeGap`; the notification centre is the one popup that
-does this (see Notifications).
+does this (see Notifications). Open and close it with `open`, never
+`visible`: the window outlives `open` while the dropdown swooshes back into the
+bar, and a content `Loader` reads `visible`, so the panel is still there as it
+goes (see "The dropdowns' swoosh").
 
 **The suffix must end in `-popup`.** The frosted-glass backdrop is not drawn by
 quickshell at all — it is a Hyprland layer rule in
-`config/hypr/styles/layout.lua` matching `^quickshell:.*-popup$`. A popup named
+`.config/hypr/styles/layout.lua` matching `^quickshell:.*-popup$`. A popup named
 anything else renders as a flat translucent panel next to blurred ones, with
 nothing in the quickshell log to explain it. `quicksettings-popup` was briefly
 `quick-pager` and lost its blur exactly this way.
@@ -256,14 +268,18 @@ is built to never need one:
   shell draws a populated month immediately and only goes to the network when
   `staleAfter` has passed. What is stored is exactly what the helper printed —
   no second format to keep in step.
-- *Activation goes through the debounce, not around it.* The panel's `active`
-  binding lands a moment before its `rangeStart`/`rangeEnd` bindings, so
-  fetching straight from `onActiveChanged` spent the first request on the
-  default range and then immediately repeated it. `syncWanted` carries the
-  staleness decision into `rangeDebounce` so the first open costs one fetch.
+- *Activation goes through the debounce, not around it.* `active` (the panel
+  counting itself in `viewers`) and its `rangeStart`/`rangeEnd` bindings land
+  a moment apart, so fetching straight from `onActiveChanged` spent the first
+  request on the default range and then immediately repeated it. `syncWanted`
+  carries the staleness decision into `rangeDebounce` so the first open costs
+  one fetch, and so does an open once `staleAfter` has passed: `active` goes
+  false when the last panel closes.
 - *A queued re-fetch is re-checked, not forced.* `refetchWanted` re-enters
   `refresh(false)`; forcing it meant the fetch that had just finished could not
-  satisfy the request it had already covered, which loops.
+  satisfy the request it had already covered, which loops. An answer that is
+  not JSON at all is read as an error from the helper, so the re-check runs
+  after it too: until 5 October it returned early and dropped the request.
 
 Measured after this: cold start with no cache, one fetch; reopening, none;
 restarting the shell with the cache on disk, none; clicking five months forward,
@@ -314,19 +330,17 @@ an email alarm's own `SUMMARY` became the event's title ("Reminder"), and its
 `DURATION` could have become the event's length. `components()` skips nested
 components for events and tasks alike.
 
-A panel shown by a dropdown zone declares two properties, which are the whole
-contract:
-
-- `readonly property bool wantsKeyboard` — raises keyboard focus only for a
-  panel with something to type into;
-- `implicitHeight` — what its content adds up to, which the owning surface
-  clamps and reads as its `Loader`'s `implicitHeight`, typed, instead of
-  reaching into `item`. Compute it from intrinsic sizes (`contentHeight`,
-  children's `implicitHeight`), never from the panel's own `height` — that is a
-  layout loop. Text makes it fractional, so whatever sets a `height` from it
-  rounds it down (`Math.floor`): a frame ending mid-pixel blurs its bottom
-  border across two rows. It was an `int` property until 28 September, which
-  did the rounding silently.
+A panel shown by a dropdown zone declares one property, which is the whole
+contract: `implicitHeight`, what its content adds up to, which the owning
+surface clamps and reads as its `Loader`'s `implicitHeight`, typed, instead of
+reaching into `item`. Compute it from intrinsic sizes (`contentHeight`,
+children's `implicitHeight`), never from the panel's own `height` — that is a
+layout loop. Text makes it fractional, so whatever sets a `height` from it
+rounds it down (`Math.floor`): a frame ending mid-pixel blurs its bottom border
+across two rows. It was an `int` property until 28 September, which did the
+rounding silently. (`wantsKeyboard` was the other half until every surface
+kept `OnDemand`; see "Reconfiguring a layer surface kills its
+`HyprlandFocusGrab`".)
 
 **The calendar's settings split by sensitivity, not by convenience.** The server
 address and the login name are not secrets, so the calendar panel takes them —
@@ -341,7 +355,9 @@ reads it from the keyring itself (`secret-tool lookup service nextcloud username
 <user>`), and the panel's job is only to say so. Because that password goes out
 as HTTP **Basic** auth on every request, both `configure()` and the helper's
 `read_config()` refuse an address that is not `https://` — the UI so you find out
-while typing, the helper because it is the thing that actually sends it.
+while typing, the helper because it is the thing that actually sends it. Plain
+`http://` passes only to this machine (`localhost`, `127.0.0.1`, and in the
+helper `[::1]`), which is where the tests' stand-in server listens.
 
 `baseAddress()` reduces whatever page got pasted — `/apps/calendar`,
 `/settings/user`, `/index.php/...`, a `/remote.php/dav/...` link, a `/u/<id>`
@@ -489,6 +505,55 @@ fields). Both hosts check `Window.activeFocusItem instanceof TextInput` first �
 not "the scope has focus", because once a field lets go, active focus stays on
 the nearest `Loader`.
 
+## The dropdowns' swoosh
+
+**Dropdowns: Fade | Swoosh** is the last row of the Appearance page's PANELS
+card (`Theme.swoosh`, in appearance.json; Fade by default). It covers every
+`WidgetPopup` (the bar's dropdowns, the tray menus, the notification centre,
+the power menu) and the gesture `Dropdown`. The OSD and the toasts are not
+dropdowns and keep Hyprland's fade either way.
+
+- **Fade is Hyprland's**: its default layer animation, the whole surface faded
+  over 800 ms (the global speed 8 and `default` curve), blur included. The
+  shell draws nothing for it. On Fade the open dropdowns compared pixel for
+  pixel with the code before (5 October, nested Hyprland; the only differences
+  were the usage dropdown's live readings).
+- **Swoosh is the shell's**: `panels/PopupFrame`, the glass both windows draw
+  their content on, comes out of the bar from the widget it opened from
+  (`originX`; the top centre without an anchor and on a small bar's screen),
+  from `Style.swoosh`'s `fromWidth` by `fromHeight`, past its height (OutBack,
+  about 9%) and back, the content a beat behind; closed, it goes back in,
+  accelerating. One `reveal`, whose `Behavior` picks the curve by its
+  `targetValue`, so a reopen half-way turns round from where it is. On Fade the
+  `Behavior` is off and `reveal` jumps between 0 and 1.
+- **Hyprland's fade is switched off for it**, or its 800 ms dim the first half
+  of the swoosh. `.config/hypr/styles/layout.lua` declares `qs-dropdown-swoosh`
+  (`no_anim` on `^quickshell:(dropdown|.*-popup)$`), enabled from
+  `$XDG_STATE_HOME/quickshell/dropdowns.lua`, which `Theme.setSwoosh` writes;
+  it also sends `hyprctl eval 'hl.layer_rule({ name = "qs-dropdown-swoosh",
+  enabled = … })'`, which finds the named rule and changes only that.
+  Hyprland reads layer rules at every map, so the next dropdown follows. A
+  namespace cannot carry the choice instead: Quickshell fixes it once the
+  window is connected.
+- **`qs-not-dropdowns`**, declared after it, puts `no_anim = false` back on the
+  OSD and the toasts: of two matching rules the later one wins (Hyprland's
+  `LayerRuleApplicator`, equal priority). Measured nested on Swoosh: the OSD
+  faded in over 47 frames at 60 fps, and with that rule disabled it was there
+  in one. **A new `-popup` that is not a dropdown belongs in it too.**
+- **The window outlives `open`**: a `WidgetPopup`'s `visible` is
+  `PopupFrame.shown`, open or still on its way back. Meanwhile it takes no
+  input: the focus grab follows `open`, which hands the keyboard back at once,
+  and `mask` is an empty `Region`, so a click lands on what is under it.
+  Measured nested with the close stretched to 3 s and a raw-mode kitty
+  underneath recording keys and mouse reports: a key typed and a click made
+  during it reached kitty; without the mask the click did not. Keyboard focus
+  itself can stay bound to `visible`: releasing the grab was enough.
+- Tested in a nested Hyprland with animations on, recorded by
+  `wf-recorder -r 60 -c ffv1` and taken apart frame by frame with ffmpeg: the
+  pager, the gesture dropdown, the power menu (its keys), the shelf (its note
+  field focused), the notification centre, the live switch both ways through
+  the Settings row, and a config reload restoring Swoosh from dropdowns.lua.
+
 ## The volume/brightness OSD
 
 `osd/Osd.qml` owns the five media keys and shows the reading itself. It replaced
@@ -503,6 +568,11 @@ the keys to `hl.dsp.global("quickshell:volumeUp")` and friends, matching the
   needs no `video` group membership (`alice` is not in it) and no daemon.
 - `Brightness.minimum` (5%) is a floor, so the slider cannot black the
   screen.
+- **No backlight, no brightness keys**: without one (`Brightness.available`,
+  the desktop) the keys do nothing, as the bar shows no brightness there
+  either. They used to open the OSD on "No backlight found". Checked nested
+  both ways: no OSD on the desktop, and with a stand-in backlight the key still
+  showed it and stepped the level.
 - The window is **input-transparent**: `mask: Region {}` is empty, so every
   click, scroll and keystroke over it goes to the window underneath, and
   `keyboardFocus` is `None` with no `HyprlandFocusGrab`. This is not cosmetic —
@@ -512,7 +582,10 @@ the keys to `hl.dsp.global("quickshell:volumeUp")` and friends, matching the
   with the empty region it produced none.
 - It reuses `AudioPanel` and `BrightnessPanel` unchanged and sizes itself to
   their `implicitHeight`, so it is the same chrome as the dropdown, just
-  shorter. The namespace is `quickshell:osd-popup`, which the existing
+  shorter. By that alone: the binding also read `content.item` until 6
+  October, which the `Loader` sets before its implicit size, so the size
+  changed under the binding's own write and every show logged a binding loop
+  (the height still came out right). The namespace is `quickshell:osd-popup`, which the existing
   `^quickshell:.*-popup$` layer rule already blurs.
 
 **The OSD and the quick-settings surfaces never show at once**, because they draw
@@ -594,7 +667,7 @@ right click cycles the length: 15 min → 30 min → 1 h → 2 h → no limit. O
 the label says the length a click gives; on, the time it ends ("until 16:40").
 It is an `IdleInhibitor` on every bar (`bar/Bar.qml`), as an inhibitor needs a
 window, and hypridle's idle notifications respect inhibitors, so neither the
-lock nor the screens going off come while it is on. A length starts at the
+lock, the screens going off nor a suspend come while it is on. A length starts at the
 clock's next minute and ends on its ticks (`Time.now`, the wall clock), so it
 lasts at least what it says and at most a minute more, and a suspend in between
 does not stretch it. Only the length persists (`caffeineMinutes`): a new shell,
@@ -673,7 +746,7 @@ copies listed, copied back byte for byte, forgotten and cleared, history
 switched off and on from the page header, and a recording started and stopped
 into a valid H.264 MP4 with its "Recording saved" toast.
 
-The Toggles page's header has a gear (`md-cog_outline`), the way into the
+The Toggles page's header has a gear (`Icons.settings`), the way into the
 Settings app from the quick settings.
 
 ## The main bar and the small bars
@@ -715,7 +788,7 @@ as the full bar. Over windows sets `exclusiveZone: 0`, so the windows on that
 screen start at the top gap and the pill floats over them, its frame on their
 top edge: the window starts at `Style.bar.floatingGap` (15), one border width
 short of `windowGap` (16, Hyprland's `gaps_out` in
-`config/hypr/styles/layout.lua`, mirrored by hand), and the frame is drawn one
+`.config/hypr/styles/layout.lua`, mirrored by hand), and the frame is drawn one
 border inside it. Measured on HDMI-A-1: the pill's border and a tiled window's
 are both on row 16. At the full bar's 8px it sat across the windows' edge,
 7px above it. The full-screen overlays position themselves below the
@@ -789,7 +862,12 @@ with the shell gone, the button powers off as before. An active local session
 may take that inhibitor without authentication, so logind.conf stays as it is.
 Measured: `systemd-inhibit --list` shows it as Quickshell, and a test shell in a
 nested Hyprland dropped its own on `LockService.lock()`, took it again on
-unlock and released it when killed.
+unlock and released it when killed. **One that ends unasked is taken again**
+5s later (`retake`, which the `running` binding waits on; the pause keeps a
+refused one from being asked for in a loop). Until 5 October it stayed gone
+until the next lock and unlock, and the button powered off. Measured nested:
+with its `sleep` killed, a new inhibitor within 7s; locking still released it
+with no warning and no retake.
 
 **The menu works from the keyboard.** Up and Down (Tab and Shift+Tab too)
 move one highlight through the actions, wrapping, and Enter or Space runs it;
@@ -810,8 +888,12 @@ used, cache (`free`'s buff/cache) and swap, with the uptime in its header.
   `/proc/meminfo` were read every 3s already; the per-core shares and the extra
   memory fields come out of those same reads, so an opening panel has a real
   sample at once. `/proc/cpuinfo`, `/proc/loadavg`, `/proc/uptime` and the
-  sensor are read only while `SystemUsage.detailed` is set, which the panel
-  binds, and the interval drops to 1s for as long as it is.
+  sensor are read only while `SystemUsage.detailed` is set, and the interval
+  drops to 1s for as long as it is. It is set while a `SystemPanel` is on
+  screen, here or on Settings' About page: each counts itself in
+  `SystemUsage.viewers`. A `Binding` from the panel kept it set for the rest
+  of the session after the first open (see "A `Binding` destroyed with its
+  object leaves its target as it is").
 - **The sensor is found by its driver's name**, once, on first open: hwmon
   numbers follow probe order and change between boots (`k10temp` is `hwmon5`
   here today). Tried in order: `k10temp`, `zenpower`, `coretemp`,
@@ -870,7 +952,7 @@ a 3:00 track, and `pause` from the media key.
 
 ## Lock & Login
 
-`settings/LockPage` sets `style/LockLook`: a background for the lock screen
+`settings/LockPage`, Appearance's Lock Screen tab, sets `style/LockLook`: a background for the lock screen
 and one for the login screen (the desktop's wallpaper, an image picked with
 zenity, or plain), and one style for both: blur while typing, always or never,
 how dark the scrim is (`Colors.lock.scrim` reads `LockLook.dim`), and the
@@ -960,7 +1042,7 @@ gets its variant ("US INTL").
 - **The list is kept per machine, not in the repo**: the dotfiles are shared,
   and a layout is the person's. `KeyboardLayout.setLayouts()` writes
   `$XDG_STATE_HOME/quickshell/keyboard.lua` (`return { kb_layout = "us,de",
-  kb_variant = "," }`), which `config/hypr/modules/keybinds.lua` applies after
+  kb_variant = "," }`), which `.config/hypr/modules/keybinds.lua` applies after
   its own input settings at every start, as `monitors.lua` applies kept
   monitor rules; Hyprland's default `us` until then. It applies at once too,
   `hyprctl eval` with the same table, and switches back to the layout that
@@ -1022,8 +1104,8 @@ each step of a resize.
 
 - **All Workspaces** (the default) sets the one for every workspace:
   `hyprctl hyprpaper wallpaper ",<path>,cover"`, the empty monitor being
-  hyprpaper's fallback for every monitor not named, then each monitor by name
-  by name. It clears every workspace's own: "all" means all.
+  hyprpaper's fallback for every monitor not named, then each monitor by name.
+  It clears every workspace's own: "all" means all.
   About 5ms a call; a missing file exits 1 with `bad path`, shown in the footer.
 - **This Workspace** gives the focused workspace one of its own. hyprpaper sets
   a monitor, not a workspace, so the service watches every monitor's
@@ -1072,7 +1154,7 @@ each step of a resize.
   `hyprctl eval 'hl.config({ decoration = { blur = { size = N } } })'` (at most
   one call per 150 ms while dragging) and writes
   `$XDG_STATE_HOME/quickshell/blur.lua` (`return { size = N }`), which
-  `config/hypr/styles/layout.lua` applies after its own 6, so a login or a
+  `.config/hypr/styles/layout.lua` applies after its own 6, so a login or a
   config reload keeps it (checked in a nested Hyprland: set live to 3, a
   reload brought the kept 10 back). The passes stay at 3. `BackdropProbe`'s
   blocks grow and shrink with it (`Style.backdrop.blockSize` is at size
@@ -1089,7 +1171,7 @@ each step of a resize.
     (`Theme.darkTint`, `lightTint`, in appearance.json; 60% and 80% until
     moved, the floors this used to have fixed), as dark text over the glass
     needs more of it. 25% stays clear of the `ignore_alpha` 0.2 that
-    `config/hypr/styles/layout.lua` gives the shell's layers, below which a
+    `.config/hypr/styles/layout.lua` gives the shell's layers, below which a
     surface is not blurred at all; 90% stops short of Solid, which the PANELS
     row already is.
   - **Static** keeps to it. The fixed floor used to be 50% and 80%, over a
@@ -1136,13 +1218,13 @@ to apps (APPLY TO "Shell and apps"). `services/AppTint.qml` gets
 last changed, runs `services/app-tint.sh`. The script records
 `background_opacity` in `$XDG_STATE_HOME/quickshell/tint.conf` (whole, through
 a rename), which
-`config/kitty/kitty.conf` includes last, for the windows kitty opens next, and
-which `config/wallust/appearance.py` reads when a theme is applied. It writes
+`.config/kitty/kitty.conf` includes last, for the windows kitty opens next, and
+which `.config/wallust/appearance.py` reads when a theme is applied. It writes
 the value into the Kvantum SVG's window and dialog backgrounds, the four
 elements marked `class="tint"` (`.github/THEMING.md`, Translucency), for the
 Qt apps that start next; a running Qt app cannot take a new glass (THEMING.md,
 "What changes live"). It writes it into the GTK stylesheets' lines marked
-`/* glass */` and has `config/wallust/gtk-theme.sh` name the GTK theme anew,
+`/* glass */` and has `.config/wallust/gtk-theme.sh` name the GTK theme anew,
 which running GTK 3 apps, the file dialogs' portal among them, load again at
 once (THEMING.md, "GTK apps"). And it sends the value to the open kittys with
 `kitten @ --to unix:$XDG_RUNTIME_DIR/kitty-<pid> set-background-opacity
@@ -1215,21 +1297,36 @@ SUPER+C closes it. Whether it is open and on which page lives in
 the dropdown.
 
 The sidebar is the design's: the search field (filters by title and by a few
-search words per page; Enter opens the first match) and its nine entries but
-Wallpaper & Background, which is Appearance's tabs, plus Keyboard, Keybinds and
-Startup, which the design does not have, after Power. Its
-coloured dots are the design's placeholders for icons, so the entries carry
+search words per page and per tab; Enter opens the first match, on the first
+tab that matches: "keybinds" opens Keyboard on Keybinds) and its nine entries
+as eight: Wallpaper & Background is Appearance's tabs, Network and Bluetooth are
+Network & Bluetooth, and Keyboard, which the design does not have, comes after
+Power. Its coloured dots are the design's placeholders for icons, so the entries carry
 Lucide glyphs in `Colors.icon.active`, the bar's icon rule. Measurements are
 the frame's at half its 2x size (`Style.settings`); text keeps the shell's
 sizes.
 
-- **Appearance** is three tabs: the designed page (Style), then the design's
-  Wallpaper Selector as Wallpapers and Themes (see Wallpaper & Background). The
-  tab shown is `SettingsState.page` itself: `wallpaper` and `themes` are the
-  page's `tabs` in `SettingsContent.pages`, so they open it on theirs, the
-  sidebar selects Appearance for either, and its entry leaves the tab as it is.
-  A hidden tab is disabled as well, since the scope would otherwise hand the
-  keys back to its search field or font list. The design's WALLPAPER card and
+**Pages that belong together are tabs of one** (since 6 October, the owner's call:
+Lock & Login alone in the sidebar read as where the lock timeout is set; the
+same day he had Network and Bluetooth joined): Appearance is Style, Wallpapers,
+Themes and Lock Screen; Network & Bluetooth is Network and Bluetooth; Keyboard
+is Layouts and Keybinds; About is System and Startup. The tabs are data, a
+page's `tabs` in `SettingsContent.pages` (name, title, search words; the first
+is the page itself), and the host draws them as `PillGroup` pills under the
+title. The tab shown is `SettingsState.page` itself when it names one of the
+page's tabs, else the page's own (`SettingsContent.tab`), so every old page
+name still opens its place (`openPage bluetooth`, `keybinds`, `startup`,
+`lockscreen`), and the sidebar entry leaves the tab as it is. The host loads
+the page for `tab`: the tabs of Network & Bluetooth, Keyboard and About are
+whole pages, built while shown (the Wi-Fi scanner goes off on Bluetooth, the
+Bluetooth search on Network, About's CPU reading on Startup); Appearance takes
+`tab` and keeps its own.
+
+- **Appearance** is four tabs: the designed page (Style), the design's
+  Wallpaper Selector as Wallpapers and Themes (see Wallpaper & Background), and
+  Lock Screen (`LockPage`, see Lock & Login), built while shown like a page; the
+  two grids stay built once opened. A hidden tab is disabled as well, since the
+  scope would otherwise hand the keys back to its search field or font list. The design's WALLPAPER card and
   its "Change Wallpaper…" went with the merge: the grid is a tab away.
   On Style, THEME is Light and Dark, and no Auto
   (the owner's call): `Theme` remembers the last light and the last dark theme
@@ -1245,14 +1342,15 @@ sizes.
   cluttered (2 October).
 - Bluetooth (below), Notifications (Do Not Disturb, then the centre itself, so
   toasts give way while it is shown), Power (the Battery page where there is a
-  laptop battery, else just the power modes) and About (host, system, kernel,
-  Hyprland and Quickshell versions, then the usage dropdown's details) are what
-  the quick settings already have, in a `PanelCard` (the dropdowns' frame, the
-  page's column wide, as tall as the panel asks and the window allows).
-- Displays, Sound, Network, Keybinds and Startup are pages of their own, each
-  built on what it shows, below. A page is built while it is shown
-  and no longer; one taller than the window is a `ScrollPage` (a `Flickable`
-  with a thin bar at its right edge).
+  laptop battery, else just the power modes; then WHEN IDLE, see Power below)
+  and About's System tab (host, system, kernel, Hyprland and Quickshell
+  versions, then the usage dropdown's details) are what the quick settings
+  already have, in a `PanelCard` (the dropdowns' frame, the page's column wide,
+  as tall as the panel asks and the window allows).
+- Displays, Sound and the tabs Network, Layouts, Keybinds and Startup are pages
+  of their own, each built on what it shows, below. A page is built while it
+  is shown and no longer; one taller than the window is a `ScrollPage` (a
+  `Flickable` with a thin bar at its right edge).
 
 **Displays** reads `hyprctl monitors all -j` (again on Hyprland's monitor and
 `configreloaded` events): an ARRANGEMENT map of the enabled monitors at their
@@ -1276,7 +1374,7 @@ apply` hands the rules to `hyprctl eval` as `hl.monitor{…}` calls, and unless
 Keep is pressed within 15 s the previous values are applied back — also with
 the window closed, since a mode the screen cannot show leaves nothing to click.
 Keep saves them (`displays.py save`) to `$XDG_STATE_HOME/quickshell/monitors.json`
-and, as Lua, `monitors.lua` beside it, which `config/hypr/modules/monitors.lua`
+and, as Lua, `monitors.lua` beside it, which `.config/hypr/modules/monitors.lua`
 applies after its own rules. Hyprland takes the newest rule matching a monitor,
 at runtime (`hl.monitor` merges into a rule of the same name, else appends) and
 at load alike, so kept rules win both times. Rules name a monitor
@@ -1304,15 +1402,15 @@ monitor's name on HDMI, which is then the name; the right edge says what it is
 `PwNodeType` flags, and a playing app's stream is `AudioOutStream`, **Audio |
 Sink | Stream**: `isSink` is true for it, since it plays into a sink.
 
-**Network** is the Wi-Fi panel and, below it, what `nmcli device show` says
-about each connected Wi-Fi or wired device (connection, IPv4, gateway, DNS,
-IPv6, hardware address). It is read when the page opens and again after the
-kernel reports an address or a route changing (`ip monitor address route`,
-unprivileged), rather than every few seconds. `Quickshell.Networking` has no
-IP addresses, hence nmcli.
+**Network**, Network & Bluetooth's first tab, is the Wi-Fi panel and, below it,
+what `nmcli device show` says about each connected Wi-Fi or wired device
+(connection, IPv4, gateway, DNS, IPv6, hardware address). It is read when the
+tab opens and again after the kernel reports an address or a route changing
+(`ip monitor address route`, unprivileged), rather than every few seconds.
+`Quickshell.Networking` has no IP addresses, hence nmcli.
 
 **Bluetooth** is the quick settings' panel with pairing, in the dropdown and on
-the page alike, and on the page a VISIBLE TO OTHER DEVICES switch
+its tab alike, and on the tab a VISIBLE TO OTHER DEVICES switch
 (`BluetoothAdapter.discoverable`), which pairing from the other side (a phone)
 needs. The panel lists the paired devices, connected first with their battery,
 then the ones found nearby with a name of their own (an unnamed one is only an
@@ -1331,50 +1429,90 @@ against a stand-in BlueZ on a private bus (see the memory notes):
   the Settings page kept BlueZ searching for as long as the shell ran, and the
   Network page's Wi-Fi panel kept the scanner on. Both panels switch off what
   they switched on in `Component.onDestruction`.
+- **Only a shown panel touches the search or the scanner**: `value: true`,
+  `when: root.active && …`. The Wi-Fi panel had `value: root.active`, so the
+  pages a pager builds up front, unseen, wrote `false`: opening the dropdown's
+  quick settings turned the scanner off under the Network page (5 October).
 - Pairing a device that wants a PIN or a passkey confirmed needs a BlueZ agent,
   which Quickshell 0.3 does not provide: here it is blueman-applet (its tray
   icon is hidden, the process stays for this). Devices that pair without one
   (headphones, speakers, most mice) need nothing.
 
-**Keyboard** is the layouts (see Keyboard layouts), in the order Hyprland has
-them: a click on one switches to it, ↑ moves one up (the first is the one a
-login starts on), × removes one but the last, and "Add layout…" searches
-XKB's own list, `/usr/share/X11/xkb/rules/base.lst` (the file Hyprland's wiki
-points to; 100 layouts and 500 variants), by name or as XKB writes it,
-`de(nodeadkeys)`. Its entry has the keyboard glyph the bar's layout shows, so
-Keybinds has Lucide's command glyph instead.
+**Power** ends with WHEN IDLE: Lock after (1, 2, 5, 10, 15 or 30 minutes, or
+Never) and Suspend after (5 minutes to 2 hours, or Never), seven choices each,
+which their lists show without scrolling. The screens go off half a minute after
+the lock, and a suspend locks first (hypridle's `before_sleep_cmd`).
 
-**Keybinds** lists `services/Keybinds` in `KeybindRow`s, as the shortcuts
-overlay does: `hyprctl binds -j`, read again on `configreloaded`. Hyprland
-reports a Lua bind only as `__lua` and a callback number, so the names are the
-`description` every bind in `config/hypr/modules/keybinds.lua` carries (the
-wiki's way, `hl.bind(keys, action, { description = "…" })`). Binds with the
-same description, modifiers and submap are one row, the keys side by side or a
-run of digits as a range (SUPER + 1–9); an undescribed bind shows as "No
-description", a bind on a keycode has `code:N` for its key. A key is labelled
-as the key it is on says in the layout in use (`Keymap.label`; see "The
-shortcuts overlay"). "Edit keybinds.lua" opens it with `xdg-open`, detached
+- **hypridle keeps the times; the page only picks them.**
+  `.config/hypr/hypridle.conf` has them as `$lockAfter` and `$suspendAfter`, in
+  seconds and empty for never, around listeners in `# hyprlang if lockAfter` and
+  `# hyprlang if suspendAfter` blocks (the screens' is `{{$lockAfter + 30}}`).
+  `services/Idle` writes `$XDG_STATE_HOME/quickshell/hypridle.conf`:
+  `$idleFromShell = yes`, the two times, then `source =` the repo's file, whose
+  defaults (5 minutes, never) sit in `# hyprlang if !idleFromShell`.
+  `modules/startup.lua` starts hypridle on the shell's file once it exists
+  (`kept()`, as for hyprpaper's). The page reads the times back from the
+  shell's file, else from the repo's defaults, so they are written down once.
+- **Not `source =` the other way round**: hypridle globs the path, which
+  expands `~` but not `$XDG_STATE_HOME`, and everything else here follows it.
+- **hyprlang 0.6.8's `if` tests for a non-empty value**, so 0 counts as set:
+  never has to be empty, and `idleFromShell` tells the defaults apart from a
+  picked never. hypridle only warns about config errors; with both on never it
+  logs "No rules configured" and runs on (it still locks before a suspend).
+- **hypridle reads its config only at start**, so `FileView.saved` runs
+  `services/hypridle-restart.sh`: it kills the hypridle whose environment has
+  this Hyprland's `HYPRLAND_INSTANCE_SIGNATURE`, never every one by name (a
+  nested Hyprland's keeps running), and execs a new one on the shell's file.
+- Measured in a nested Hyprland with stand-ins for `loginctl` and `systemctl`
+  first on the `PATH` (the sandbox shares the real logind: the real ones would
+  lock and suspend the desktop): hypridle 0.1.8 registered 300 and 330 s from
+  the defaults, 600, 630 and 1800 s from a pick, and 3600 s alone with the lock
+  on never; each pick restarted the nested hypridle only; with 1 and 2 minutes,
+  `loginctl lock-session` came at 58 s, the screens went off, and `systemctl
+  suspend` came at 118 s.
+
+**Keyboard**'s Layouts tab is the layouts (see Keyboard layouts), in the order
+Hyprland has them: a click on one switches to it, ↑ moves one up (the first is
+the one a login starts on), × removes one but the last, and "Add layout…"
+searches XKB's own list, `/usr/share/X11/xkb/rules/base.lst` (the file
+Hyprland's wiki points to; 100 layouts and 500 variants), by name or as XKB
+writes it, `de(nodeadkeys)`. Its entry has the keyboard glyph the bar's layout
+shows.
+
+**Keybinds**, Keyboard's second tab, lists `services/Keybinds` in `KeybindRow`s,
+as the shortcuts overlay does: `hyprctl binds -j`, read again on
+`configreloaded`. Hyprland reports a Lua bind only as `__lua` and a callback
+number, so the names are the `description` every bind in
+`.config/hypr/modules/keybinds.lua` carries (the wiki's way,
+`hl.bind(keys, action, { description = "…" })`). Binds with the same
+description, modifiers and submap are one row, the keys side by side or a run of
+digits as a range (SUPER + 1–9); an undescribed bind shows as "No description",
+a bind on a keycode has `code:N` for its key. A key is labelled as the key it is
+on says in the layout in use (`Keymap.label`; see "The shortcuts overlay").
+"Edit keybinds.lua" opens it with `xdg-open`, detached
 (`Quickshell.execDetached`), since a `Process` child dies with its page.
 
-**Startup** has two lists. STARTED BY HYPRLAND is `config/hypr/modules/startup.lua`,
-a plain-data module (`{ name, command, about }`, conditions included, never
-`hl`) that `modules/start.lua` runs on `hyprland.start`; the page reads it with
-plain `lua` (`settings/startup-list.lua`; `lua` comes with Hyprland on Arch), so
-it lists exactly what Hyprland runs, and it is edited there. Its Idle entry,
-hypridle, reads `config/hypr/hypridle.conf` (there was none until 28 September,
-so it exited at every login): `loginctl lock-session` after 5 minutes, which
-hypridle answers with `qs ipc call lock lock`, and the screens off 30 s later. APPS is XDG
-autostart, which uwsm hands to systemd-xdg-autostart-generator, so
+**Startup**, About's second tab, has two lists. STARTED BY HYPRLAND is
+`.config/hypr/modules/startup.lua`, a plain-data module
+(`{ name, command, about }`, conditions included, never `hl`) that
+`modules/start.lua` runs on `hyprland.start`; the tab reads it with plain `lua`
+(`settings/startup-list.lua`; `lua` comes with Hyprland on Arch), so it lists
+exactly what Hyprland runs, and it is edited there. Its Idle entry, hypridle,
+reads `.config/hypr/hypridle.conf` (there was none until 28 September, so it
+exited at every login), or the Power page's config, which sources it (see
+Power): `loginctl lock-session` after 5 minutes unless picked otherwise, which
+hypridle answers with `qs ipc call lock lock`, and the screens off 30 s later.
+APPS is XDG autostart, which uwsm hands to systemd-xdg-autostart-generator, so
 `settings/autostart.py` decides what counts the way the generator does:
 ~/.config/autostart masks the system's by file name; Hidden, X-systemd-skip,
 Type, Exec, TryExec, OnlyShowIn/NotShowIn (against XDG_CURRENT_DESKTOP) and a
 GNOME phase count; X-GNOME-Autostart-enabled does not. Off is Hidden=true in a
 copy of the system file; On removes that copy again when it differs in nothing
-else, and keeps a user's own edits otherwise. Add app… copies an installed
-app's .desktop in (found by its desktop entry id in the XDG data dirs); only an
-entry the user's folder alone has can be removed. Each row says whether its
-unit (`app-<id>@autostart.service`) is running. The generator runs at login,
-and the page says changes take effect then.
+else, and keeps a user's own edits otherwise. Add app… copies an installed app's
+.desktop in (found by its desktop entry id in the XDG data dirs); only an entry
+the user's folder alone has can be removed. Each row says whether its unit
+(`app-<id>@autostart.service`) is running. The generator runs at login, and the
+tab says changes take effect then.
 
 **The accent** is `Colors.accent.primary`, what every accent in `Colors` now
 is (calendar, Wi-Fi header, tray menu checks, the lock's busy ring). **The
@@ -1385,8 +1523,8 @@ Both reach the Qt apps when themes apply to the apps; see THEMING.md.
 
 The palette `Colors` derives from (see Conventions) is chosen on the Appearance
 page's Themes tab, which lists every wallust theme: the ones in
-`config/wallust/colorschemes/` first, then wallust's 614 built-ins, each drawn
-in its own colours. `config/wallust/palettes.py` builds that list by rendering
+`.config/wallust/colorschemes/` first, then wallust's 614 built-ins, each drawn
+in its own colours. `.config/wallust/palettes.py` builds that list by rendering
 every theme through the shell's own template in a temporary config directory
 (`-d`, with `-s` so no terminal is touched), so a card shows exactly what
 applying gives; about 0.3s for all of them.
@@ -1610,7 +1748,7 @@ October; it stepped on at first, then closed it), and Escape leaves it as it was
 Hyprland keeps its binds while a layer has the keyboard, so the shortcut fires
 again rather than reaching the overview.
 **1 to 9** (the keypad's too) go to that workspace of the selection's screen,
-by id as `config/hypr/modules/workspaces.lua` numbers them, so a number with
+by id as `.config/hypr/modules/workspaces.lua` numbers them, so a number with
 no workspace makes one, as SUPER+1–9 do. Hyprland makes a new workspace on the
 focused monitor, so when the selection is on another one that monitor is
 focused first (the pointer moves there, as with SUPER+CTRL+arrows).
@@ -1642,7 +1780,7 @@ Hyprland), so the zoom starts from a picture of the screen, not from outlines.
   scope's, so it moves across screens with nothing to hand over.
 - It draws under `Colors.overlay` (light on a dark scrim whatever the theme),
   the number in the wallpaper cards' label pill; its own layer rule in
-  `config/hypr/styles/layout.lua` blurs what is behind, `no_anim` like the
+  `.config/hypr/styles/layout.lua` blurs what is behind, `no_anim` like the
   launcher's.
 
 `qmllint` could not resolve `HyprlandToplevel.wayland`: Hyprland's IPC module
@@ -1654,7 +1792,7 @@ copy of the qmldirs.
 
 **SUPER+/** (the `shortcutsToggle` `GlobalShortcut`; `qs ipc call shortcuts
 toggle|open|close`) shows Hyprland's binds over the focused screen: the
-Settings app's Keybinds page as an overview, from the same `services/Keybinds`,
+Settings app's Keybinds tab as an overview, from the same `services/Keybinds`,
 so the two cannot drift. A `PanelWindow` like the launcher's (scrim,
 `OnDemand` keyboard, over the bars, its own blur rule with `no_anim`); the
 panel is built while open. Escape, a click beside it or the shortcut closes.
@@ -1688,7 +1826,7 @@ panel is built while open. Escape, a click beside it or the shortcut closes.
   **A bind's key is looked up in the first layout**, as Hyprland does while
   `input:resolve_binds_by_sym` is off (its default; `m_xkbTranslationState`
   is the whole keymap at layout 0), so on us,de with de in use SUPER + slash is
-  the key de labels `-`, and the overlay and the Keybinds page both say
+  the key de labels `-`, and the overlay and the Keybinds tab both say
   `SUPER -`. With the option on, the layout in use is the one looked in.
 - **ISO or ANSI is the layout's**, since nothing reports the hardware: ISO
   when the key left of Z (`LSGT`) types something no other key does (`<` on
@@ -1704,14 +1842,14 @@ its size and follows the pointer until a key is pressed or the pointer has
 rested `rest` (500 ms) after moving, or `linger` (2 s) if it never moved.
 Over a fullscreen window (a game) it does nothing.
 
-- **Hyprland sees the taps** (`config/hypr/modules/cursor.lua`). A
+- **Hyprland sees the taps** (`.config/hypr/modules/cursor.lua`). A
   `hl.on("input.keyboard.key")` hook gets every key event of every keyboard,
   before binds, as (xkb keycode, ms, state). A tap is a press and a release
   with no other key between them, so Ctrl + C then Ctrl + V is none; the two
   presses come within `doubleTap` (400 ms) and the pointer moves at most
   `slop` (8 px) between them. A release bind on `Control_L` (`non_consuming`,
   `ignore_mods`) does the counting, so Ctrl reaches the window as always and
-  the Keybinds page and the overlay list it ("Find the pointer (tap twice)").
+  the Keybinds tab and the overlay list it ("Find the pointer (tap twice)").
   A release bind alone would count Ctrl + C: Hyprland does not check for keys
   between a modifier's press and release.
 - **The shell takes no input**: `cursor/CursorFinder.qml` is a window per
@@ -1746,7 +1884,7 @@ The keys act on the focused monitor, which follows the pointer
 | SUPER+CTRL+SHIFT+arrows | take the window there (SUPER+SHIFT+number cannot cross monitors any more) |
 | SUPER+↑/↓ | move focus between windows, as before |
 
-Hyprland's workspace ids are global, so `config/hypr/modules/workspaces.lua`
+Hyprland's workspace ids are global, so `.config/hypr/modules/workspaces.lua`
 gives each monitor a block of 100 — 1–99, 101–199, … — and a workspace's
 number is `id % 100`. The dropdown's `WorkspacePanel` shows that number.
 
@@ -1774,12 +1912,14 @@ number is `id % 100`. The dropdown's `WorkspacePanel` shows that number.
 - **An unplugged monitor's workspaces** wait on another monitor (Hyprland moves
   them and moves them back by name, `m_lastMonitor`). They are reachable there
   with SUPER+←/→, and the panel lists them after the monitor's own, marked with
-  U+F0D90 (a crossed-out monitor). SUPER+→ does not open new ones past them.
+  `Icons.monitorOff` (a crossed-out monitor). SUPER+→ does not open new ones
+  past them.
 - **SUPER+CTRL+arrows need touching edges**: `directionLookup` only takes a
-  monitor whose edge sticks to the focused one's. `monitors.lua` places
-  HDMI-A-1 `auto-right`, i.e. after whichever monitors have a fixed position
-  (Hyprland arranges those first): 1920 beside the desktop's DP-2, 1440 beside
-  the laptop's eDP-1 at scale 2, where a fixed x=1920 used to leave a gap.
+  monitor whose edge sticks to the focused one's. `monitors.lua` places the
+  desktop's Fujitsu (HDMI-A-1; its rules go by description) `auto-right`, i.e.
+  after whichever monitors have a fixed position (Hyprland arranges those
+  first): 1920 beside the desktop's DP-2, 1440 beside the laptop's eDP-1 at
+  scale 2, where a fixed x=1920 used to leave a gap.
   Checked nested: a scale-2 output at 0x0 and one `auto-right` touched at
   x=960.
 - The panel header draws the monitor layout (this one filled in) and names the
@@ -1877,7 +2017,27 @@ text.split(" ")` kept the last turn's `x`. Index the array instead
 restores when `when` turns false. A Settings page is destroyed when you leave
 it, so a Binding that switched something on (BlueZ's search, the Wi-Fi
 scanner) must switch it off in `Component.onDestruction`; see Bluetooth under
-The Settings app.
+The Settings app. A flag of the shell's own services that a panel needs while
+it is shown is counted instead, and the service derives the flag from the
+count: `Component.onCompleted` adds one, `Component.onDestruction` takes it
+away (`NotificationService.viewers`, `SystemUsage.viewers`,
+`CalendarService.viewers`). `SystemUsage.detailed` and `CalendarService.active`
+were bound until 5 October and stayed on for the session after the first
+open: the 1s detailed sampling, and the calendar's 15-minute refresh with no
+staleness check on reopening.
+
+**Qt 6.11 can stop delivering the pointer to a list opened below its card.**
+Delivery skips an item, children included, when the point is outside it and
+all its pointer-handling children are inside
+(`QQuickItemPrivate::effectivelyClipsEventHandlingChildren`, worked out once
+and cached), and that check lets a later child's "inside" overwrite an earlier
+child's "outside". A note `Text` after the Power page's `ChoiceField` rows made
+its card count as holding everything, so the rows of an open list below the
+card got no hover and no clicks, while those over the card did. Keep a row
+whose list opens downward the last child at each level up to an item the list
+fits inside, or put the note outside (`PowerPage` does).
+`QT_LOGGING_RULES="qt.quick.effectiveclip.debug=true"` prints every item's
+verdict.
 
 **A `qmldir` line goes in before its first user.** A file that uses a new
 component before the `qmldir` names it fails the reload ("X is not a type"),
@@ -2152,11 +2312,11 @@ hyprctl dispatch 'hl.dsp.event("cursorfinder show 960 540")'  # then "… hide"
 bound with
 `hl.dsp.global(...)`; the three-finger swipe is an
 `hl.gesture` block calling `dropdown openAt`. All in
-`config/hypr/modules/keybinds.lua`. Any of them can be fired without the key,
+`.config/hypr/modules/keybinds.lua`. Any of them can be fired without the key,
 e.g. `hyprctl dispatch 'hl.dsp.global("quickshell:barExpand")'`. In
 `hyprctl binds` a Lua bind shows as dispatcher `__lua` with a callback number,
 not the global's name; every bind there carries a `description` for that
-reason, which is what the Settings app's Keybinds page names it by.
+reason, which is what the Settings app's Keybinds tab names it by.
 
 Hyprland here is configured in **Lua**, so `hyprctl dispatch` takes a Lua
 expression — `hyprctl dispatch 'hl.dsp.focus({ monitor = "eDP-1" })'`, not
@@ -2170,13 +2330,13 @@ and does nothing; `/usr/share/hypr/stubs/hl.meta.lua` lists the dispatchers.
   `pam_unix` goes through setuid `unix_chkpwd`, so quickshell needs no
   privileges. A config reload while locked used to drop the lock — `locked`
   lives in `PersistentProperties` now.
-- `misc:allow_session_lock_restore` is on in `config/hypr/modules/session.lua`,
+- `misc:allow_session_lock_restore` is on in `.config/hypr/modules/session.lua`,
   so a restarted shell can retake an orphaned lock (TTY → `qs` → unlock).
 - Brightness **writes** go through `brightnessctl`, as the brightness keys do
   now that they reach the shell's OSD; reads come from `/sys/class/backlight`,
-  and the widget hides itself when that directory is empty. The desktop has no
-  backlight, and no `brightnessctl` installed either, so none of this runs
-  there.
+  and the widget hides itself when that directory is empty (the OSD ignores
+  the keys then). The desktop has no backlight, and no `brightnessctl`
+  installed either, so none of this runs there.
 - Night Light needs `setpriv` (util-linux) as well as `hyprsunset`; see Quick
   toggles.
 - **wallust is not on the shell's `PATH`** on the desktop, where it is a cargo
@@ -2190,13 +2350,13 @@ and does nothing; `/usr/share/hypr/stubs/hl.meta.lua` lists the dispatchers.
   quirks are in "Wallpaper & Background".
 - The Clipboard tile needs `cliphist` (and `wl-clipboard`, installed), Screen
   Record `wf-recorder` and `xdg-user-dir`; both run under `setpriv`.
-- The Settings app's Startup page runs `lua` (the `lua` package, which Hyprland
+- The Settings app's Startup tab runs `lua` (the `lua` package, which Hyprland
   depends on) and `python3`, as do Displays (`python3`, `hyprctl`) and Network
   (`nmcli`, NetworkManager's). `services/keymap.py` loads `libxkbcommon.so.0`
   (Hyprland's own dependency) through ctypes. Kept monitor rules are
   `$XDG_STATE_HOME/quickshell/monitors.{json,lua}`, kept keyboard layouts
-  `keyboard.lua` and the blur's size `blur.lua` beside them; nothing is kept
-  until a change is made there.
+  `keyboard.lua`, the blur's size `blur.lua` and the dropdowns' swoosh
+  `dropdowns.lua` beside them; nothing is kept until a change is made there.
   The apps' tint is `tint.conf` beside them too, written at every start.
 - A DBus-activated notification daemon will silently hold
   `org.freedesktop.Notifications` unless masked, and a shell-owned notification

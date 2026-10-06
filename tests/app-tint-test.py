@@ -11,7 +11,7 @@ script never disagree. The runtime folder has no kitty sockets in it, so no
 kitty is contacted.
 
 The GTK stylesheets get it in the lines their templates mark glass, and the
-GTK theme is named anew (config/wallust/gtk-theme.sh) only while it is the
+GTK theme is named anew (.config/wallust/gtk-theme.sh) only while it is the
 one named. GSettings is a keyfile in the made-up home, never the real dconf.
 """
 import os

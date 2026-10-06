@@ -63,6 +63,11 @@ Item {
         root.selectedDay = root.today;
     }
 
+    // Counted, not bound: a Binding destroyed with the panel would leave
+    // CalendarService.active set.
+    Component.onCompleted: CalendarService.viewers += 1
+    Component.onDestruction: CalendarService.viewers -= 1
+
     Binding {
         target: CalendarService
         property: "rangeStart"
@@ -73,12 +78,6 @@ Item {
         target: CalendarService
         property: "rangeEnd"
         value: root.dayAt(root.columns * root.weekCount + Style.calendar.upcomingLookahead)
-    }
-
-    Binding {
-        target: CalendarService
-        property: "active"
-        value: true
     }
 
     Item {

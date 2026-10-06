@@ -3,7 +3,7 @@ local vars = require("modules.vars")
 local workspaces = require("modules.workspaces")
 -- Every bind carries a description: hyprctl binds reports Lua binds only as a
 -- callback number, so the description is all the shell's Settings app
--- (Keybinds page) has to name them by. Binds that share a description and
+-- (Keyboard, Keybinds) has to name them by. Binds that share a description and
 -- modifiers show there as one row, like the workspace numbers below.
 hl.bind(vars.mainMod .. " + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"), { description = "Log out" })
 hl.bind(vars.mainMod .. " + E", hl.dsp.exec_cmd(vars.fileManager), { description = "Open the file manager" })
@@ -13,28 +13,28 @@ hl.bind(vars.mainMod .. " + L", hl.dsp.global("quickshell:lock"), { description 
 hl.bind(vars.mainMod .. " + B", hl.dsp.global("quickshell:barExpand"), { description = "Open or close the bar's drawer" })
 hl.bind(vars.mainMod .. " + W", hl.dsp.global("quickshell:wallpaperToggle"), { description = "Choose a wallpaper" })
 hl.bind(vars.mainMod .. " + I", hl.dsp.global("quickshell:settingsToggle"), { description = "Open Settings" })
--- The shelf on the bar, a folder Nextcloud syncs (config/quickshell/services/Shelf.qml).
+-- The shelf on the bar, a folder Nextcloud syncs (.config/quickshell/services/Shelf.qml).
 hl.bind(vars.mainMod .. " + X", hl.dsp.global("quickshell:shelfToggle"), { description = "Open the shelf" })
 hl.bind(vars.mainMod .. " + SHIFT + V", hl.dsp.global("quickshell:shelfPaste"), { description = "Paste the clipboard onto the shelf" })
 hl.bind(vars.mainMod .. " + C", hl.dsp.window.close(), { description = "Close the window" })
 hl.bind(vars.mainMod .. " + PRINT", hl.dsp.exec_cmd("hyprshot -m window"), { description = "Screenshot of a window" })
 hl.bind("Print", hl.dsp.exec_cmd("hyprshot -m output"), { description = "Screenshot of a screen" })
 hl.bind(vars.mainMod .. " + SHIFT + PRINT", hl.dsp.exec_cmd("hyprshot -m region"), { description = "Screenshot of a region" })
--- The shell changes these and shows the reading (config/quickshell/osd/).
+-- The shell changes these and shows the reading (.config/quickshell/osd/).
 hl.bind("XF86MonBrightnessUp",   hl.dsp.global("quickshell:brightnessUp"), { locked = true, repeating = true, description = "Brightness up" })
 hl.bind("XF86MonBrightnessDown", hl.dsp.global("quickshell:brightnessDown"), { locked = true, repeating = true, description = "Brightness down" })
 hl.bind("XF86AudioRaiseVolume",  hl.dsp.global("quickshell:volumeUp"), { locked = true, repeating = true, description = "Volume up" })
 hl.bind("XF86AudioLowerVolume",  hl.dsp.global("quickshell:volumeDown"), { locked = true, repeating = true, description = "Volume down" })
 hl.bind("XF86AudioMute",         hl.dsp.global("quickshell:volumeMute"), { locked = true, description = "Mute" })
--- The player the bar shows (config/quickshell/services/Media.qml).
+-- The player the bar shows (.config/quickshell/services/Media.qml).
 hl.bind("XF86AudioPlay",  hl.dsp.global("quickshell:mediaPlayPause"), { locked = true, description = "Play or pause" })
 hl.bind("XF86AudioPause", hl.dsp.global("quickshell:mediaPlayPause"), { locked = true, description = "Play or pause" })
 hl.bind("XF86AudioNext",  hl.dsp.global("quickshell:mediaNext"), { locked = true, description = "Next track" })
 hl.bind("XF86AudioPrev",  hl.dsp.global("quickshell:mediaPrevious"), { locked = true, description = "Previous track" })
--- The next of input.kb_layout's layouts (config/quickshell/services/KeyboardLayout.qml).
+-- The next of input.kb_layout's layouts (.config/quickshell/services/KeyboardLayout.qml).
 hl.bind(vars.mainMod .. " + space", hl.dsp.global("quickshell:keyboardLayout"), { description = "Switch the keyboard layout" })
 -- The shell holds logind off the power button while unlocked
--- (config/quickshell/services/PowerButton.qml); locked, logind powers off.
+-- (.config/quickshell/services/PowerButton.qml); locked, logind powers off.
 hl.bind("XF86PowerOff", hl.dsp.global("quickshell:powerMenu"), { description = "Open the power menu" })
 hl.bind(vars.mainMod .. " + Q", hl.dsp.exec_cmd(vars.terminal), { description = "Open a terminal" })
 -- Left and right go through the focused monitor's workspaces

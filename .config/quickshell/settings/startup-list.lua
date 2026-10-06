@@ -3,7 +3,7 @@
 -- Prints what Hyprland starts with the session (modules/startup.lua in its
 -- config), one entry per line: name, command and about, tab-separated. The
 -- module is plain data, so plain `lua` reads it the way Hyprland does,
--- conditions included, for the Settings app's Startup page.
+-- conditions included, for the Settings app's About page, Startup tab.
 package.path = arg[1] .. "/?.lua;" .. package.path
 
 local ok, list = pcall(require, "modules.startup")

@@ -42,7 +42,7 @@ Item {
             if (mouse.button === Qt.RightButton)
                 NotificationService.doNotDisturb = !NotificationService.doNotDisturb;
             else
-                notificationPopup.visible = !notificationPopup.visible;
+                notificationPopup.open = !notificationPopup.open;
         }
     }
 

@@ -130,7 +130,8 @@ Column {
     // the glass is the theme's background: the slider sets the least, for dark
     // and for light themes apart; Adaptive raises it where the wallpaper behind
     // would make text hard to read, and Static keeps to it. The line under the
-    // slider says which, in numbers.
+    // slider says which, in numbers. Last, whether the dropdowns fade in and
+    // out, as Hyprland shows any panel, or swoosh out of the bar and back.
     Section {
         title: "PANELS"
 
@@ -238,6 +239,25 @@ Column {
                         font.family: Style.text.font
                         font.pixelSize: Style.text.smallSize
                     }
+                }
+            }
+
+            FormRow {
+                label: "Dropdowns"
+
+                PillGroup {
+                    choices: [
+                        {
+                            label: "Fade",
+                            value: false
+                        },
+                        {
+                            label: "Swoosh",
+                            value: true
+                        }
+                    ]
+                    current: Theme.swoosh
+                    onPicked: swoosh => Theme.setSwoosh(swoosh)
                 }
             }
         }

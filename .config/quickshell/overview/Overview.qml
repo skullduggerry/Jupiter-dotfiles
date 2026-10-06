@@ -55,7 +55,7 @@ Scope {
         workspace?.activate();
     }
 
-    // By id, as config/hypr/modules/workspaces.lua numbers a monitor's. A new
+    // By id, as .config/hypr/modules/workspaces.lua numbers a monitor's. A new
     // workspace comes up on the focused monitor, so that is the selection's
     // first.
     function goNumber(number: int) {

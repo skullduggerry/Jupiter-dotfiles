@@ -10,9 +10,11 @@ Singleton {
     property real cpu: 0
     property real memory: 0
     property bool active: false
-    // Set while SystemPanel is open. Everything below `cores` is only read
-    // then, and more often: the bar's meters need none of it.
-    property bool detailed: false
+    // SystemPanels on screen, in the usage dropdown and on the Settings app's
+    // About page, each counting itself. Everything below `cores` is only read
+    // while there is one, and more often: the bar's meters need none of it.
+    property int viewers: 0
+    readonly property bool detailed: root.viewers > 0
     readonly property int interval: root.detailed ? 1000 : 3000
     property real previousBusy: 0
     property real previousTotal: 0

@@ -4,9 +4,10 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// The palette Colors derives from, and what changes it: config/wallust/apply.sh
-// renders it and records the theme (.github/THEMING.md). Nothing runs until a
-// theme is picked: the greeter gets a copy of style/ and must only read.
+// The palette Colors derives from, and what changes it:
+// .config/wallust/apply.sh renders it and records the theme
+// (.github/THEMING.md). Nothing runs until a theme is picked: the greeter gets
+// a copy of style/ and must only read.
 Singleton {
     id: root
 
@@ -17,7 +18,7 @@ Singleton {
     readonly property string theme: applied.text().split("\n")[0] || "Oxocarbon-Dark"
     readonly property bool blur: settings.blur
     // Hyprland's decoration:blur size, behind every translucent surface:
-    // set live, and kept in blur.lua for config/hypr/styles/layout.lua.
+    // set live, and kept in blur.lua for .config/hypr/styles/layout.lua.
     readonly property int blurSize: settings.blurSize
     // Over blur, how much of a surface is the theme's background: at least
     // darkTint or lightTint, as the theme is dark or light, which Static keeps
@@ -31,6 +32,10 @@ Singleton {
     // Colors takes the least readable; the greeter never measures.
     property var backdrops: ({})
     readonly property bool applyToApps: settings.applyToApps
+    // How the dropdowns come and go: Hyprland's fade, or a swoosh out of the
+    // bar (panels/PopupFrame), for which .config/hypr/styles/layout.lua turns
+    // that fade off, from dropdowns.lua and live.
+    readonly property bool swoosh: settings.swoosh
     // The Settings app's choices. The accent is one of Colors.accentNames, the
     // font a family name, empty for the shell's own.
     readonly property string accent: settings.accent
@@ -110,6 +115,13 @@ Singleton {
         writeDebounce.restart();
     }
 
+    function setSwoosh(enabled: bool) {
+        settings.swoosh = enabled;
+        writeDebounce.restart();
+        keptDropdowns.setText(`-- Written by the shell (.config/quickshell/style/Theme.qml).\nreturn { swoosh = ${enabled} }\n`);
+        Quickshell.execDetached(["hyprctl", "eval", `hl.layer_rule({ name = "qs-dropdown-swoosh", enabled = ${enabled} })`]);
+    }
+
     function setBackdrop(screen: string, bright: color, dark: color) {
         const next = Object.assign({}, root.backdrops);
         next[screen] = {
@@ -171,10 +183,8 @@ Singleton {
             // The watches cannot see a file that did not exist yet.
             applied.reload();
             paletteFile.reload();
-            // Deferred: the process may still read as running inside its own
-            // exit handler, and run() would queue the request again.
             if (root.pendingName !== "")
-                Qt.callLater(root.runPending);
+                root.runPending();
         }
 
         stderr: SplitParser {
@@ -188,7 +198,7 @@ Singleton {
         interval: 150
         onTriggered: {
             const blur = `{ size = ${settings.blurSize} }`;
-            keptBlur.setText(`-- Written by the shell (config/quickshell/style/Theme.qml).\nreturn ${blur}\n`);
+            keptBlur.setText(`-- Written by the shell (.config/quickshell/style/Theme.qml).\nreturn ${blur}\n`);
             Quickshell.execDetached(["hyprctl", "eval", `hl.config({ decoration = { blur = ${blur} } })`]);
         }
     }
@@ -251,6 +261,7 @@ Singleton {
             property real darkTint: 0.6
             property real lightTint: 0.8
             property bool applyToApps: true
+            property bool swoosh: false
             property string accent: "blue"
             property string font: ""
             property string lightTheme: "Catppuccin-Latte"
@@ -262,6 +273,14 @@ Singleton {
         id: keptBlur
 
         path: root.stateDir + "/quickshell/blur.lua"
+        preload: false
+        printErrors: false
+    }
+
+    FileView {
+        id: keptDropdowns
+
+        path: root.stateDir + "/quickshell/dropdowns.lua"
         preload: false
         printErrors: false
     }

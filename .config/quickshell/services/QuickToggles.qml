@@ -133,12 +133,12 @@ Singleton {
     // The bar's clock ticks every minute by the wall clock, so Caffeine ends
     // on time across a suspend too.
     Connections {
-        target: Time
-
         function onNowChanged() {
             if (root.caffeineEnd !== 0 && Math.round(Time.now.getTime() / 60000) >= root.caffeineEnd)
                 root.setCaffeine(false);
         }
+
+        target: Time
     }
 
     // At most one hyprctl call per moment while the slider is dragged.

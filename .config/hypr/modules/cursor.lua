@@ -1,5 +1,5 @@
 -- Tapping Left Ctrl twice shows where the pointer is: the shell
--- (config/quickshell/cursor/) dims every screen but a circle around it, told
+-- (.config/quickshell/cursor/) dims every screen but a circle around it, told
 -- here where the pointer goes in custom events, until a key is pressed or
 -- the pointer has rested a moment. A tap is a press and a release with no
 -- other key between them, so Ctrl + C then Ctrl + V is no double tap, and the

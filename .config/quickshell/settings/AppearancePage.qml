@@ -1,17 +1,15 @@
-import "../panels"
-import "../services"
 import "../style"
 import QtQuick
 
-// The design's Appearance page, its wallpaper selector and every wallust
-// theme, a tab each. The tab shown is SettingsState.page, so SUPER+W and
-// `openPage wallpaper` or `themes` open on theirs; SettingsContent lists these
-// names as the page's `tabs` for that.
+// The design's Appearance page, its wallpaper selector, every wallust theme
+// and the lock and login screens, a tab each. SettingsContent draws the tabs
+// and passes the one shown, SettingsState.page itself, so SUPER+W and
+// `openPage wallpaper`, `themes` or `lockscreen` open on theirs.
 FocusScope {
     id: root
 
-    // "appearance", or a name that is no tab, is the Style tab.
-    readonly property string tab: tabs.choices.some(choice => choice.value === SettingsState.page) ? SettingsState.page : "appearance"
+    // "appearance" is the Style tab.
+    required property string tab
     // The wallpaper thumbnails decode and palettes.py runs when their tab is
     // built, so each waits until it is first shown, and then stays.
     property bool wallpapersOpened: false
@@ -30,44 +28,15 @@ FocusScope {
     onTabChanged: root.showTab()
     Component.onCompleted: root.showTab()
 
-    PillGroup {
-        id: tabs
-
-        choices: [
-            {
-                label: "Style",
-                value: "appearance"
-            },
-            {
-                label: "Wallpapers",
-                value: "wallpaper"
-            },
-            {
-                label: "Themes",
-                value: "themes"
-            }
-        ]
-        current: root.tab
-        onPicked: tab => SettingsState.page = tab
-
-        anchors {
-            top: parent.top
-            left: parent.left
-            leftMargin: Style.settings.padding
-        }
-    }
-
     // A hidden tab keeps its focus, and the scope hands it back, so only
     // disabling it stops a field on it (the font list, the theme search) from
     // taking keys on another.
     Item {
         anchors {
-            top: tabs.bottom
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
-            margins: Style.settings.padding
-            topMargin: Style.settings.spacing
+            fill: parent
+            leftMargin: Style.settings.padding
+            rightMargin: Style.settings.padding
+            bottomMargin: Style.settings.padding
         }
 
         StyleOptions {
@@ -98,5 +67,13 @@ FocusScope {
 
             sourceComponent: ThemeGrid {}
         }
+    }
+
+    // Built while it is shown, as a page is.
+    Loader {
+        anchors.fill: parent
+        active: root.tab === "lockscreen"
+
+        sourceComponent: LockPage {}
     }
 }

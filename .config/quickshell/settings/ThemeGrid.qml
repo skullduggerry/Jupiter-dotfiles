@@ -12,7 +12,7 @@ import Quickshell.Io
 Item {
     id: root
 
-    // config/wallust/palettes.py's catalogue: the themes in colorschemes/
+    // .config/wallust/palettes.py's catalogue: the themes in colorschemes/
     // first, then wallust's built-ins.
     property var themes: []
     readonly property var shown: {

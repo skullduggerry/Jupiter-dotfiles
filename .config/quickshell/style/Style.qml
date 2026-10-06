@@ -17,7 +17,7 @@ QtObject {
         readonly property int topGap: 8
         readonly property int bottomGap: -2
         // Where windows start: Hyprland's general:gaps_out, which
-        // config/hypr/styles/layout.lua sets. A small bar floating over them
+        // .config/hypr/styles/layout.lua sets. A small bar floating over them
         // puts its frame on their top edge.
         readonly property int windowGap: 16
         readonly property int floatingGap: barMetrics.windowGap - metrics.border.width
@@ -56,8 +56,8 @@ QtObject {
         readonly property int smallSize: 11
         readonly property int largeSize: 17
         readonly property int displaySize: 72
-        // The Settings app's choice, else the shell's own. Nerd Font icons
-        // still draw in any font: fontconfig falls back to one that has them.
+        // The Settings app's choice, else the shell's own. Icons have a font
+        // of their own (Icons.font), whatever this is.
         readonly property string defaultFont: "JetBrainsMono Nerd Font"
         readonly property string font: Theme.font || textMetrics.defaultFont
     }
@@ -243,6 +243,22 @@ QtObject {
     }
     readonly property AnimationStyle animation: AnimationStyle {}
 
+    // The dropdowns' swoosh (Theme.swoosh, panels/PopupFrame): out of the
+    // bar from `fromWidth` by `fromHeight` of its size over `enter`, past its
+    // height by OutBack's `overshoot` before it settles, the glass there by
+    // `fade` of the way and the content from `contentFrom`; back into the
+    // bar over `leave`.
+    component SwooshStyle: QtObject {
+        readonly property int enter: 440
+        readonly property int leave: 200
+        readonly property real overshoot: 1.6
+        readonly property real fromWidth: 0.8
+        readonly property real fromHeight: 0.12
+        readonly property real fade: 0.25
+        readonly property real contentFrom: 0.4
+    }
+    readonly property SwooshStyle swoosh: SwooshStyle {}
+
     // SUPER+Tab's overview: each screen's workspaces as tiles of this width at
     // most, in rows of `columns`, kept `margin` from the screen's edges. As it
     // opens, the workspace on screen shrinks from the whole screen into its
@@ -333,14 +349,14 @@ QtObject {
         readonly property int blockSize: 4
         readonly property int blockBlurSize: 6
         // Hyprland's decoration:blur contrast and brightness, its defaults,
-        // which config/hypr/styles/layout.lua keeps.
+        // which .config/hypr/styles/layout.lua keeps.
         readonly property real blurContrast: 0.8916
         readonly property real blurBrightness: 1
     }
     readonly property BackdropStyle backdrop: BackdropStyle {}
 
     // The sizes of Hyprland's decoration:blur the Settings app offers
-    // (Theme.blurSize); config/hypr/styles/layout.lua starts at 6.
+    // (Theme.blurSize); .config/hypr/styles/layout.lua starts at 6.
     component BlurStyle: QtObject {
         readonly property int least: 1
         readonly property int most: 12
@@ -354,7 +370,7 @@ QtObject {
         readonly property int spacing: 18
         readonly property int blurMax: 48
         readonly property real blurAmount: 1
-        // The Lock & Login page's previews of both screens.
+        // The Lock Screen tab's previews of both screens.
         readonly property real previewRatio: 0.5625
         readonly property int previewBlurMax: 8
         readonly property int previewFieldWidth: 72

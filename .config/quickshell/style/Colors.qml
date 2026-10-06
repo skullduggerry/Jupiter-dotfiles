@@ -33,7 +33,7 @@ QtObject {
     readonly property real glassKeeps: 0.9
     readonly property real glassStep: 0.02
     // The tint the Settings app offers: more than Hyprland's ignore_alpha for
-    // the shell's layers (0.2, config/hypr/styles/layout.lua), below which a
+    // the shell's layers (0.2, .config/hypr/styles/layout.lua), below which a
     // surface is not blurred at all, and short of Solid.
     readonly property real tintLeast: 0.25
     readonly property real tintMost: 0.9
@@ -201,7 +201,7 @@ QtObject {
         readonly property color field: Qt.rgba(1, 1, 1, 0.06)
         readonly property color fieldBorder: root.overlay.border
         readonly property color busy: root.accent.primary
-        // As dark as the Lock & Login page says.
+        // As dark as Appearance's Lock Screen tab says.
         readonly property color scrim: Qt.rgba(0, 0, 0, LockLook.dim)
     }
     readonly property LockColors lock: LockColors {}

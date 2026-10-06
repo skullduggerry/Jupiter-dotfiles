@@ -8,7 +8,7 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
 
-// SUPER+/: Hyprland's binds over the screen, the Settings app's Keybinds page
+// SUPER+/: Hyprland's binds over the screen, the Settings app's Keybinds tab
 // as an overview, with a keyboard in the layout in use. Escape, a click beside
 // the panel or the shortcut again closes it.
 Scope {

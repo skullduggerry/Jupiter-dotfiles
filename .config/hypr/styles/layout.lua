@@ -88,4 +88,20 @@ hl.layer_rule({
     blur = true,
     ignore_alpha = 0.2,
 })
+-- Dropdowns set to Swoosh in the shell's Settings app (Appearance → Style)
+-- move by themselves, so Hyprland's fade stays off them. The shell switches
+-- this rule live and keeps the choice in dropdowns.lua for the next load.
+local swooshKept, dropdowns = pcall(dofile, state .. "/quickshell/dropdowns.lua")
+hl.layer_rule({
+    name = "qs-dropdown-swoosh",
+    match = { namespace = "^quickshell:(dropdown|.*-popup)$" },
+    no_anim = true,
+    enabled = swooshKept and type(dropdowns) == "table" and dropdowns.swoosh == true,
+})
+-- The OSD and the toasts are not dropdowns: they keep the fade either way.
+hl.layer_rule({
+    name = "qs-not-dropdowns",
+    match = { namespace = "^quickshell:(osd|toast)-popup$" },
+    no_anim = false,
+})
 

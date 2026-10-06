@@ -1,4 +1,4 @@
--- The session's environment lives in config/uwsm/env, where uwsm reads it and
+-- The session's environment lives in .config/uwsm/env, where uwsm reads it and
 -- hands it to systemd as well, so what systemd starts (xdg autostart, D-Bus
 -- activated apps, the portals) gets it too. Without uwsm, it is read here.
 if os.getenv("UWSM_FINALIZE_VARNAMES") == nil then

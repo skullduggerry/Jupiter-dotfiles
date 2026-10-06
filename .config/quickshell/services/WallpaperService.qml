@@ -9,7 +9,7 @@ import Quickshell.Io
 
 // The wallpaper, set through hyprpaper's IPC. The one for every workspace is
 // kept as a hyprpaper config of its own, which hyprpaper starts from at login
-// (config/hypr/modules/startup.lua); until something is picked, it is
+// (.config/hypr/modules/startup.lua); until something is picked, it is
 // hyprpaper.conf's. A workspace can have one of its own on top, which its
 // monitor shows while the workspace is on it.
 Singleton {
@@ -25,7 +25,7 @@ Singleton {
     // As the cards label it: the file name without its extension.
     readonly property string currentName: root.current.split("/").pop().replace(/\.[^.]*$/, "")
     readonly property string defaultConfig: (Quickshell.env("XDG_CONFIG_HOME") || root.home + "/.config") + "/hypr/hyprpaper.conf"
-    // modules/start.lua looks for exactly this path.
+    // modules/startup.lua looks for exactly this path.
     readonly property string savedConfig: (Quickshell.env("XDG_STATE_HOME") || root.home + "/.local/state") + "/quickshell/hyprpaper.conf"
     // Static keeps the pick, Rotate moves on through the library, in the
     // grid's order, every rotateMinutes.
@@ -172,7 +172,7 @@ Singleton {
         }
         // Sources hyprpaper.conf first, so its other settings still apply,
         // then overrides its wallpaper: a later block for the same monitor wins.
-        savedFile.setText(["# Written by the shell (config/quickshell/services/WallpaperService.qml).", "source = " + root.defaultConfig, "", "wallpaper {", "    monitor =", "    path = " + path, "    fit_mode = cover", "}", ""].join("\n"));
+        savedFile.setText(["# Written by the shell (.config/quickshell/services/WallpaperService.qml).", "source = " + root.defaultConfig, "", "wallpaper {", "    monitor =", "    path = " + path, "    fit_mode = cover", "}", ""].join("\n"));
         root.sync();
     }
 

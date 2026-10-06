@@ -26,7 +26,7 @@ Item {
         anchors.fill: parent
         onClicked: {
             actions.current = -1;
-            powerPopup.visible = !powerPopup.visible;
+            powerPopup.open = !powerPopup.open;
         }
     }
 
@@ -37,7 +37,7 @@ Item {
     Connections {
         function onMenuRequested() {
             actions.current = 0;
-            powerPopup.visible = true;
+            powerPopup.open = true;
         }
 
         target: PowerButton
@@ -96,7 +96,7 @@ Item {
                 if (index < 0)
                     return;
 
-                powerPopup.visible = false;
+                powerPopup.open = false;
                 actions.choices[index].run();
             }
 

@@ -7,7 +7,7 @@ STATE_FILE is the shell's $XDG_STATE_HOME/quickshell/appearance.json. When the
 shell runs apply.sh it also passes APPEARANCE_ACCENT and APPEARANCE_FONT, which
 win: a choice made a moment ago may not be in the file yet. The glass the apps
 get is what the shell last recorded in tint.conf beside it
-(config/quickshell/services/app-tint.sh). apply.sh renders the app templates
+(.config/quickshell/services/app-tint.sh). apply.sh renders the app templates
 from a copy of templates/ with this in place of the committed appearance.jinja,
 which holds the defaults; so do a missing file and an empty value.
 """

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""XDG autostart for the Settings app's Startup page.
+"""XDG autostart for the Settings app's About page, Startup tab.
 
     autostart.py list               JSON: the entries this desktop starts, or
                                     would start if they were on

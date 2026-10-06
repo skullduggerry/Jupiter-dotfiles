@@ -8,20 +8,20 @@
 # config, its style/ folder or the wallpaper, so all three are copied out of the
 # home directory rather than symlinked into it.
 #
-# style/ is copied rather than duplicated in the repo, so config/quickshell/
+# style/ is copied rather than duplicated in the repo, so .config/quickshell/
 # stays the single source of truth for the design system. Re-run this after
 # changing any colour or dimension, or the greeter keeps the old ones. The same
 # goes for the monitor layout: etc/greetd/monitors.lua is a symlink to
-# config/hypr/modules/monitors.lua, and `install` copies what it points at.
+# .config/hypr/modules/monitors.lua, and `install` copies what it points at.
 # What the Settings app kept for the monitors on this machine is appended to
 # that copy, since the greeter user has no state of its own to read it from;
 # the keyboard layouts it kept go into the compositor config the same way, so
 # a password is typed on the layout a session starts on.
 #
-# The background is the Settings app's Lock & Login choice (lockscreen.json):
+# The background is the Settings app's Lock Screen choice (lockscreen.json):
 # an image of its own, none, or by default the desktop's wallpaper, read from
-# the hyprpaper config the desktop starts from: the wallpaper app's saved one
-# once something was picked there, config/hypr/hyprpaper.conf before that.
+# the hyprpaper config the desktop starts from: the Settings app's saved one
+# once something was picked there, .config/hypr/hyprpaper.conf before that.
 # Re-run it after picking a new wallpaper, too. That page runs this through
 # pkexec, hence PKEXEC_UID for whose home it is.
 set -euo pipefail
@@ -33,7 +33,7 @@ dest=${1:-/etc/greetd}
 owner=${SUDO_USER:-$(id -nu "${PKEXEC_UID:-$(id -u)}")}
 owner_home=$(getent passwd "$owner" | cut -d: -f6)
 
-# The same path config/hypr/modules/start.lua checks. sudo resets the
+# The same path .config/hypr/modules/startup.lua checks. sudo resets the
 # environment, so this falls back to the owner's home rather than root's.
 picked=${XDG_STATE_HOME:-$owner_home/.local/state}/quickshell/hyprpaper.conf
 config=$repo/.config/hypr/hyprpaper.conf
@@ -66,7 +66,7 @@ install -m 0644 "$repo/etc/greetd/config.toml"  "$dest/config.toml"
 install -m 0644 "$repo/etc/greetd/hyprland.lua" "$dest/hyprland.lua"
 install -m 0644 "$repo/etc/greetd/monitors.lua" "$dest/monitors.lua"
 
-# The same file config/hypr/modules/monitors.lua loads after its own rules,
+# The same file .config/hypr/modules/monitors.lua loads after its own rules,
 # applied the same way: last, so it wins.
 kept=${XDG_STATE_HOME:-$owner_home/.local/state}/quickshell/monitors.lua
 if [[ -r $kept ]]; then
@@ -79,7 +79,7 @@ if [[ -r $kept ]]; then
     echo "monitors    + $kept"
 fi
 
-# The same file config/hypr/modules/keybinds.lua applies to the session.
+# The same file .config/hypr/modules/keybinds.lua applies to the session.
 kept=${XDG_STATE_HOME:-$owner_home/.local/state}/quickshell/keyboard.lua
 if [[ -r $kept ]]; then
     {
@@ -105,8 +105,8 @@ else
     rm -f "$dest/quickshell/wallpaper.jpg"
 fi
 
-# The Lock & Login choices, plus the image the background came from, by which
-# that page tells whether the login screen is up to date.
+# The Lock Screen choices, plus the image the background came from, by which
+# that tab tells whether the login screen is up to date.
 python3 - "$look" "$wallpaper" "$dest/quickshell/lockscreen.json" <<'PY'
 import json, pathlib, sys
 look, image, out = sys.argv[1:]

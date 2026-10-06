@@ -19,7 +19,12 @@ Scope {
         OsdState.show(OsdState.zoneAudio);
     }
 
+    // Only with a backlight: the bar shows no brightness without one either,
+    // and a readout saying there is none was all the keys did.
     function adjustBrightness(delta: int) {
+        if (!Brightness.available)
+            return;
+
         Brightness.adjust(delta);
         OsdState.show(OsdState.zoneBrightness);
     }
@@ -72,7 +77,10 @@ Scope {
             x: window.width - panel.width - Style.bar.edgeGap
             y: Style.popup.topMargin
             width: Style.dropdown.width
-            height: content.item ? Math.floor(content.implicitHeight) : Style.popup.minHeight
+            // Not by `content.item`: the Loader sets it before its implicit
+            // height, which then changed under this binding's own write (a
+            // binding loop warning at every show).
+            height: Math.floor(content.implicitHeight) || Style.popup.minHeight
             radius: Style.bar.radius
             color: Colors.base.surface
             border.color: Colors.base.border

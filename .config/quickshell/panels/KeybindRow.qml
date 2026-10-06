@@ -4,7 +4,7 @@ import "../services"
 import "../style"
 import QtQuick
 
-// A bind of services/Keybinds as the Keybinds page and the shortcuts overlay
+// A bind of services/Keybinds as the Keybinds tab and the shortcuts overlay
 // list it: its description, then its modifiers and keys as keycaps, `inset`
 // from the row's edges.
 Rectangle {

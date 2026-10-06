@@ -11,21 +11,36 @@ import QtQuick
 FocusScope {
     id: root
 
-    // Searched by title and by these words. A page's `tabs` are names
-    // SettingsState.page may hold for it too, each opening on that tab.
+    // Searched by title and by these words. A page with tabs has its words on
+    // them, the first tab being the page itself, and shows them as pills;
+    // SettingsState.page may name any of them, opening the page on that tab.
     readonly property var pages: [
         {
             name: "appearance",
             title: "Appearance",
             icon: Icons.palette,
-            tabs: ["wallpaper", "themes"],
-            keywords: "theme themes light dark accent colour colours color colors font blur strength tint glass solid panels wallpaper background rotate image workspace"
-        },
-        {
-            name: "lockscreen",
-            title: "Lock & Login",
-            icon: Icons.lock,
-            keywords: "lock screen login greeter sign in background wallpaper image plain blur dim darkness clock password"
+            tabs: [
+                {
+                    name: "appearance",
+                    title: "Style",
+                    keywords: "theme light dark accent colour colours color colors font blur strength tint glass solid panels dropdowns"
+                },
+                {
+                    name: "wallpaper",
+                    title: "Wallpapers",
+                    keywords: "wallpaper background rotate image workspace"
+                },
+                {
+                    name: "themes",
+                    title: "Themes",
+                    keywords: "theme themes"
+                },
+                {
+                    name: "lockscreen",
+                    title: "Lock Screen",
+                    keywords: "lock screen login greeter sign in background wallpaper image plain blur dim darkness clock password"
+                }
+            ]
         },
         {
             name: "displays",
@@ -41,15 +56,20 @@ FocusScope {
         },
         {
             name: "network",
-            title: "Network",
+            title: "Network & Bluetooth",
             icon: Icons.wifi,
-            keywords: "wifi wi-fi wireless internet ip address dns gateway"
-        },
-        {
-            name: "bluetooth",
-            title: "Bluetooth",
-            icon: Icons.bluetooth,
-            keywords: "devices pair unpair forget connect headphones speaker visible discoverable"
+            tabs: [
+                {
+                    name: "network",
+                    title: "Network",
+                    keywords: "wifi wi-fi wireless internet ip address dns gateway"
+                },
+                {
+                    name: "bluetooth",
+                    title: "Bluetooth",
+                    keywords: "devices pair unpair forget connect headphones speaker visible discoverable"
+                }
+            ]
         },
         {
             name: "notifications",
@@ -61,38 +81,49 @@ FocusScope {
             name: "power",
             title: "Power",
             icon: Icons.power,
-            keywords: "battery power mode profile saver performance balanced"
+            keywords: "battery power mode profile saver performance balanced idle lock suspend sleep screen off timeout"
         },
         {
             name: "keyboard",
             title: "Keyboard",
             icon: Icons.keyboard,
-            keywords: "keyboard layout layouts language input source variant us de qwerty qwertz azerty dvorak"
-        },
-        {
-            name: "keybinds",
-            title: "Keybinds",
-            icon: Icons.command,
-            keywords: "keyboard shortcuts keys hotkeys binds"
-        },
-        {
-            name: "startup",
-            title: "Startup",
-            icon: Icons.rocket,
-            keywords: "autostart login apps session launch boot"
+            tabs: [
+                {
+                    name: "keyboard",
+                    title: "Layouts",
+                    keywords: "keyboard layout layouts language input source variant us de qwerty qwertz azerty dvorak"
+                },
+                {
+                    name: "keybinds",
+                    title: "Keybinds",
+                    keywords: "keyboard shortcuts keys hotkeys binds"
+                }
+            ]
         },
         {
             name: "about",
             title: "About",
             icon: Icons.info,
-            keywords: "system info version cpu memory kernel hostname"
+            tabs: [
+                {
+                    name: "about",
+                    title: "System",
+                    keywords: "system info version cpu memory kernel hostname"
+                },
+                {
+                    name: "startup",
+                    title: "Startup",
+                    keywords: "autostart login apps session launch boot"
+                }
+            ]
         }
     ]
-    readonly property var shown: {
-        const query = search.text.trim().toLowerCase();
-        return query === "" ? root.pages : root.pages.filter(page => page.title.toLowerCase().includes(query) || page.keywords.includes(query));
-    }
-    readonly property var current: root.pages.find(page => page.name === SettingsState.page || (page.tabs ?? []).includes(SettingsState.page)) || root.pages[0]
+    readonly property string query: search.text.trim().toLowerCase()
+    readonly property var shown: root.query === "" ? root.pages : root.pages.filter(page => root.matches(page) || (page.tabs ?? []).some(tab => root.matches(tab)))
+    readonly property var current: root.pages.find(page => page.name === SettingsState.page || (page.tabs ?? []).some(tab => tab.name === SettingsState.page)) || root.pages[0]
+    // SettingsState.page where it is one of the page's tabs, else the page's
+    // own name, its first tab's.
+    readonly property string tab: (root.current.tabs ?? []).some(tab => tab.name === SettingsState.page) ? SettingsState.page : root.current.name
 
     signal closeRequested
 
@@ -100,6 +131,10 @@ FocusScope {
     function openPage(page) {
         if (page.name !== root.current.name)
             SettingsState.page = page.name;
+    }
+
+    function matches(entry): bool {
+        return entry.title.toLowerCase().includes(root.query) || (entry.keywords ?? "").includes(root.query);
     }
 
     focus: true
@@ -137,10 +172,18 @@ FocusScope {
 
             placeholder: "Search settings…"
             icon: Icons.search
-            // Enter opens the first page that matches.
+            // Enter opens the first page that matches, on the first of its
+            // tabs that does.
             onAccepted: {
-                if (root.shown.length > 0)
-                    root.openPage(root.shown[0]);
+                const page = root.shown[0];
+                if (page === undefined)
+                    return;
+
+                const tab = (page.tabs ?? []).find(tab => root.matches(tab));
+                if (tab !== undefined)
+                    SettingsState.page = tab.name;
+                else
+                    root.openPage(page);
             }
 
             anchors {
@@ -283,16 +326,34 @@ FocusScope {
             }
         }
 
-        // A page is built while it is shown and no longer: the Wi-Fi page
-        // scans, the About page reads the CPU every second.
+        PillGroup {
+            id: tabs
+
+            visible: root.current.tabs !== undefined
+            choices: (root.current.tabs ?? []).map(tab => ({
+                        label: tab.title,
+                        value: tab.name
+                    }))
+            current: root.tab
+            onPicked: tab => SettingsState.page = tab
+
+            anchors {
+                top: pageTitle.bottom
+                left: parent.left
+                topMargin: Style.settings.spacing
+                leftMargin: Style.settings.padding
+            }
+        }
+
+        // A page is built while it is shown and no longer, and so is each tab
+        // but Appearance's, which keeps its own: Network scans for Wi-Fi,
+        // Bluetooth searches for devices, About reads the CPU every second.
         Loader {
             id: body
 
             focus: true
             sourceComponent: {
-                switch (root.current.name) {
-                case "lockscreen":
-                    return lockPage;
+                switch (root.tab) {
                 case "displays":
                     return displaysPage;
                 case "sound":
@@ -319,7 +380,7 @@ FocusScope {
             }
 
             anchors {
-                top: pageTitle.bottom
+                top: tabs.visible ? tabs.bottom : pageTitle.bottom
                 bottom: parent.bottom
                 left: parent.left
                 right: parent.right
@@ -331,13 +392,9 @@ FocusScope {
     Component {
         id: appearancePage
 
-        AppearancePage {}
-    }
-
-    Component {
-        id: lockPage
-
-        LockPage {}
+        AppearancePage {
+            tab: root.tab
+        }
     }
 
     Component {

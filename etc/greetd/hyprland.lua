@@ -4,7 +4,7 @@
 -- greeter itself. The greeter takes exclusive keyboard focus through
 -- layer-shell, so there is nothing else here to drive.
 --
--- The monitors are config/hypr/modules/monitors.lua itself: monitors.lua here
+-- The monitors are .config/hypr/modules/monitors.lua itself: monitors.lua here
 -- is a symlink to it, which scripts/install-greeter.sh installs as a copy, so
 -- the greeter comes up in the session's layout on the laptop and the desktop
 -- alike. Without the laptop's scale it renders at scale 1 on the 2880x1920
@@ -28,7 +28,7 @@ hl.config({
 -- session -- see GreeterService.qml. Getting this wrong is not subtle: the
 -- first vt-2 attempt authenticated fine and then greetd sat waiting until it
 -- gave up with "check_children: greeter exited without creating a session".
--- LOCKSCREEN_STYLE is the Lock & Login page's choices, installed beside the
+-- LOCKSCREEN_STYLE is the Lock Screen tab's choices, installed beside the
 -- greeter, since it cannot read them from $HOME (style/LockLook.qml).
 hl.on("hyprland.start", function()
 	hl.exec_cmd("LOCKSCREEN_STYLE=/etc/greetd/quickshell/lockscreen.json qs -p /etc/greetd/quickshell/shell.qml")

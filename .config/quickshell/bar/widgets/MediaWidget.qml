@@ -21,7 +21,7 @@ Item {
     // The last player went away with its dropdown open.
     onVisibleChanged: {
         if (!root.visible)
-            mediaPopup.visible = false;
+            mediaPopup.open = false;
     }
 
     MediaControls {
@@ -68,7 +68,7 @@ Item {
     }
 
     MouseArea {
-        onClicked: mediaPopup.visible = !mediaPopup.visible
+        onClicked: mediaPopup.open = !mediaPopup.open
 
         anchors {
             top: parent.top

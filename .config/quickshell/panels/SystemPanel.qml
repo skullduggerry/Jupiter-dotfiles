@@ -30,12 +30,10 @@ PanelFrame {
     }
 
     title: "System"
-
-    Binding {
-        target: SystemUsage
-        property: "detailed"
-        value: true
-    }
+    // Counted, not bound: a Binding destroyed with the panel would leave
+    // SystemUsage.detailed set.
+    Component.onCompleted: SystemUsage.viewers += 1
+    Component.onDestruction: SystemUsage.viewers -= 1
 
     Column {
         id: sections

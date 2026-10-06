@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Apply a wallust theme to the shell and to every app template (kitty, nvim,
-# kdeglobals, Kvantum, qt6ct, GTK), then tell running apps. The shell's
-# wallpaper app (config/quickshell/wallpaper/) runs this with a theme;
-# modules/start.lua runs it bare at login.
+# kdeglobals, Kvantum, qt6ct, GTK), then tell running apps. The shell runs
+# this with a theme (.config/quickshell/style/Theme.qml, for the Settings app's
+# Themes tab); modules/start.lua runs it bare at login.
 #
 #     apply.sh                                 the last theme again, the same way
 #     apply.sh [--shell-only] THEME            a built-in (`wallust theme list`)

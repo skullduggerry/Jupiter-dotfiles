@@ -29,7 +29,7 @@ Scope {
         id: window
 
         // What it covers while open, so toasts move below it (PopupAreas).
-        readonly property var coveredArea: DropdownState.visible && window.screen !== null ? {
+        readonly property var coveredArea: window.visible && window.screen !== null ? {
             screen: window.screen.name,
             x: surface.x,
             y: surface.y,
@@ -37,12 +37,15 @@ Scope {
             height: surface.height
         } : null
 
-        visible: DropdownState.visible
+        // Up while the frame goes back into the bar too (PopupFrame), taking
+        // no input meanwhile.
+        visible: frame.shown
         screen: DropdownState.screen
         WlrLayershell.namespace: "quickshell:dropdown"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: window.visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: Colors.base.panel
+        mask: DropdownState.visible ? null : passThrough
         onCoveredAreaChanged: PopupAreas.set(window, window.coveredArea)
         Component.onDestruction: PopupAreas.set(window, null)
 
@@ -51,6 +54,10 @@ Scope {
             bottom: true
             left: true
             right: true
+        }
+
+        Region {
+            id: passThrough
         }
 
         HyprlandFocusGrab {
@@ -118,24 +125,17 @@ Scope {
             Keys.onLeftPressed: surface.step(-1)
             Keys.onRightPressed: surface.step(1)
 
-            Rectangle {
-                anchors.fill: parent
-                radius: Style.bar.radius
-                color: Colors.base.surface
-                border.color: Colors.base.border
-                border.width: Style.border.width
-                clip: true
+            PopupFrame {
+                id: frame
 
-                // Clicks on the panel stay on it rather than dismissing it.
-                MouseArea {
-                    anchors.fill: parent
-                }
+                anchors.fill: parent
+                open: DropdownState.visible
 
                 Loader {
                     id: content
 
                     anchors.fill: parent
-                    active: DropdownState.visible
+                    active: window.visible
                     sourceComponent: {
                         switch (DropdownState.zone) {
                         case DropdownState.zoneWorkspaces:

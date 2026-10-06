@@ -8,7 +8,7 @@
 RULES is a JSON list of hl.monitor tables: {"output": "desc:…", "mode":
 "1920x1080@143.98", "position": "0x0", "scale": 1, "transform": 0, "vrr": 1,
 "disabled": false}. Kept rules live in $XDG_STATE_HOME/quickshell/monitors.json
-and, as the Lua that config/hypr/modules/monitors.lua loads after its own
+and, as the Lua that .config/hypr/modules/monitors.lua loads after its own
 rules, in monitors.lua beside it: Hyprland takes the newest rule matching a
 monitor, so they win there, as they do when applied at runtime, where
 hl.monitor adds a rule after the config's. scripts/install-greeter.sh bakes the
@@ -88,7 +88,7 @@ def write(name, text):
 def store(rules):
     write("monitors.json", json.dumps(rules, indent=2) + "\n")
     lines = ["-- Written by the shell's Settings app (Displays); edits here are lost on",
-             "-- its next save. config/hypr/modules/monitors.lua applies these after",
+             "-- its next save. .config/hypr/modules/monitors.lua applies these after",
              "-- its own rules, so they win.",
              "return {"]
     lines += [f"\t{lua_table(rule)}," for rule in rules]

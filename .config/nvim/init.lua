@@ -1,5 +1,6 @@
--- Colours from the wallust theme: lua/colors.lua, which config/wallust renders.
--- It is run again whenever a theme is applied, so an open nvim follows too.
+-- Colours from the wallust theme: lua/colors.lua, which .config/wallust
+-- renders. It is run again whenever a theme is applied, so an open nvim
+-- follows too.
 -- The background stays the terminal's, which is translucent.
 local colors = vim.fn.stdpath('config') .. '/lua/colors.lua'
 local function load_colors()

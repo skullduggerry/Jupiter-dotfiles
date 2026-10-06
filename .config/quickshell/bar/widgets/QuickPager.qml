@@ -15,12 +15,12 @@ WidgetPopup {
     function openAt(page: int, anchor: Item) {
         root.anchorItem = anchor;
         settings.currentIndex = page;
-        root.visible = true;
+        root.open = true;
     }
 
     function toggleAt(page: int, anchor: Item) {
-        if (root.visible && settings.currentIndex === page)
-            root.visible = false;
+        if (root.open && settings.currentIndex === page)
+            root.open = false;
         else
             root.openAt(page, anchor);
     }
@@ -42,6 +42,6 @@ WidgetPopup {
         id: settings
 
         anchors.fill: parent
-        active: root.visible
+        active: root.open
     }
 }

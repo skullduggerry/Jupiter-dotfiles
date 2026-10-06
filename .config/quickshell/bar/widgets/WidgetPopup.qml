@@ -1,3 +1,4 @@
+import "../../panels"
 import "../../services"
 import "../../style"
 import QtQuick
@@ -8,7 +9,10 @@ import Quickshell.Wayland
 PanelWindow {
     id: root
 
-    default property alias content: chrome.data
+    // Opened and closed by this; the window stays up while the frame goes back
+    // into the bar (PopupFrame), taking no input meanwhile.
+    property bool open: false
+    default property alias content: frame.content
     property string namespaceSuffix: "widget-popup"
     property int popupWidth: Style.popup.width
     property int popupHeight: Style.popup.maxHeight
@@ -46,16 +50,17 @@ PanelWindow {
         root.anchorCenterX = Style.bar.sideGap + rect.x + rect.width / 2;
     }
 
-    visible: false
+    visible: frame.shown
     WlrLayershell.namespace: "quickshell:" + root.namespaceSuffix
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: root.visible ? root.keyboardFocus : WlrKeyboardFocus.None
     color: Colors.base.panel
+    mask: root.open ? null : passThrough
     onCoveredAreaChanged: PopupAreas.set(root, root.coveredArea)
     Component.onDestruction: PopupAreas.set(root, null)
-    onVisibleChanged: {
+    onOpenChanged: {
         dismiss.stop();
-        if (root.visible)
+        if (root.open)
             root.measureAnchor();
     }
 
@@ -64,6 +69,10 @@ PanelWindow {
         bottom: true
         left: true
         right: true
+    }
+
+    Region {
+        id: passThrough
     }
 
     Connections {
@@ -81,7 +90,7 @@ PanelWindow {
 
     HyprlandFocusGrab {
         windows: [root]
-        active: root.visible
+        active: root.open
         onCleared: dismiss.restart()
     }
 
@@ -89,7 +98,7 @@ PanelWindow {
         id: dismiss
 
         interval: Style.popup.dismissDelay
-        onTriggered: root.visible = false
+        onTriggered: root.open = false
     }
 
     MouseArea {
@@ -120,24 +129,17 @@ PanelWindow {
         width: root.popupWidth
         height: root.popupHeight
         focus: true
-        Keys.onEscapePressed: root.visible = false
+        Keys.onEscapePressed: root.open = false
         Keys.onLeftPressed: root.arrow(-1)
         Keys.onRightPressed: root.arrow(1)
 
-        Rectangle {
-            id: chrome
+        PopupFrame {
+            id: frame
 
             anchors.fill: parent
-            radius: Style.bar.radius
-            color: Colors.base.surface
-            border.color: Colors.base.border
-            border.width: Style.border.width
-            clip: true
-
-            // Clicks on the panel stay on it rather than dismissing it.
-            MouseArea {
-                anchors.fill: parent
-            }
+            open: root.open
+            // Out of the widget it opened from, where it is under one.
+            originX: root.screen === BarLayout.main && root.anchorItem !== null ? root.anchorCenterX - contentArea.x : contentArea.width / 2
         }
     }
 }

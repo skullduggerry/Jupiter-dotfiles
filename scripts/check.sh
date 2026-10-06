@@ -106,7 +106,7 @@ done < <(find .config/quickshell etc/greetd -name qmldir -printf '%h\n' 2>/dev/n
 pass "every qml declared in its qmldir"
 
 section "popup namespaces (hyprland blur rule)"
-# config/hypr/styles/layout.lua blurs ^quickshell:.*-popup$ only. A popup named
+# .config/hypr/styles/layout.lua blurs ^quickshell:.*-popup$ only. A popup named
 # anything else silently renders unblurred.
 while read -r line; do
     suffix=${line#*namespaceSuffix: \"}

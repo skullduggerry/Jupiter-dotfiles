@@ -8,7 +8,7 @@ covers the quickshell shell itself.
 ```
 Settings → Appearance → Themes, or apply.sh by hand
         │
-        ▼  config/wallust/apply.sh [--shell-only] THEME | --from IMAGE
+        ▼  .config/wallust/apply.sh [--shell-only] THEME | --from IMAGE
    wallust theme THEME          a built-in
    wallust cs THEME.json        one of colorschemes/, the repo's own
         │
@@ -181,13 +181,13 @@ Five pieces, each owning something different. Getting any one wrong looks like
 
 | Piece | Owns | Where |
 | --- | --- | --- |
-| `QT_QPA_PLATFORMTHEME=qt6ct` | every Qt app's widget style, icon theme and font | `config/uwsm/env`, `templates/qt6ct.conf` |
+| `QT_QPA_PLATFORMTHEME=qt6ct` | every Qt app's widget style, icon theme and font | `.config/uwsm/env`, `templates/qt6ct.conf` |
 | The Wallust colour scheme | KDE apps' colours | `templates/kdeglobals`, rendered to `color-schemes/Wallust.colors` |
 | kdeglobals | which colour scheme, style and icon theme KDE apps load | `templates/kdeglobals`, merged by `kdeglobals.py` |
 | Kvantum theme | how widgets are drawn, window translucency, other Qt apps' colours | `templates/Wallust.kvconfig` + `templates/Wallust.svg` |
 | Hyprland `decoration:blur` | the blur behind it | `styles/layout.lua`, its size from the Settings app's `blur.lua` when kept |
 
-**The Qt variables live in `config/uwsm/env`**, symlinked to
+**The Qt variables live in `.config/uwsm/env`**, symlinked to
 `~/.config/uwsm/env` like the other config folders. uwsm starts Hyprland here
 (the greeter prefers its session), sources that file first and exports it to
 systemd as well; Hyprland's wiki asks uwsm users to keep toolkit and theming
@@ -408,7 +408,7 @@ cover the files.
 
 ## Hyprland blur rules
 
-`config/hypr/styles/layout.lua` blurs by layer-shell namespace. The shell's
+`.config/hypr/styles/layout.lua` blurs by layer-shell namespace. The shell's
 popups are matched by pattern:
 
 ```lua

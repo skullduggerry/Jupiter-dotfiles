@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 
 // How the lock and login screens look: each its own background, and one style
-// for both. Set on the Settings app's Lock & Login page. The greeter gets a
+// for both. Set on the Settings app's Appearance page, Lock Screen tab. The greeter gets a
 // copy of style/ and can read nothing of $HOME, so scripts/install-greeter.sh
 // installs this file beside it and the greeter's compositor names it in
 // LOCKSCREEN_STYLE; there it is only ever read.

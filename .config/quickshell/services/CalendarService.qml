@@ -15,7 +15,10 @@ Singleton {
     property date lastUpdated: new Date(0)
     property date rangeStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
     property date rangeEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
-    property bool active: false
+    // CalendarPanels on screen, each counting itself: the network is asked
+    // only while there is one (on opening when stale, then every 15 minutes).
+    property int viewers: 0
+    readonly property bool active: root.viewers > 0
     property bool refetchWanted: false
     property bool syncWanted: false
     // A fetch takes seconds, so it covers this much more than the visible
@@ -212,9 +215,11 @@ Singleton {
         try {
             payload = JSON.parse(output);
         } catch (parseError) {
-            root.status = "error";
-            root.message = errorOutput.trim().split("\n").pop() || "calendar helper exited " + exitCode + " without output";
-            return;
+            // An error like the helper's own, so a queued re-fetch still runs.
+            payload = {
+                status: "error",
+                message: errorOutput.trim().split("\n").pop() || "calendar helper exited " + exitCode + " without output"
+            };
         }
         root.status = payload.status;
         root.message = payload.message || "";

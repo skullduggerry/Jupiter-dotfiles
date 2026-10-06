@@ -24,12 +24,23 @@ Singleton {
     }
 
     // With a parent-death signal, so a shell that dies hands the button back.
+    // Ended unasked (its `sleep` killed, say), it is taken again after `retake`.
     Process {
-        running: root.active && !LockService.locked
+        running: root.active && !LockService.locked && !retake.running
         command: ["setpriv", "--pdeathsig", "TERM", "systemd-inhibit", "--what=handle-power-key", "--mode=block", "--who=Quickshell", "--why=The power button opens the power menu", "sleep", "infinity"]
         onExited: (exitCode, exitStatus) => {
-            if (root.active && !LockService.locked)
-                console.warn("power button: systemd-inhibit exited with status", exitCode);
+            if (!root.active || LockService.locked)
+                return;
+
+            console.warn("power button: systemd-inhibit exited with status", exitCode, "- taking it again");
+            retake.start();
         }
+    }
+
+    // A pause first, so an inhibitor logind refuses is not asked for in a loop.
+    Timer {
+        id: retake
+
+        interval: 5000
     }
 }

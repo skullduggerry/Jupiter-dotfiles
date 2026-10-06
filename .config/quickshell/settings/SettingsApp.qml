@@ -37,9 +37,9 @@ Scope {
             SettingsState.show("");
         }
 
-        // By name: appearance (and its wallpaper and themes tabs), displays,
-        // sound, network, bluetooth, notifications, power, keybinds, startup,
-        // about.
+        // By name: appearance (and its tabs wallpaper, themes and lockscreen),
+        // displays, sound, network (and bluetooth), notifications, power,
+        // keyboard (and keybinds), about (and startup).
         function openPage(page: string): void {
             SettingsState.show(page);
         }
