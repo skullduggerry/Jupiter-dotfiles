@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import "../panels"
 import "../services"
 import "../style"
@@ -28,6 +30,24 @@ Scope {
     PanelWindow {
         id: window
 
+        // The zone it shows, and on which screen: DropdownState's. While it
+        // is up, another zone on Swoosh (a swipe over another third, the
+        // arrows) waits for the frame to go back into the bar, so the new one
+        // comes out of the bar itself; so does another screen, on Fade too,
+        // as the window is built anew there and must take the grab afresh.
+        property string zone
+        readonly property bool current: window.zone === DropdownState.zone && window.screen === DropdownState.screen
+
+        function follow() {
+            window.screen = DropdownState.screen;
+            window.zone = DropdownState.zone;
+        }
+
+        function requested() {
+            if (!window.visible || (!Theme.swoosh && window.screen === DropdownState.screen))
+                window.follow();
+        }
+
         // What it covers while open, so toasts move below it (PopupAreas).
         readonly property var coveredArea: window.visible && window.screen !== null ? {
             screen: window.screen.name,
@@ -38,15 +58,15 @@ Scope {
         } : null
 
         // Up while the frame goes back into the bar too (PopupFrame), taking
-        // no input meanwhile.
-        visible: frame.shown
-        screen: DropdownState.screen
+        // no input meanwhile, and between two zones.
+        visible: frame.shown || DropdownState.visible
         WlrLayershell.namespace: "quickshell:dropdown"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: window.visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: Colors.base.panel
         mask: DropdownState.visible ? null : passThrough
         onCoveredAreaChanged: PopupAreas.set(window, window.coveredArea)
+        Component.onCompleted: window.follow()
         Component.onDestruction: PopupAreas.set(window, null)
 
         anchors {
@@ -60,9 +80,21 @@ Scope {
             id: passThrough
         }
 
+        Connections {
+            function onZoneChanged() {
+                window.requested();
+            }
+
+            function onScreenChanged() {
+                window.requested();
+            }
+
+            target: DropdownState
+        }
+
         HyprlandFocusGrab {
             windows: [window]
-            active: DropdownState.visible
+            active: DropdownState.visible && window.screen === DropdownState.screen
             onCleared: dismiss.restart()
         }
 
@@ -106,7 +138,7 @@ Scope {
                 if (window.screen !== BarLayout.main)
                     return (window.width - surface.width) / 2;
 
-                switch (DropdownState.zone) {
+                switch (window.zone) {
                 case DropdownState.zoneWorkspaces:
                     return Style.bar.edgeGap;
                 case DropdownState.zoneQuickSettings:
@@ -129,7 +161,14 @@ Scope {
                 id: frame
 
                 anchors.fill: parent
-                open: DropdownState.visible
+                open: DropdownState.visible && window.current
+                // Back in the bar on its way to another zone: that one comes
+                // out. A turn later, as taking it up opens the frame again,
+                // which `shown` itself depends on, and lets the grab go first.
+                onShownChanged: {
+                    if (!frame.shown)
+                        Qt.callLater(window.follow);
+                }
 
                 Loader {
                     id: content
@@ -137,7 +176,7 @@ Scope {
                     anchors.fill: parent
                     active: window.visible
                     sourceComponent: {
-                        switch (DropdownState.zone) {
+                        switch (window.zone) {
                         case DropdownState.zoneWorkspaces:
                             return workspacePanel;
                         case DropdownState.zoneQuickSettings:
@@ -154,7 +193,7 @@ Scope {
             id: workspacePanel
 
             WorkspacePanel {
-                screen: DropdownState.screen
+                screen: window.screen
                 onActivated: DropdownState.close()
             }
         }

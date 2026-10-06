@@ -7,3 +7,13 @@ hl.config({
 		allow_session_lock_restore = true,
 	},
 })
+
+-- Until hyprpaper is up, Hyprland draws a wallpaper of its own, which flashed
+-- before the picked one at every login. The plain background instead, as on
+-- the login screen (etc/greetd/hyprland.lua).
+hl.config({
+	misc = {
+		disable_hyprland_logo = true,
+		disable_splash_rendering = true,
+	},
+})

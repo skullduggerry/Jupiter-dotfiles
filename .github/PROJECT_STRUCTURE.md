@@ -553,6 +553,15 @@ dropdowns and keep Hyprland's fade either way.
   pager, the gesture dropdown, the power menu (its keys), the shelf (its note
   field focused), the notification centre, the live switch both ways through
   the Settings row, and a config reload restoring Swoosh from dropdowns.lua.
+- **Another zone while one is out** (the swipe over another third, the arrows):
+  `Dropdown` shows its own `zone` and `screen`, which take up `DropdownState`'s
+  at once only when nothing is on screen, or on Fade on the same screen. Else
+  `PopupFrame.open` drops (`current` is false), the frame goes back into the
+  bar, and `shown` turning false takes them up a turn later (`Qt.callLater`:
+  taking them up reopens the frame, which `shown` depends on), so the new zone
+  comes out of the bar. Until 6 October the zone swapped in place, one frame,
+  no swoosh. The window stays up meanwhile (`visible` includes
+  `DropdownState.visible`), so the grab is kept.
 
 ## The volume/brightness OSD
 
@@ -1138,6 +1147,15 @@ each step of a resize.
   express stretch at all: hyprctl reads `fill` as cover, and sends stretch as
   "fit", which hyprpaper's own parser does not know and turns into cover.
   hyprpaper.conf was moved to `cover` so login and a live pick agree.
+- **Hyprland's own wallpaper is off** (`misc.disable_hyprland_logo`,
+  `disable_splash_rendering` in `modules/session.lua`, as in the greeter's
+  config). It showed for a moment at every login, until hyprpaper's layer was
+  up and faded in over it; now that moment is the plain background. Recorded
+  in a nested login from the first frame (the startup list's Wallpaper entry,
+  hyprpaper on a copy of the config) before and after. hyprpaper 0.8.4 draws
+  a splash line at the bottom of the wallpaper unless its config says `splash
+  = false` (nested it was Hyprland's splash, on the desktop it reads "alice");
+  hyprpaper.conf does not set it, so it is still there.
 - `WallpaperService.current` is what the focused monitor shows: its
   workspace's own, else the one for every workspace (`allWorkspaces`, the saved
   config's path, else hyprpaper.conf's). The lock screen shows it; it used to
@@ -1943,6 +1961,17 @@ between any two popups, so nothing on the bar can re-target an open dropdown.
 Measured in a nested Hyprland with a virtual pointer, after a first version had
 the dropdown close and reopen on every `open()` to renew its grab — for a click
 that never arrives.
+
+**A layer window moved to another screen loses its grab.** Quickshell builds
+the surface anew on the new output, Hyprland drops the grab with the old one,
+and `onCleared` closed the dropdown ~200 ms later: a swipe over another
+monitor's third, while a zone was open, closed it instead of moving it (Fade
+and Swoosh alike). `Dropdown` now lets the grab go while a move is pending
+(`active` needs `window.screen === DropdownState.screen`) and moves only once
+the frame is back in the bar, a turn after the request, so the grab is taken
+afresh on the new surface like a plain open. Releasing and re-taking it in one
+turn did not help. Checked nested with two outputs: open, then Escape closes
+it after the move.
 
 **`Hyprland.dispatch()` takes Lua here.** Under the Lua config the request
 becomes `return hl.dispatch(<argument>)`, so the power menu's Logout, which sent
