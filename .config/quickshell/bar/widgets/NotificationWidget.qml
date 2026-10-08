@@ -46,6 +46,16 @@ Item {
         }
     }
 
+    // SUPER+N, on the focused screen's bar.
+    Connections {
+        function onToggleRequested() {
+            if (root.screen === Screens.focused)
+                notificationPopup.open = !notificationPopup.open;
+        }
+
+        target: NotificationService
+    }
+
     // Deliberately not anchored to the bell, which moves with the bar's
     // drawer: the centre opens at the right edge, exactly the column the
     // toasts pop up in, so a notification is found where it was shown. From

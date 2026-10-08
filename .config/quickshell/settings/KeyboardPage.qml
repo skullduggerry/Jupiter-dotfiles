@@ -10,7 +10,8 @@ import Quickshell.Io
 // The keyboard layouts SUPER+SPACE and the bar's keyboard switch between, kept
 // on this machine (KeyboardLayout.setLayouts). A click picks the one in use, a
 // login starts on the first. Names and what can be added come from XKB's own
-// list, the one Hyprland's documentation points to.
+// list, the one Hyprland's documentation points to. Under them, what Caps Lock
+// does (QuickMenu.setCapsLock).
 ScrollPage {
     id: root
 
@@ -315,6 +316,38 @@ ScrollPage {
                         onClicked: root.add(candidate.modelData)
                     }
                 }
+            }
+        }
+    }
+
+    Section {
+        title: "CAPS LOCK"
+
+        FormCard {
+            width: root.columnWidth
+
+            PillGroup {
+                choices: [
+                    {
+                        label: "Opens the quick menu",
+                        value: true
+                    },
+                    {
+                        label: "Locks capitals",
+                        value: false
+                    }
+                ]
+                current: QuickMenu.capsLock
+                onPicked: menu => QuickMenu.setCapsLock(menu)
+            }
+
+            Text {
+                width: parent.width
+                text: "SUPER+A opens the quick menu either way. Hold the key, move toward an item and let go, or tap it to keep the menu open."
+                color: Colors.text.muted
+                font.family: Style.text.font
+                font.pixelSize: Style.text.smallSize
+                wrapMode: Text.WordWrap
             }
         }
     }

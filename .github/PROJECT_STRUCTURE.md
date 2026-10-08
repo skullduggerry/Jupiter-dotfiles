@@ -37,8 +37,8 @@ bar/             Bar (a PanelWindow per screen) holding BarContent (full bar)
 dropdown/        the three-finger-swipe overlay: workspaces, calendar, quick settings
 settings/        SettingsApp (window, IPC) + SettingsContent (sidebar, tabs)
                  + one file per page or tab, and their shared parts
-launcher/ lock/ notifications/ osd/ overview/ shortcuts/ cursor/
-                 one surface each: X.qml (scope, IPC, shortcut) + its content
+lock/ notifications/ osd/ overview/ shortcuts/ cursor/
+quickmenu/       one surface each: X.qml (scope, IPC, shortcut) + its content
 ```
 
 **Imports form a DAG.** `style/` and `services/` import nothing from the
@@ -96,7 +96,8 @@ and the installer must copy it as a file.
 | A quick-settings page | a panel + a `page*` index and `Component` in `QuickSettingsPanel` |
 | A swipe zone | a panel, a zone in `DropdownState` and its place in `step()`, a `Component` in `Dropdown.qml` |
 | Anything fetched from outside | a `services/` singleton, with a helper script run through `Process` |
-| A top-level surface | its own folder + `qmldir`, following `launcher/` (overlay) or `settings/` (window) |
+| A top-level surface | its own folder + `qmldir`, following `shortcuts/` (overlay) or `settings/` (window) |
+| A quick-menu item or category | `quickmenu/QuickMenuItems` (`definitions`, `categories`, `shortcuts`); a default slot in `services/QuickMenu` |
 | A Settings page or tab | an entry in `SettingsContent.pages` (name, title, glyph, search words, `tabs`) and a `Component` in its `Loader`. Inside it: a `ScrollPage` if it can be taller than the window, a `PanelCard` for a quick-settings panel, `FormCard`/`FormRow` for labelled settings, `Card` for other rows |
 | Something that must run from login | a service with an `active` flag, bound from something that is always built (as `SettingsApp.qml` binds `WallpaperService.active`) |
 | A surface in the top right | publish its area with `PopupAreas.set()` so toasts move below it |
@@ -229,7 +230,8 @@ or tab name opens its place (`openPage keybinds`).
   hypridle reads its config only at start: `hypridle-restart.sh` restarts the
   instance with this `HYPRLAND_INSTANCE_SIGNATURE` only.
 - Keybinds and the shortcuts overlay: both read `services/Keybinds`
-  (`hyprctl binds -j`). A Lua bind reports only `__lua`, so every bind in
+  (`hyprctl binds -j`, and the text output for a keycode bind's key, which
+  the JSON leaves out). A Lua bind reports only `__lua`, so every bind in
   `keybinds.lua` carries a `description`. Key labels come from xkbcommon
   (`keymap.py`), and a bind's key is looked up in the first layout, as
   Hyprland does.
@@ -275,9 +277,10 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
 - Usage: the detailed reads run only while `SystemUsage.viewers > 0`. The
   temperature sensor is found by driver name, because hwmon numbers change
   between boots.
-- Launcher calculator: only arithmetic-looking input, or input after `=`, goes
-  to `qalc -t`. Set the command where the process starts, not through a
-  binding. `.config/qalculate/qalc.cfg` is in the repo.
+- The apps' calculator (`quickmenu/QuickMenuApps`): only arithmetic-looking
+  input, or input after `=`, goes to `qalc -t`. Set the command where the
+  process starts, not through a binding. `.config/qalculate/qalc.cfg` is in
+  the repo.
 - Shelf: plain files in the Nextcloud sync folder's `Shelf/`. Files are
   written as `.<name>.part` and renamed, and password-manager copies are
   refused.
@@ -291,6 +294,30 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
 - Cursor finder: `modules/cursor.lua` detects the double Ctrl tap and posts
   `custom>>cursorfinder …` events. The shell reads them through
   `Hyprland.rawEvent`, takes no input, and hides on `configreloaded`.
+
+**Quick menu** (`quickmenu/`, `services/QuickMenu`):
+- Its keys are Lua binds (`modules/quickmenu.lua`), not `GlobalShortcut`s:
+  press posts `custom>>quickmenu press X Y` with the pointer, release posts
+  `quickmenu release`, which uses what the pointer moved to.
+- Caps Lock is `kb_options = caps:none` plus a `code:66` bind. The Keyboard
+  page's choice goes to `quickmenu.lua` and live through
+  `hyprctl eval 'require("modules.quickmenu").useCapsLock(…)'`.
+- Selection goes by direction from the centre. Once the pointer has been in
+  a category's arc, another slot takes over only after `switchDelay`; while
+  a list's panel is out, from the start.
+- Items act through the services the tiles use. Screenshots and recording
+  start `captureDelay` after the menu closes, or they capture it.
+- An arc reads left to right in its listed order, which runs the other way
+  round the ring on its left and lower side (`arcAngle()`, `arcIndex()`).
+- A list item (the apps, the clipboard) shows its entries in a `RingList` out
+  from its slot, as a category shows its arc; the pencil's options are a
+  `RingPanel` too. The panel's body box overlaps the ring, so anything there
+  that takes input is masked (`bodyMask`) or sits inside a row: a
+  `containmentMask` on a `Flickable` does not keep its children's MouseAreas
+  from taking clicks.
+- The apps' list is the launcher. SUPER+R (`launcherToggle`) opens the menu
+  centred with that list entered; letters type into a list only while it is
+  entered, and are slot shortcuts otherwise.
 
 **Workspaces.** Each monitor numbers its own: `modules/workspaces.lua` gives
 each output name a block of 100 ids, recorded in
@@ -399,20 +426,20 @@ share the names.
 ## Entry points
 
 ```bash
-qs ipc call launcher toggle
 qs ipc call dropdown open calendar      # workspaces | calendar | quicksettings; openAt X Y
 qs ipc call lock lock                   # no unlock IPC, by design
 qs ipc call settings openPage keybinds  # toggle | open | close | openPage <name>
 qs ipc call shortcuts toggle
+qs ipc call quickmenu toggle            # apps | openAt X Y | close
 hyprctl dispatch 'hl.dsp.global("quickshell:barExpand")'   # fire any GlobalShortcut
 ~/.config/wallust/apply.sh Nord         # recolours everything; see THEMING.md
 ```
 
 Every shell shortcut is a `GlobalShortcut` bound in
-`.config/hypr/modules/keybinds.lua`, and the three-finger swipe is an
-`hl.gesture` that calls `dropdown openAt`.
+`.config/hypr/modules/keybinds.lua`, except the quick menu's Lua binds, and
+the three-finger swipe is an `hl.gesture` that calls `dropdown openAt`.
 
 State files (`$XDG_STATE_HOME/quickshell/`): `appearance.json`,
-`monitors.{json,lua}`, `keyboard.lua`, `blur.lua`, `dropdowns.lua`,
+`monitors.{json,lua}`, `keyboard.lua`, `quickmenu.lua`, `blur.lua`, `dropdowns.lua`,
 `hypridle.conf`, `hyprpaper.conf`, `tint.conf`, `lockscreen.json`, and the
 `statePath()` JSON files of individual services.

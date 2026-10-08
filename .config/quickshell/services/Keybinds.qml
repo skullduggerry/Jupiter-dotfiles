@@ -55,15 +55,19 @@ Singleton {
         return keys.map(Keymap.label).join(" ");
     }
 
-    function load(binds) {
+    // `keys`: each bind's key from hyprctl's text output, in the same order.
+    function load(binds, keys) {
         const merged = [];
         const byName = {};
-        for (const bind of binds) {
+        for (let index = 0; index < binds.length; index++) {
+            const bind = binds[index];
             const description = bind.has_description ? bind.description : "";
-            const key = bind.key !== "" ? bind.key : "code:" + bind.keycode;
+            const key = bind.key !== "" ? bind.key : keys.length === binds.length ? keys[index] : "code:" + bind.keycode;
             const name = description + "\n" + bind.modmask + "\n" + bind.submap;
+            // A press and a release bind on the same key are one row, one key.
             if (description !== "" && name in byName) {
-                byName[name].keys.push(key);
+                if (!byName[name].keys.includes(key))
+                    byName[name].keys.push(key);
                 continue;
             }
             const row = {
@@ -93,12 +97,16 @@ Singleton {
     Process {
         id: reader
 
-        command: ["hyprctl", "binds", "-j"]
+        // Hyprland 0.56's JSON leaves out the key of a Lua bind on a keycode
+        // (no key, keycode 0); its text output has it, "key: code:66".
+        command: ["sh", "-c", "hyprctl binds -j && hyprctl binds"]
 
         stdout: StdioCollector {
             onStreamFinished: {
+                const textAt = text.search(/^bind/m);
+                const listed = textAt < 0 ? "" : text.slice(textAt);
                 try {
-                    root.load(JSON.parse(text));
+                    root.load(JSON.parse(textAt < 0 ? text : text.slice(0, textAt)), (listed.match(/^\tkey: .*$/gm) ?? []).map(line => line.slice("\tkey: ".length)));
                 } catch (error) {
                     console.warn("keybinds: hyprctl printed no binds:", error);
                 }

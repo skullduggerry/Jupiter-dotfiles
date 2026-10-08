@@ -1,4 +1,6 @@
 AppletButton 1.0 AppletButton.qml
+AppVolumeRow 1.0 AppVolumeRow.qml
+AudioDeviceRow 1.0 AudioDeviceRow.qml
 AudioPanel 1.0 AudioPanel.qml
 BatteryPanel 1.0 BatteryPanel.qml
 BluetoothPanel 1.0 BluetoothPanel.qml
@@ -6,7 +8,9 @@ BrightnessPanel 1.0 BrightnessPanel.qml
 CalendarPanel 1.0 CalendarPanel.qml
 CalendarSetup 1.0 CalendarSetup.qml
 CalendarTasks 1.0 CalendarTasks.qml
+ClipboardHistory 1.0 ClipboardHistory.qml
 ClipboardPanel 1.0 ClipboardPanel.qml
+CoverArt 1.0 CoverArt.qml
 DetailRow 1.0 DetailRow.qml
 InputField 1.0 InputField.qml
 KeybindRow 1.0 KeybindRow.qml
@@ -27,6 +31,7 @@ SystemPanel 1.0 SystemPanel.qml
 TextButton 1.0 TextButton.qml
 TogglesPanel 1.0 TogglesPanel.qml
 ToggleTile 1.0 ToggleTile.qml
+TrackSeek 1.0 TrackSeek.qml
 VolumeRow 1.0 VolumeRow.qml
 WallpaperCard 1.0 WallpaperCard.qml
 WifiPanel 1.0 WifiPanel.qml

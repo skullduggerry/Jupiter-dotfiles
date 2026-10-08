@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Services.Notifications
 
 Singleton {
@@ -18,6 +19,9 @@ Singleton {
     readonly property var popups: root.tracked.filter(candidate => root.popupIds.includes(candidate.id)).reverse()
     readonly property int count: root.list.length
     readonly property bool hasCritical: root.list.some(candidate => candidate.urgency === NotificationUrgency.Critical)
+
+    // SUPER+N, for the bar's bell (NotificationWidget) to open its centre.
+    signal toggleRequested
 
     function hidePopup(id: int) {
         root.popupIds = root.popupIds.filter(candidate => candidate !== id);
@@ -43,6 +47,11 @@ Singleton {
     onViewersChanged: {
         if (root.viewers > 0)
             root.expirePopups();
+    }
+
+    GlobalShortcut {
+        name: "notificationsToggle"
+        onPressed: root.toggleRequested()
     }
 
     NotificationServer {

@@ -5,35 +5,23 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.Mpris
 
-// What is playing (Media.active): its controls, then the title and, when both
-// fit, the artist, which open the player in a dropdown.
+// What is playing (Media.active): the title and, when both fit, the artist,
+// which open the player and its controls in a dropdown.
 Item {
     id: root
 
     required property ShellScreen screen
     required property real maximumWidth
     readonly property MprisPlayer player: Media.active
-    readonly property real trackWidth: Math.max(0, Math.min(Style.media.trackWidth, root.maximumWidth - Style.widgets.padding * 2 - controls.implicitWidth - Style.bar.spacing))
+    readonly property real trackWidth: Math.max(0, Math.min(Style.media.trackWidth, root.maximumWidth - Style.widgets.padding * 2))
 
     visible: root.player !== null
-    implicitWidth: visible ? controls.implicitWidth + Style.bar.spacing + track.implicitWidth + Style.widgets.padding * 2 : 0
+    implicitWidth: visible ? track.implicitWidth + Style.widgets.padding * 2 : 0
     implicitHeight: Style.bar.height
     // The last player went away with its dropdown open.
     onVisibleChanged: {
         if (!root.visible)
             mediaPopup.open = false;
-    }
-
-    MediaControls {
-        id: controls
-
-        spacing: Style.widgets.spacing
-
-        anchors {
-            left: parent.left
-            leftMargin: Style.widgets.padding
-            verticalCenter: parent.verticalCenter
-        }
     }
 
     Row {
@@ -42,8 +30,8 @@ Item {
         spacing: Style.widgets.spacing
 
         anchors {
-            left: controls.right
-            leftMargin: Style.bar.spacing
+            left: parent.left
+            leftMargin: Style.widgets.padding
             verticalCenter: parent.verticalCenter
         }
 
@@ -68,14 +56,8 @@ Item {
     }
 
     MouseArea {
+        anchors.fill: parent
         onClicked: mediaPopup.open = !mediaPopup.open
-
-        anchors {
-            top: parent.top
-            bottom: parent.bottom
-            left: track.left
-            right: parent.right
-        }
     }
 
     WidgetPopup {

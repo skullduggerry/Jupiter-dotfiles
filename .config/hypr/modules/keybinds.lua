@@ -1,11 +1,12 @@
 local cursor = require("modules.cursor")
+local quickmenu = require("modules.quickmenu")
 local vars = require("modules.vars")
 local workspaces = require("modules.workspaces")
 -- Every bind carries a description: hyprctl binds reports Lua binds only as a
 -- callback number, so the description is all the shell's Settings app
 -- (Keyboard, Keybinds) has to name them by. Binds that share a description and
 -- modifiers show there as one row, like the workspace numbers below.
-hl.bind(vars.mainMod .. " + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"), { description = "Log out" })
+hl.bind(vars.mainMod .. " + SHIFT + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"), { description = "Log out" })
 hl.bind(vars.mainMod .. " + E", hl.dsp.exec_cmd(vars.fileManager), { description = "Open the file manager" })
 hl.bind(vars.mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }), { description = "Float or tile the window" })
 hl.bind(vars.mainMod .. " + R", hl.dsp.global(vars.menu), { description = "Open the launcher" })
@@ -56,6 +57,14 @@ hl.bind(vars.mainMod .. " + G", hl.dsp.group.toggle(), { description = "Group or
 hl.bind(vars.mainMod .. " + S", hl.dsp.workspace.toggle_special("magic"), { description = "Show or hide the scratchpad" })
 hl.bind(vars.mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" }), { description = "Move the window to the scratchpad" })
 hl.bind(vars.mainMod .. " + Tab", hl.dsp.global("quickshell:overview"), { description = "Show every workspace" })
+-- The bar's surfaces without the bar: the quick menu where the pointer is
+-- (modules/quickmenu.lua; hold, move and let go to pick, or tap to keep it
+-- open), the notifications, the calendar, the power menu.
+hl.bind(vars.mainMod .. " + A", quickmenu.press, { description = "Open the quick menu" })
+hl.bind(vars.mainMod .. " + A", quickmenu.release, { release = true, description = "Open the quick menu" })
+hl.bind(vars.mainMod .. " + N", hl.dsp.global("quickshell:notificationsToggle"), { description = "Show the notifications" })
+hl.bind(vars.mainMod .. " + D", hl.dsp.global("quickshell:calendarToggle"), { description = "Show the calendar" })
+hl.bind("CTRL + ALT + Delete", hl.dsp.global("quickshell:powerMenu"), { description = "Open the power menu" })
 hl.bind(vars.mainMod .. " + slash", hl.dsp.global("quickshell:shortcutsToggle"), { description = "Show the keyboard shortcuts" })
 -- Left Ctrl tapped twice shows where the pointer is (modules/cursor.lua),
 -- seen on the release and passed on to the window, so Ctrl stays Ctrl.
@@ -85,6 +94,11 @@ local ok, kept = pcall(dofile, state .. "/quickshell/keyboard.lua")
 if ok and type(kept) == "table" then
 	hl.config({ input = kept })
 end
+
+-- Caps Lock opens the quick menu unless the Keyboard page kept it off
+-- (.config/quickshell/services/QuickMenu.qml).
+local menuKept, menu = pcall(dofile, state .. "/quickshell/quickmenu.lua")
+quickmenu.useCapsLock(not (menuKept and type(menu) == "table" and menu.capsLock == false))
 
 hl.gesture({
 	fingers = 3,

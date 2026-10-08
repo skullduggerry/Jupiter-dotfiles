@@ -104,7 +104,7 @@ Scope {
             WlrLayershell.namespace: "quickshell:overview"
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: window.visible && window.modelData === root.keyboardScreen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-            // Over the bars too, as the launcher is.
+            // Over the bars too, as the quick menu is.
             exclusionMode: ExclusionMode.Ignore
             color: Colors.overlay.scrim
 

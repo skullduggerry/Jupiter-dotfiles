@@ -45,7 +45,7 @@ Scope {
         WlrLayershell.namespace: "quickshell:shortcuts"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: window.visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
-        // Over the bars too, as the launcher is.
+        // Over the bars too, as the quick menu is.
         exclusionMode: ExclusionMode.Ignore
         color: Colors.base.scrim
 

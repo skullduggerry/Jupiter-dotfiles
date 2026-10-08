@@ -54,11 +54,6 @@ hl.window_rule({
 hl.layer_rule({ name = "waybar-blur",  match = { namespace = "^waybar$" }, blur = true, ignore_alpha = 0.0 })
 hl.layer_rule({ name = "qs-bar-blur",  match = { namespace = "^quickshell:bar$" }, blur = true, ignore_alpha = 0.2 })
 hl.layer_rule({
-    match = { namespace = "quickshell:launcher" },
-    blur = true,
-    no_anim = true,
-})
-hl.layer_rule({
     name = "qs-overview-blur",
     match = { namespace = "^quickshell:overview$" },
     blur = true,
@@ -67,6 +62,13 @@ hl.layer_rule({
 hl.layer_rule({
     name = "qs-shortcuts-blur",
     match = { namespace = "^quickshell:shortcuts$" },
+    blur = true,
+    no_anim = true,
+})
+-- The quick menu (the launcher too) blurs the screen and moves by itself.
+hl.layer_rule({
+    name = "qs-quickmenu-blur",
+    match = { namespace = "^quickshell:quickmenu$" },
     blur = true,
     no_anim = true,
 })

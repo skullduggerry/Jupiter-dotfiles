@@ -49,8 +49,10 @@ Singleton {
             return [""];
 
         const [base, shifted] = key.text;
+        // Caps Lock turned off (caps:none, the quick menu's key) has no
+        // symbol left, but is still the key labelled Caps.
         if (base === "")
-            return [root.keyName(key.syms[0])];
+            return [root.keyName(name === "CAPS" && key.syms[0] === "VoidSymbol" ? "Caps_Lock" : key.syms[0])];
 
         if (shifted !== base && shifted === base.toUpperCase())
             return [shifted];

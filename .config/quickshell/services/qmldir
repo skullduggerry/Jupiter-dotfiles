@@ -15,6 +15,7 @@ singleton NotificationService 1.0 NotificationService.qml
 singleton OsdState 1.0 OsdState.qml
 singleton PopupAreas 1.0 PopupAreas.qml
 singleton PowerButton 1.0 PowerButton.qml
+singleton QuickMenu 1.0 QuickMenu.qml
 singleton QuickToggles 1.0 QuickToggles.qml
 singleton Screens 1.0 Screens.qml
 singleton SettingsState 1.0 SettingsState.qml

@@ -27,6 +27,13 @@ Scope {
         target: "dropdown"
     }
 
+    // SUPER+D: the calendar on the focused screen, the arrows going on to the
+    // workspaces and the quick settings.
+    GlobalShortcut {
+        name: "calendarToggle"
+        onPressed: DropdownState.toggle(DropdownState.zoneCalendar, Screens.focused)
+    }
+
     PanelWindow {
         id: window
 

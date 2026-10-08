@@ -78,7 +78,7 @@ PanelFrame {
             label: root.caffeineLabel
             checked: QuickToggles.caffeine
             onActivated: QuickToggles.setCaffeine(!QuickToggles.caffeine)
-            onSecondaryActivated: QuickToggles.cycleCaffeineMinutes()
+            onSecondaryActivated: QuickToggles.cycleCaffeineMinutes(1)
         }
     }
 

@@ -91,7 +91,7 @@ FocusScope {
                 {
                     name: "keyboard",
                     title: "Layouts",
-                    keywords: "keyboard layout layouts language input source variant us de qwerty qwertz azerty dvorak"
+                    keywords: "keyboard layout layouts language input source variant us de qwerty qwertz azerty dvorak caps lock quick menu"
                 },
                 {
                     name: "keybinds",

@@ -102,10 +102,11 @@ Singleton {
         root.caffeineEnd = enabled && root.caffeineMinutes > 0 ? Math.ceil(Date.now() / 60000) + root.caffeineMinutes : 0;
     }
 
-    // The next length, counted from now if Caffeine is on.
-    function cycleCaffeineMinutes() {
+    // The next length (or with -1 the one before), counted from now if
+    // Caffeine is on.
+    function cycleCaffeineMinutes(direction: int) {
         const choices = root.caffeineChoices;
-        settings.caffeineMinutes = choices[(choices.indexOf(root.caffeineMinutes) + 1) % choices.length];
+        settings.caffeineMinutes = choices[(choices.indexOf(root.caffeineMinutes) + direction + choices.length) % choices.length];
         writeDebounce.restart();
         if (root.caffeine)
             root.setCaffeine(true);
