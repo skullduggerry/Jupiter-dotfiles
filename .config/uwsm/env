@@ -14,6 +14,6 @@ export QT_QPA_PLATFORMTHEME=qt6ct
 export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
 
 # SSH keys go through gcr-ssh-agent (gnome-keyring 46 dropped its own agent),
-# whose socket unit is enabled per machine:
-# systemctl --user enable gcr-ssh-agent.socket
+# whose socket unit Jupiter-installer's phase 2 enables (by hand:
+# systemctl --user enable gcr-ssh-agent.socket).
 export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/gcr/ssh

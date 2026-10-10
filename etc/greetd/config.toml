@@ -3,12 +3,9 @@
 # Which virtual terminal the greeter draws on. The session inherits it, so this
 # is also the VT the desktop ends up on: ctrl+alt+F1 here.
 #
-# Was 2 while greetd was staged alongside SDDM on vt 1; now the conventional 1,
-# matching what SDDM used. It makes no difference to safety either way: no getty
-# is statically enabled on this system, logind
-# spawns one on demand for VTs 1-6 (NAutoVTs), so a text login is a function key
-# away regardless of which VT greetd owns. greetd's Conflicts=getty@tty1.service
-# only matters where a getty is statically enabled on tty1.
+# The conventional 1, as SDDM used. Arch's systemd enables a getty there, which
+# greetd's Conflicts=getty@tty1.service keeps off; logind starts one on demand on
+# the other VTs (NAutoVTs), so a text login is still ctrl+alt+F2 away.
 
 [terminal]
 vt = 1

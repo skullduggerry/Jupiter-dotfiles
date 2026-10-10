@@ -36,7 +36,7 @@ Everything runs from the repo root.
 |---|---|
 | `scripts/check.sh` | The project's validation: QML formatting and lint, qmldir entries, popup blur names, icon glyphs, Python/Lua/shell syntax, both Hyprland configs and the tests below. `--fix` formats first, `--staged` only looks at staged files. |
 | `scripts/install-hooks.sh` | Run once per clone; afterwards a commit formats and checks the staged QML, and a push runs the full `check.sh`. |
-| `scripts/install-greeter.sh` | Copies the login screen, the shell's colours, the monitor layout (with the changes kept in Settings) and the current wallpaper into `/etc/greetd`, plus its PAM file (run with `sudo`, and again after changing any of those). |
+| `scripts/install-greeter.sh` | Copies the login screen, the shell's colours, the monitor layout (with the changes kept in Settings) and the current wallpaper into `/etc/greetd`, plus its PAM files (run with `sudo`, and again after changing any of those). |
 | `scripts/quickshell-types.py` | Writes a copy of Quickshell's type information with its packaging mistakes fixed, which `check.sh` lints against so Quickshell types get checked too. |
 | `scripts/pasted-glyphs.py` | Lists QML files with a pasted private-use (icon) character; icons are written as `\u{...}` escapes, which no tool can silently delete. |
 | `scripts/kvantum-template.py` | Rebuilds the Kvantum theme's SVG template from the KvMojave theme that comes with Kvantum, so Qt apps follow light themes too, with line chevrons for its arrows. Run it again if a Kvantum update changes KvMojave. |
