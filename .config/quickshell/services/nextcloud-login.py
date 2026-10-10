@@ -14,9 +14,11 @@ Quickshell.Io.Process:
     {"status": "ok", "server": "...", "loginName": "..."}        on success
     {"status": "error", "message": "..."}
 
-The app password is written straight to `secret-tool` on stdin. It is never
-printed, never passed as an argument and never handed back to QML -- the same
-rule the calendar fetcher follows.
+The app password is written straight to `secret-tool` on stdin, under the
+server it belongs to (`service nextcloud server URL username NAME`, which
+nextcloud-calendar.py looks up). It is never printed, never passed as an
+argument and never handed back to QML -- the same rule the calendar fetcher
+follows.
 
     services/nextcloud-login.py --url https://cloud.example.org
 """
@@ -24,6 +26,7 @@ rule the calendar fetcher follows.
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import subprocess
 import sys
@@ -43,9 +46,22 @@ POLL_SECONDS = 2
 GIVE_UP_SECONDS = 180
 
 
+class Failed(Exception):
+    """Signing in cannot go on; the message says why."""
+
+
 def emit(payload: dict) -> None:
     sys.stdout.write(json.dumps(payload) + "\n")
     sys.stdout.flush()
+
+
+def is_secure(url: str) -> bool:
+    """https anywhere, or plain http only when it cannot leave the machine,
+    the same rule as nextcloud-calendar.py's."""
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme == "https":
+        return True
+    return parts.scheme == "http" and parts.hostname in ("localhost", "127.0.0.1", "::1")
 
 
 def post(url: str, fields: dict | None = None) -> tuple[int, bytes]:
@@ -62,22 +78,73 @@ def post(url: str, fields: dict | None = None) -> tuple[int, bytes]:
     except urllib.error.HTTPError as error:
         return error.code, error.read()
     except urllib.error.URLError as error:
-        raise SystemExit(emit({"status": "error", "message": f"{url}: {error.reason}"}))
+        raise Failed(f"{url}: {error.reason}") from None
+    except (OSError, http.client.HTTPException) as error:
+        raise Failed(f"{url}: {error or type(error).__name__}") from None
 
 
-def store(login_name: str, app_password: str) -> None:
+def store(server: str, login_name: str, app_password: str) -> None:
     """Hand the secret to the keyring over stdin, never over argv."""
-    result = subprocess.run(
-        ["secret-tool", "store", "--label=Nextcloud",
-         "service", "nextcloud", "username", login_name],
-        input=app_password,
-        text=True,
-        capture_output=True,
-    )
+    try:
+        result = subprocess.run(
+            ["secret-tool", "store", "--label=Nextcloud",
+             "service", "nextcloud", "server", server, "username", login_name],
+            input=app_password,
+            text=True,
+            capture_output=True,
+        )
+    except FileNotFoundError:
+        raise Failed("could not save to the keyring: secret-tool is not installed") from None
     if result.returncode != 0:
         detail = result.stderr.strip() or f"secret-tool exited {result.returncode}"
-        emit({"status": "error", "message": f"could not save to the keyring: {detail}"})
-        raise SystemExit(1)
+        raise Failed(f"could not save to the keyring: {detail}")
+
+
+def sign_in(base: str) -> str:
+    """The login name, once the browser has signed in and the app password
+    is in the keyring."""
+    if not is_secure(base):
+        raise Failed("the server address must be https://")
+
+    status, body = post(base + INIT_PATH)
+    if status != 200:
+        raise Failed(f"{base}{INIT_PATH}: HTTP {status}")
+    try:
+        started = json.loads(body)
+        login = started["login"]
+        poll_url = started["poll"]["endpoint"]
+        token = started["poll"]["token"]
+    except (ValueError, KeyError, TypeError):
+        raise Failed("unexpected reply from login/v2") from None
+    # Both come from the server: the page goes to the browser (xdg-open would
+    # open any scheme it has a handler for), and the poll's answer carries the
+    # app password, which a proxy that forgot it is behind https would send
+    # back in the clear.
+    if not (isinstance(login, str) and isinstance(poll_url, str) and is_secure(login) and is_secure(poll_url)):
+        raise Failed("the server answered with an address that is not https://")
+    emit({"status": "open", "url": login})
+
+    deadline = time.monotonic() + GIVE_UP_SECONDS
+    while time.monotonic() < deadline:
+        time.sleep(POLL_SECONDS)
+        try:
+            status, body = post(poll_url, {"token": token})
+        except Failed:
+            continue  # a dropped poll is retried, as is an unfinished one
+        if status == 404:
+            continue  # nobody has finished signing in yet
+        if status != 200:
+            raise Failed(f"poll: HTTP {status}")
+        try:
+            finished = json.loads(body)
+            login_name = finished["loginName"]
+            app_password = finished["appPassword"]
+        except (ValueError, KeyError, TypeError):
+            raise Failed("unexpected reply while polling") from None
+        store(base, login_name, app_password)
+        return login_name
+
+    raise Failed("timed out waiting for the browser sign-in")
 
 
 def main() -> int:
@@ -86,41 +153,13 @@ def main() -> int:
     arguments = parser.parse_args()
 
     base = arguments.url.rstrip("/")
-    status, body = post(base + INIT_PATH)
-    if status != 200:
-        emit({"status": "error", "message": f"{base}{INIT_PATH}: HTTP {status}"})
-        return 1
     try:
-        started = json.loads(body)
-        poll_url = started["poll"]["endpoint"]
-        token = started["poll"]["token"]
-        emit({"status": "open", "url": started["login"]})
-    except (ValueError, KeyError):
-        emit({"status": "error", "message": "unexpected reply from login/v2"})
+        login_name = sign_in(base)
+    except Failed as error:
+        emit({"status": "error", "message": str(error)})
         return 1
-
-    deadline = time.monotonic() + GIVE_UP_SECONDS
-    while time.monotonic() < deadline:
-        time.sleep(POLL_SECONDS)
-        status, body = post(poll_url, {"token": token})
-        if status == 404:
-            continue  # nobody has finished signing in yet
-        if status != 200:
-            emit({"status": "error", "message": f"poll: HTTP {status}"})
-            return 1
-        try:
-            finished = json.loads(body)
-            login_name = finished["loginName"]
-            store(login_name, finished["appPassword"])
-        except (ValueError, KeyError):
-            emit({"status": "error", "message": "unexpected reply while polling"})
-            return 1
-        emit({"status": "ok", "server": finished.get("server", base),
-              "loginName": login_name})
-        return 0
-
-    emit({"status": "error", "message": "timed out waiting for the browser sign-in"})
-    return 1
+    emit({"status": "ok", "server": base, "loginName": login_name})
+    return 0
 
 
 if __name__ == "__main__":

@@ -119,7 +119,7 @@ PanelWindow {
                 color: Colors.text.base
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
-                echoMode: TextInput.Password
+                echoMode: GreeterService.promptSecret ? TextInput.Password : TextInput.Normal
                 passwordCharacter: "●"
                 readOnly: GreeterService.busy
                 clip: true
@@ -147,6 +147,7 @@ PanelWindow {
                     anchors.fill: parent
                     visible: passwordInput.text === ""
                     text: GreeterService.busy ? "Checking…" : GreeterService.promptText
+                    textFormat: Text.PlainText
                     color: Colors.text.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
@@ -185,6 +186,7 @@ PanelWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             width: Style.lock.fieldWidth
             text: GreeterService.errorText
+            textFormat: Text.PlainText
             color: Colors.status.error
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize

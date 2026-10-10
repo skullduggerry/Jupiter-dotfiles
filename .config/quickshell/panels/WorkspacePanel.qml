@@ -254,6 +254,7 @@ PanelFrame {
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: Theme.theme
+                    textFormat: Text.PlainText
                     color: Colors.text.base
                     font.family: Style.text.font
                     font.pixelSize: Style.text.smallSize

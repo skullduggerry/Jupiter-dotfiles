@@ -81,7 +81,7 @@ Item {
         width: root.columnWidth
         text: "As Hyprland has them, described in keybinds.lua"
         action: "Edit keybinds.lua"
-        onActivated: Quickshell.execDetached(["xdg-open", root.keybindsFile])
+        onActivated: Session.app(["xdg-open", root.keybindsFile])
 
         anchors {
             bottom: parent.bottom

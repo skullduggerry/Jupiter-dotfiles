@@ -116,8 +116,9 @@ def multistatus(responses: str) -> str:
 def serve(collections: dict) -> http.server.ThreadingHTTPServer:
     """A stand-in Nextcloud on a free loopback port, answering in a thread.
 
-    `server.reports` records (path, component) for every REPORT, and a path in
-    `server.failing` answers its REPORTs with a 500.
+    `server.reports` records (path, component) for every REPORT, a path in
+    `server.failing` answers its REPORTs with a 500, and one in `server.dropping`
+    hangs up halfway through its answer.
     """
 
     class Handler(http.server.BaseHTTPRequestHandler):
@@ -170,6 +171,13 @@ def serve(collections: dict) -> http.server.ThreadingHTTPServer:
             if self.path in server.failing:
                 self.answer(500)
                 return
+            if self.path in server.dropping:
+                self.send_response(207)
+                self.send_header("Content-Length", "1000")
+                self.end_headers()
+                self.wfile.write(b"<d:multistatus")
+                self.close_connection = True
+                return
             objects = [text for text in collection["objects"] if f"BEGIN:{component}" in text]
             if "<c:is-not-defined/>" in body:
                 objects = [text for text in objects if "\r\nCOMPLETED:" not in text]
@@ -181,6 +189,7 @@ def serve(collections: dict) -> http.server.ThreadingHTTPServer:
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     server.reports = []
     server.failing = set()
+    server.dropping = set()
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server
 
@@ -219,6 +228,11 @@ def main() -> int:
     [event] = helper.parse_ics(COLLECTIONS[HOME + "personal/"]["objects"][0], "Personal")
     check("alarm leaves the event's summary", event["summary"], "Meeting")
     check("alarm leaves the event's end", event["end"], "2026-01-05T10:00:00")
+    check("an event the parser cannot read costs only itself",
+          [event["summary"] for event in helper.parse_ics(ics(
+              "BEGIN:VEVENT\r\nSUMMARY:Broken\r\nDTSTART:2026-01-05\r\nEND:VEVENT",
+              "BEGIN:VEVENT\r\nSUMMARY:Fine\r\nDTSTART:20260105T090000Z\r\nEND:VEVENT"), "Personal")],
+          ["Fine"])
 
     # End to end.
     server = serve(COLLECTIONS)
@@ -245,6 +259,14 @@ def main() -> int:
     check("a task list lost costs only its tasks",
           (payload["status"], payload["message"], len(payload["events"]), payload["tasks"]),
           ("ok", "could not read Tasks", 1, []))
+
+    server.failing = set()
+    server.dropping = {HOME + "tasks/"}
+    payload = run_helper(server)
+    check("a connection lost mid-answer costs only that list",
+          (payload["status"], payload["message"], len(payload["events"]), payload["tasks"]),
+          ("ok", "could not read Tasks", 1, []))
+    server.dropping = set()
 
     server.failing = {HOME + "tasks/", HOME + "personal/"}
     check("everything lost is an error", run_helper(server)["status"], "error")

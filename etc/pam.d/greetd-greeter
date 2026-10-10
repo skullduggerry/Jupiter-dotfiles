@@ -1,0 +1,15 @@
+#%PAM-1.0
+
+# The greeter's own session (greetd 0.10 runs the `greeter` user under this
+# service, and under /etc/pam.d/greetd only while this file is missing). The
+# stack greetd itself ships, which the greeter ran under before, without the
+# gnome-keyring lines: the greeter user has no keyring to unlock, and without
+# this file its session logged "gkr-pam: couldn't unlock the login keyring".
+
+auth       required     pam_securetty.so
+auth       requisite    pam_nologin.so
+auth       include      system-local-login
+
+account    include      system-local-login
+
+session    include      system-local-login

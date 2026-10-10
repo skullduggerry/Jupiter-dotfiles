@@ -68,6 +68,7 @@ Item {
 
         Text {
             text: root.modelData.text
+            textFormat: Text.PlainText
             color: root.modelData.enabled ? Colors.text.base : Colors.text.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.size

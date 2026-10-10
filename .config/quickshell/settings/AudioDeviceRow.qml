@@ -34,6 +34,7 @@ Rectangle {
 
     Text {
         text: Volume.label(root.node)
+        textFormat: Text.PlainText
         color: root.inUse ? Colors.text.base : Colors.text.muted
         font.family: Style.text.font
         font.pixelSize: Style.text.size

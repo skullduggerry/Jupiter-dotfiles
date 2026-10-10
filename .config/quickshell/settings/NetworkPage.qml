@@ -53,7 +53,7 @@ Item {
 
     Process {
         running: true
-        command: ["ip", "monitor", "address", "route"]
+        command: ["setpriv", "--pdeathsig", "TERM", "ip", "monitor", "address", "route"]
 
         stdout: SplitParser {
             onRead: reread.restart()

@@ -11,6 +11,10 @@ if os.getenv("UWSM_FINALIZE_VARNAMES") == nil then
 		for line in file:lines() do
 			local key, value = line:match("^export%s+([%w_]+)=(.*)$")
 			if key then
+				-- $VAR and ${VAR}, as the shell uwsm reads it with does.
+				value = value:gsub("%${?([%w_]+)}?", function(name)
+					return os.getenv(name) or ""
+				end)
 				hl.env(key, value)
 			end
 		end

@@ -440,6 +440,7 @@ ScrollPage {
                             width: parent.width
                             horizontalAlignment: Text.AlignHCenter
                             text: tile.modelData.model || ""
+                            textFormat: Text.PlainText
                             color: Colors.text.muted
                             font.family: Style.text.font
                             font.pixelSize: Style.text.smallSize
@@ -648,6 +649,7 @@ ScrollPage {
 
                         return root.keptRule !== null ? "Kept by Settings, applied at every login" : "As the Hyprland config sets it";
                     }
+                    textFormat: Text.PlainText
                     color: DisplayChange.error !== "" && !DisplayChange.waiting ? Colors.status.error : Colors.text.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.smallSize

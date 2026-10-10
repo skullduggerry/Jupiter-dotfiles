@@ -46,7 +46,7 @@ Everything runs from the repo root.
 | `tests/app-tint-test.py` | The apps' glass: `app-tint.sh` writing the shell's tint for kitty, into Kvantum's SVG and the GTK stylesheets, and naming the GTK theme anew so running GTK 3 apps load it again. |
 | `tests/autostart-test.py` | The Settings app's About → Startup tab: which autostart apps start under Hyprland, as systemd decides, and switching one off and on again leaving nothing behind. |
 | `tests/displays-test.py` | The Settings app's Displays page: the monitor rules it applies and keeps, and `monitors.lua` applying the kept ones after its own. |
-| `tests/greetd-auth-test.py` | The login screen's helper against a fake greetd: users and sessions, a wrong password, cancel and retry, starting the session. |
+| `tests/greeter-env-test.py` | The login screen's list of users and sessions, each session with the command greetd starts. |
 | `tests/install-greeter-test.py` | Runs `install-greeter.sh` into a temporary folder and checks the result stands on its own: no symlinks, the session's monitor layout, a compositor config Hyprland accepts. |
 | `tests/nextcloud-principal-test.py` | The calendar finding your Nextcloud user id however it is spelled, and refusing to send the password over plain http. |
 | `tests/nextcloud-tasks-test.py` | The calendar's open tasks, dated or not, from task lists and calendars alike, in the order the dropdown lists them, against a stand-in Nextcloud. |

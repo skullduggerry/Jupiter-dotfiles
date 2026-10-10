@@ -104,7 +104,7 @@ Singleton {
 
     function handleLogin(event) {
         if (event.status === "open") {
-            Quickshell.execDetached(["xdg-open", event.url]);
+            Session.app(["xdg-open", event.url]);
             root.loginMessage = "Finish signing in in your browser…";
         } else if (event.status === "ok") {
             settings.user = event.loginName;
@@ -160,7 +160,6 @@ Singleton {
     function adopt(rawEvents, rawTasks) {
         root.events = rawEvents.map(event => ({
                     summary: event.summary,
-                    location: event.location,
                     calendar: event.calendar,
                     colour: event.colour || "",
                     allDay: event.allDay,

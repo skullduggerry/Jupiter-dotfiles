@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import "../icons"
 import "../style"
 import QtQuick
+import Quickshell
 import Quickshell.Services.Notifications
 import Quickshell.Widgets
 
@@ -11,11 +12,23 @@ Item {
 
     required property Notification modelData
     readonly property bool urgent: root.modelData.urgency === NotificationUrgency.Critical
-    readonly property string iconSource: root.modelData.image !== "" ? root.modelData.image : root.modelData.appIcon
+    readonly property string iconSource: root.imageSource(root.modelData.image) || root.imageSource(root.modelData.appIcon)
     // A toast waits while a reply is being written into it.
     readonly property bool replying: reply.editing || reply.text !== ""
 
     signal dismissed
+
+    // A notification names its image by path, file URL or icon name; one on
+    // the network is never fetched.
+    function imageSource(image: string): string {
+        if (image === "" || image.startsWith("image://") || image.startsWith("file://"))
+            return image;
+
+        if (image.startsWith("/"))
+            return "file://" + image;
+
+        return image.includes(":") ? "" : Quickshell.iconPath(image, true);
+    }
 
     function sendReply() {
         if (reply.text.trim() === "")
@@ -52,6 +65,7 @@ Item {
 
             Text {
                 text: root.modelData.appName
+                textFormat: Text.PlainText
                 color: root.urgent ? Colors.notification.urgent : Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
@@ -87,6 +101,7 @@ Item {
             width: parent.width
             visible: root.modelData.summary !== ""
             text: root.modelData.summary
+            textFormat: Text.PlainText
             color: Colors.text.base
             font.family: Style.text.font
             font.pixelSize: Style.text.size
@@ -96,7 +111,9 @@ Item {
         Text {
             width: parent.width
             visible: root.modelData.body !== ""
-            text: root.modelData.body
+            // Basic markup, as the server advertises, but no image: an <img>
+            // would be fetched from wherever it points.
+            text: root.modelData.body.replace(/<img\b[^>]*>/gi, "")
             color: Colors.text.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
@@ -130,6 +147,7 @@ Item {
 
                         anchors.centerIn: parent
                         text: action.modelData.text
+                        textFormat: Text.PlainText
                         color: Colors.text.base
                         font.family: Style.text.font
                         font.pixelSize: Style.text.smallSize

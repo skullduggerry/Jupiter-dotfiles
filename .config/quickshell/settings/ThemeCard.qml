@@ -26,6 +26,7 @@ Rectangle {
 
     Text {
         text: root.modelData.name
+        textFormat: Text.PlainText
         color: root.colours.foreground
         font.family: Style.text.font
         font.pixelSize: Style.text.smallSize

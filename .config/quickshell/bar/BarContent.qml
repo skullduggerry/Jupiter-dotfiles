@@ -19,7 +19,7 @@ Rectangle {
     border.width: Style.border.width
 
     Row {
-        id: left
+        id: leftRow
 
         anchors.leftMargin: Style.bar.padding
         spacing: Style.bar.spacing
@@ -44,7 +44,7 @@ Rectangle {
 
             screen: root.screen
             // Up to the clock, never under it.
-            maximumWidth: clock.x - Style.bar.spacing - left.x - media.x
+            maximumWidth: clock.x - Style.bar.spacing - leftRow.x - media.x
         }
     }
 
@@ -84,7 +84,7 @@ Rectangle {
         expanded: root.expanded
 
         anchors {
-            right: right.left
+            right: rightRow.left
             verticalCenter: parent.verticalCenter
         }
 
@@ -110,7 +110,7 @@ Rectangle {
     }
 
     Row {
-        id: right
+        id: rightRow
 
         anchors.rightMargin: Style.bar.padding
         spacing: Style.bar.spacing

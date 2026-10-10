@@ -5,7 +5,6 @@ import "../../services"
 import "../../style"
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
 
 Item {
     id: root
@@ -68,7 +67,7 @@ Item {
                 {
                     label: "Logout",
                     danger: false,
-                    run: () => Hyprland.dispatch("hl.dsp.exit()")
+                    run: () => Session.logout()
                 },
                 {
                     label: "Suspend",

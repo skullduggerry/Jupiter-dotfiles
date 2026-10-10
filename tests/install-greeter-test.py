@@ -33,6 +33,12 @@ def check(label: str, ok: bool, detail: str = "") -> None:
         failures.append(f"{label}{': ' + detail if detail else ''}")
 
 
+# The smallest files `file` takes for images.
+JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xd9"
+PNG = (b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+       b"\x08\x02\x00\x00\x00\x90wS\xde")
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         tmp = pathlib.Path(tmp)
@@ -42,7 +48,7 @@ def main() -> int:
         state = tmp / "state"
         (state / "quickshell").mkdir(parents=True)
         wallpaper = tmp / "wallpaper.jpg"
-        wallpaper.write_bytes(b"not really a jpeg")
+        wallpaper.write_bytes(JPEG)
         (state / "quickshell/hyprpaper.conf").write_text(
             f"wallpaper {{\n    monitor =\n    path = {wallpaper}\n}}\n")
 
@@ -65,7 +71,7 @@ def main() -> int:
         check("staged paths point into the staging tree",
               f"{dest}/quickshell/shell.qml" in config and "/etc/greetd" not in config)
 
-        for name in ("shell.qml", "qmldir", "greetd-auth.py", "style/qmldir",
+        for name in ("shell.qml", "qmldir", "greeter-env.py", "style/qmldir",
                      "style/Colors.qml", "style/Style.qml", "style/Theme.qml"):
             check(f"quickshell/{name} installed", (dest / "quickshell" / name).is_file())
         check("wallpaper copied",
@@ -137,7 +143,7 @@ def main() -> int:
         # screen, then none, each with the choices installed beside it and the
         # image they came from, which that page compares with its own.
         own = tmp / "login.png"
-        own.write_bytes(b"not really a png")
+        own.write_bytes(PNG)
         look = state / "quickshell/lockscreen.json"
         look.write_text(json.dumps({"loginBackground": "image", "loginImage": str(own), "dim": 0.3}))
         dest = tmp / "greetd-look"
@@ -151,11 +157,23 @@ def main() -> int:
               installed.get("dim") == 0.3 and installed.get("installedImage") == str(own), str(installed))
         check("the greeter is told where they are",
               f"LOCKSCREEN_STYLE={dest}/quickshell/lockscreen.json" in (dest / "hyprland.lua").read_text())
+        # A path to anything but an image (the paths are the owner's to write,
+        # the copy world readable) is not installed.
+        other = tmp / "notes.txt"
+        other.write_text("not an image\n")
+        look.write_text(json.dumps({"loginBackground": "image", "loginImage": str(other)}))
+        run = subprocess.run(["bash", str(SCRIPT), str(dest)], capture_output=True, text=True,
+                             env=dict(os.environ, XDG_STATE_HOME=str(state)))
+        check("a file that is no image is not installed",
+              run.returncode == 0 and not (dest / "quickshell/wallpaper.jpg").exists(), run.stderr.strip())
         look.write_text(json.dumps({"loginBackground": "plain"}))
+        # An install from before Quickshell's own greetd client left its helper.
+        (dest / "quickshell/greetd-auth.py").write_text("")
         run = subprocess.run(["bash", str(SCRIPT), str(dest)], capture_output=True, text=True,
                              env=dict(os.environ, XDG_STATE_HOME=str(state)))
         check("a plain login screen drops the wallpaper",
               run.returncode == 0 and not (dest / "quickshell/wallpaper.jpg").exists(), run.stderr.strip())
+        check("the old greetd helper is gone", not (dest / "quickshell/greetd-auth.py").exists())
 
     return report()
 

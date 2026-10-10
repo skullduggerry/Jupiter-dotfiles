@@ -57,7 +57,7 @@ Singleton {
     }
 
     function open(path: string) {
-        Quickshell.execDetached(["xdg-open", path]);
+        Session.app(["xdg-open", path]);
     }
 
     function remove(path: string) {

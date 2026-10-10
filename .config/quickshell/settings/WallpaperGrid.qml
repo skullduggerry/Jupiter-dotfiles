@@ -72,7 +72,7 @@ Item {
         anchors {
             top: categories.visible ? categories.bottom : mode.bottom
             topMargin: Style.settings.spacing
-            bottom: footer.top
+            bottom: options.top
             bottomMargin: Style.settings.spacing
             left: parent.left
         }
@@ -91,13 +91,14 @@ Item {
         anchors.verticalCenter: grid.verticalCenter
         visible: grid.count === 0
         text: "No wallpapers in " + (WallpaperService.category === "" ? "~/Wallpapers" : WallpaperService.category) + " yet"
+        textFormat: Text.PlainText
         color: Colors.text.muted
         font.family: Style.text.font
         font.pixelSize: Style.text.size
     }
 
     Item {
-        id: footer
+        id: options
 
         height: Style.popup.itemHeight
 
@@ -134,6 +135,7 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: WallpaperService.error
+                textFormat: Text.PlainText
                 color: Colors.status.error
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize

@@ -96,6 +96,7 @@ ScrollPage {
                     width: parent.width - chooseButton.width - Style.bar.spacing
                     anchors.verticalCenter: parent.verticalCenter
                     text: rows.image.split("/").pop()
+                    textFormat: Text.PlainText
                     color: Colors.text.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.smallSize

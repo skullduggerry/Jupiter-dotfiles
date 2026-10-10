@@ -147,6 +147,7 @@ PanelFrame {
                 anchors.fill: parent
                 visible: pskInput.text === ""
                 text: root.pskNetwork ? "Password for " + root.pskNetwork.name : ""
+                textFormat: Text.PlainText
                 color: Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
@@ -174,6 +175,7 @@ PanelFrame {
             width: parent.width
             visible: root.errorText !== ""
             text: root.errorText
+            textFormat: Text.PlainText
             color: Colors.status.error
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
@@ -230,6 +232,7 @@ PanelFrame {
 
             Text {
                 text: networkRow.networkName
+                textFormat: Text.PlainText
                 color: Colors.text.base
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size

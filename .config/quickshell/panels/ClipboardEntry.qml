@@ -12,6 +12,7 @@ Item {
 
     Text {
         text: root.clipboard.label(root.line)
+        textFormat: Text.PlainText
         color: Colors.text.base
         font.family: Style.text.font
         font.pixelSize: Style.text.smallSize

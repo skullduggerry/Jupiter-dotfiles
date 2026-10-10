@@ -1,13 +1,14 @@
 local cursor = require("modules.cursor")
 local quickmenu = require("modules.quickmenu")
+local session = require("modules.session")
 local vars = require("modules.vars")
 local workspaces = require("modules.workspaces")
 -- Every bind carries a description: hyprctl binds reports Lua binds only as a
 -- callback number, so the description is all the shell's Settings app
 -- (Keyboard, Keybinds) has to name them by. Binds that share a description and
 -- modifiers show there as one row, like the workspace numbers below.
-hl.bind(vars.mainMod .. " + SHIFT + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"), { description = "Log out" })
-hl.bind(vars.mainMod .. " + E", hl.dsp.exec_cmd(vars.fileManager), { description = "Open the file manager" })
+hl.bind(vars.mainMod .. " + SHIFT + M", session.logout, { description = "Log out" })
+hl.bind(vars.mainMod .. " + E", hl.dsp.exec_cmd(session.app(vars.fileManager)), { description = "Open the file manager" })
 hl.bind(vars.mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }), { description = "Float or tile the window" })
 hl.bind(vars.mainMod .. " + R", hl.dsp.global(vars.menu), { description = "Open the launcher" })
 hl.bind(vars.mainMod .. " + L", hl.dsp.global("quickshell:lock"), { description = "Lock the screen" })
@@ -18,9 +19,9 @@ hl.bind(vars.mainMod .. " + I", hl.dsp.global("quickshell:settingsToggle"), { de
 hl.bind(vars.mainMod .. " + X", hl.dsp.global("quickshell:shelfToggle"), { description = "Open the shelf" })
 hl.bind(vars.mainMod .. " + SHIFT + V", hl.dsp.global("quickshell:shelfPaste"), { description = "Paste the clipboard onto the shelf" })
 hl.bind(vars.mainMod .. " + C", hl.dsp.window.close(), { description = "Close the window" })
-hl.bind(vars.mainMod .. " + PRINT", hl.dsp.exec_cmd("hyprshot -m window"), { description = "Screenshot of a window" })
-hl.bind("Print", hl.dsp.exec_cmd("hyprshot -m output"), { description = "Screenshot of a screen" })
-hl.bind(vars.mainMod .. " + SHIFT + PRINT", hl.dsp.exec_cmd("hyprshot -m region"), { description = "Screenshot of a region" })
+hl.bind(vars.mainMod .. " + PRINT", hl.dsp.exec_cmd(session.app("hyprshot -m window")), { description = "Screenshot of a window" })
+hl.bind("Print", hl.dsp.exec_cmd(session.app("hyprshot -m output")), { description = "Screenshot of a screen" })
+hl.bind(vars.mainMod .. " + SHIFT + PRINT", hl.dsp.exec_cmd(session.app("hyprshot -m region")), { description = "Screenshot of a region" })
 -- The shell changes these and shows the reading (.config/quickshell/osd/).
 hl.bind("XF86MonBrightnessUp",   hl.dsp.global("quickshell:brightnessUp"), { locked = true, repeating = true, description = "Brightness up" })
 hl.bind("XF86MonBrightnessDown", hl.dsp.global("quickshell:brightnessDown"), { locked = true, repeating = true, description = "Brightness down" })
@@ -37,7 +38,7 @@ hl.bind(vars.mainMod .. " + space", hl.dsp.global("quickshell:keyboardLayout"), 
 -- The shell holds logind off the power button while unlocked
 -- (.config/quickshell/services/PowerButton.qml); locked, logind powers off.
 hl.bind("XF86PowerOff", hl.dsp.global("quickshell:powerMenu"), { description = "Open the power menu" })
-hl.bind(vars.mainMod .. " + Q", hl.dsp.exec_cmd(vars.terminal), { description = "Open a terminal" })
+hl.bind(vars.mainMod .. " + Q", hl.dsp.exec_cmd(session.app(vars.terminal)), { description = "Open a terminal" })
 -- Left and right go through the focused monitor's workspaces
 -- (modules/workspaces.lua). With CTRL the arrows go to the next monitor over
 -- instead, and with CTRL + SHIFT they take the window along, since SUPER+SHIFT+1

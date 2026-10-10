@@ -83,6 +83,7 @@ Item {
                 width: Math.min(implicitWidth, root.width - (chevron.visible ? chevron.implicitWidth + parent.spacing : 0))
                 // Asked again, by its name: the centre says what to do.
                 text: (root.item.short ?? "") + (root.confirming ? "?" : "")
+                textFormat: Text.PlainText
                 // Muted text fails WCAG AA over a bright wallpaper's glass.
                 color: root.confirming && root.item.danger === true ? Colors.power.danger : root.dimmed ? Colors.icon.disabled : Colors.text.base
                 font.family: Style.text.font

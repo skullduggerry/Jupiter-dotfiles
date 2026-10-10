@@ -177,6 +177,7 @@ PanelFrame {
 
             Text {
                 text: item.firstLine !== "" ? item.firstLine : item.fileName
+                textFormat: Text.PlainText
                 color: Colors.text.base
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize

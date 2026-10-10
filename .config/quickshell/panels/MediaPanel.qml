@@ -17,6 +17,7 @@ PanelFrame {
     title: "Media"
     trailing: Text {
         text: root.player?.identity ?? ""
+        textFormat: Text.PlainText
         color: Colors.text.muted
         font.family: Style.text.font
         font.pixelSize: Style.text.smallSize
@@ -45,6 +46,7 @@ PanelFrame {
                 Text {
                     width: parent.width
                     text: root.player?.trackTitle ?? ""
+                    textFormat: Text.PlainText
                     color: Colors.text.base
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
@@ -58,6 +60,7 @@ PanelFrame {
                     width: parent.width
                     visible: text !== ""
                     text: root.player?.trackArtist ?? ""
+                    textFormat: Text.PlainText
                     color: Colors.text.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.smallSize
@@ -68,6 +71,7 @@ PanelFrame {
                     width: parent.width
                     visible: text !== ""
                     text: root.player?.trackAlbum ?? ""
+                    textFormat: Text.PlainText
                     color: Colors.text.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.smallSize

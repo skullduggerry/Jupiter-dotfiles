@@ -34,8 +34,9 @@ or 2.
   existing token before adding a new one. Add new tokens to those files, named
   by role and never by widget.
 - Naming: PascalCase files, camelCase ids and properties, typed properties
-  rather than `var`. Import through `qs.<folder>` modules, with no unused
-  imports.
+  rather than `var`. Import the project's folders by relative path
+  (`import "../services"`), which qmllint resolves without a running shell,
+  with no unused imports.
 - Prefer declarative bindings to imperative syncing, and never break a
   binding by assigning to its property. Keep state with whatever owns it, and
   derive values rather than duplicating them.

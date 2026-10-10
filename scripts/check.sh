@@ -40,6 +40,10 @@ qml_files() {
     fi
 }
 
+# With --staged, a file is only fixed and staged again when it has no unstaged
+# changes, which `git add` would stage along with the fix.
+fixable() { [[ $fix == 1 ]] && { [[ $staged == 0 ]] || git diff --quiet -- "$1"; }; }
+
 section "formatting (qmlformat, official QML conventions)"
 while read -r f; do
     [[ -z $f || ! -f $f ]] && continue
@@ -47,9 +51,11 @@ while read -r f; do
     if ! formatted=$(qmlformat "$f" 2>/dev/null); then
         fail "$f does not parse (qmllint below says where)"
     elif ! diff -q <(echo "$formatted") "$f" >/dev/null; then
-        if [[ $fix == 1 ]]; then
+        if fixable "$f"; then
             qmlformat -i "$f" && echo "  fixed $f"
             [[ $staged == 1 ]] && git add "$f"
+        elif [[ $fix == 1 ]]; then
+            fail "$f is not formatted and has unstaged changes: format it, then stage it"
         else
             fail "$f is not formatted (run scripts/check.sh --fix)"
         fi
@@ -60,7 +66,7 @@ done < <(qml_files)
 section "whitespace (.editorconfig)"
 while read -r f; do
     [[ -z $f || ! -f $f ]] && continue
-    if [[ $fix == 1 ]]; then
+    if fixable "$f"; then
         sed -i 's/[[:space:]]*$//' "$f"
         [[ -n $(tail -c1 "$f") ]] && printf '\n' >> "$f"
         [[ $staged == 1 ]] && git add "$f"
@@ -75,6 +81,8 @@ pass "trailing whitespace, final newline, no tabs"
 section "qmllint"
 # Against Quickshell's type information with its packaging slips fixed, and any
 # warning fails. The greeter is linted as installed, beside a copy of style/.
+# Paths are absolute: Qt 6.12's qmllint matches a file against its qmldir by
+# absolute path, and warns about every singleton given a relative one.
 lint=$(mktemp -d)
 trap 'rm -rf "$lint"' EXIT
 scripts/quickshell-types.py "$lint/types"
@@ -83,13 +91,17 @@ cp -r .config/quickshell/style "$lint/greeter/style"
 targets=()
 while read -r f; do
     [[ -n $f && -f $f ]] || continue
-    [[ $f == etc/greetd/quickshell/* ]] && f=$lint/greeter/${f#etc/greetd/quickshell/}
-    targets+=("$f")
+    if [[ $f == etc/greetd/quickshell/* ]]; then
+        targets+=("$lint/greeter/${f#etc/greetd/quickshell/}")
+    else
+        targets+=("$repo/$f")
+    fi
 done < <(qml_files)
 if [[ ${#targets[@]} -gt 0 ]]; then
     if out=$(qmllint --bare -I "$lint/types" -I /usr/lib/qt6/qml --max-warnings 0 --unused-imports warning "${targets[@]}" 2>&1); then
         pass "${#targets[@]} files"
     else
+        out=${out//$repo\//}
         fail "qmllint"; echo "${out//$lint\/greeter/etc/greetd/quickshell}" | head -40
     fi
 fi

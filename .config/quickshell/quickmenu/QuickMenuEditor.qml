@@ -203,6 +203,7 @@ RingPanel {
                         anchors.leftMargin: Style.bar.spacing
                         anchors.verticalCenter: parent.verticalCenter
                         text: shownRow.modelData === "devices" ? "Paired devices" : root.items.describe("item:" + shownRow.modelData).name
+                        textFormat: Text.PlainText
                         color: shownRow.blocked ? Colors.icon.disabled : shownRow.ticked ? Colors.text.base : Colors.text.muted
                         font.family: Style.text.font
                         font.pixelSize: Style.text.size
@@ -293,6 +294,7 @@ RingPanel {
             anchors.leftMargin: Style.bar.spacing
             anchors.verticalCenter: parent.verticalCenter
             text: choice.item.name
+            textFormat: Text.PlainText
             color: choice.chosen ? Colors.text.base : Colors.text.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize

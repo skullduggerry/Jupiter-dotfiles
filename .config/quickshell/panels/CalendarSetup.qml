@@ -94,6 +94,7 @@ Column {
 
             return "Paste any page of your Nextcloud, then sign in — the browser handles SSO and the server sends back an app password. Filling the user in by hand works too, if you made an app password yourself.";
         }
+        textFormat: Text.PlainText
         color: root.error !== "" ? Colors.status.error : Colors.text.muted
         font.family: Style.text.font
         font.pixelSize: Style.text.smallSize

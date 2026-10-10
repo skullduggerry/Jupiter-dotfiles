@@ -262,7 +262,7 @@ Scope {
                 closes: true,
                 icon: () => Icons.crop,
                 detail: () => "Screenshot",
-                use: () => root.later(() => Quickshell.execDetached(["hyprshot", "-m", "region"]))
+                use: () => root.later(() => Session.app(["hyprshot", "-m", "region"]))
             },
             window: {
                 label: "Window",
@@ -272,7 +272,7 @@ Scope {
                 closes: true,
                 icon: () => Icons.appWindow,
                 detail: () => "Screenshot",
-                use: () => root.later(() => Quickshell.execDetached(["hyprshot", "-m", "window"]))
+                use: () => root.later(() => Session.app(["hyprshot", "-m", "window"]))
             },
             screen: {
                 label: "Screen",
@@ -282,7 +282,7 @@ Scope {
                 closes: true,
                 icon: () => Icons.monitor,
                 detail: () => "Screenshot",
-                use: () => root.later(() => Quickshell.execDetached(["hyprshot", "-m", "output"]))
+                use: () => root.later(() => Session.app(["hyprshot", "-m", "output"]))
             },
             record: {
                 label: () => QuickToggles.recording ? "Stop Recording" : "Record Screen",
@@ -378,7 +378,7 @@ Scope {
                 closes: true,
                 confirm: true,
                 icon: () => Icons.logOut,
-                use: () => Hyprland.dispatch("hl.dsp.exit()")
+                use: () => Session.logout()
             },
             restart: {
                 label: "Reboot",

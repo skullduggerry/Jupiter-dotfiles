@@ -47,6 +47,7 @@ PanelFrame {
             width: parent.width
             visible: root.sink !== null
             text: root.sink !== null ? root.sink.description : ""
+            textFormat: Text.PlainText
             color: Colors.text.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize

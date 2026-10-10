@@ -40,6 +40,7 @@ Item {
 
             width: Math.min(implicitWidth, root.trackWidth)
             text: root.player?.trackTitle ?? ""
+            textFormat: Text.PlainText
             color: Colors.text.base
             font.family: Style.text.font
             font.pixelSize: Style.text.size
@@ -49,6 +50,7 @@ Item {
         Text {
             visible: root.player !== null && root.player.trackArtist !== "" && title.implicitWidth + track.spacing + implicitWidth <= root.trackWidth
             text: "· " + (root.player?.trackArtist ?? "")
+            textFormat: Text.PlainText
             color: Colors.text.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.size

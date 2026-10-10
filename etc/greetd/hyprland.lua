@@ -20,6 +20,12 @@ hl.config({
 		-- greeter wears a red "launched without start-hyprland" banner.
 		disable_watchdog_warning = true,
 	},
+	-- The greeter user's home is /, so Hyprland keeps no record of the
+	-- version it last ran; no update or donation window behind the greeter.
+	ecosystem = {
+		no_update_news = true,
+		no_donation_nag = true,
+	},
 })
 
 -- greetd launches the session only after the greeter COMMAND exits, and

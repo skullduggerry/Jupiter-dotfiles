@@ -15,6 +15,9 @@ anything in this repo, so every Quickshell type would otherwise go unchecked:
   running shell can read;
 - core's value types (margins) do not resolve across its import cycle with the
   window module;
+- since Qt 6.12, a module declares another module's types it uses as opaque
+  stand-ins (`isTypeOpaque`), which hide the real declaration's members, so
+  each is replaced by a copy of the real one;
 - PanelWindow is declared uncreatable, though every panel creates one;
 - Process.exited passes a QProcess::ExitStatus, which nothing declares, and
   Process.environment is a QVariantHash, which QML fills from a JS object.
@@ -27,6 +30,20 @@ source = pathlib.Path('/usr/lib/qt6/qml/Quickshell')
 target = pathlib.Path(sys.argv[1]) / 'Quickshell'
 
 types = {path: path.read_text() for path in source.rglob('*.qmltypes')}
+real = {re.search(r'name: "([^"]+)"', block).group(1): block
+        for text in types.values()
+        for block in re.findall(r'^    Component \{\n.*?^    \}\n', text, re.S | re.M)
+        if 'isTypeOpaque: true' not in block}
+
+
+def unhide(stand_in):
+    block = real.get(stand_in.group(1), stand_in.group(0))
+    # A value type gets its copy below, with core's others.
+    return '' if 'accessSemantics: "value"' in block and block is not stand_in.group(0) else block
+
+
+types = {path: re.sub(r'^    Component \{\s*isTypeOpaque: true;?\s*name: "([^"]+)";?[^{}]*?\}\n', unhide, text, flags=re.M)
+         for path, text in types.items()}
 components = [(match.group(1), re.findall(r'"[\w.]+/(\w+) [\d.]+"', match.group(2)))
               for text in types.values()
               for match in re.finditer(r'Component \{[^{}]*?\bname: "([^"]+)"([^{}]*)', text, re.S)]

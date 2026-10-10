@@ -60,6 +60,7 @@ Column {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: Theme.error !== "" ? Theme.error : Theme.applying ? "Applying…" : Theme.theme
+                        textFormat: Text.PlainText
                         color: Theme.error !== "" ? Colors.status.error : Colors.text.muted
                         font.family: Style.text.font
                         font.pixelSize: Style.text.smallSize

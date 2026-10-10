@@ -61,7 +61,7 @@ RingList {
             Quickshell.execDetached(["wl-copy", "--", root.answer.replace(/\u2212/g, "-")]);
         } else {
             LauncherHistory.record(entry.execString);
-            entry.execute();
+            Session.entry(entry);
         }
         root.picked();
         return true;
@@ -80,6 +80,7 @@ RingList {
             anchors.verticalCenter: parent.verticalCenter
             width: Math.min(implicitWidth, root.rowWidth - Style.text.iconSize - Style.widgets.spacing * 2 - Style.border.width)
             text: root.query
+            textFormat: Text.PlainText
             color: Colors.text.base
             font.family: Style.text.font
             font.pixelSize: Style.text.size
@@ -151,6 +152,7 @@ RingList {
 
                 width: Math.min(implicitWidth, parent.width - Style.widgets.padding * 2)
                 text: row.modelData !== null ? row.modelData.name : "= " + root.answer
+                textFormat: Text.PlainText
                 color: Colors.text.base
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
@@ -165,6 +167,7 @@ RingList {
 
             Text {
                 text: row.modelData?.comment ?? ""
+                textFormat: Text.PlainText
                 color: Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize

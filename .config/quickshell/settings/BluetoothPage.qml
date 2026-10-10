@@ -35,6 +35,7 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.adapter !== null ? "As " + root.adapter.name : ""
+                textFormat: Text.PlainText
                 color: Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize

@@ -118,6 +118,7 @@ PanelFrame {
 
             Text {
                 text: row.modelData.name + (row.modelData.connected && row.modelData.batteryAvailable ? "  " + Math.round(row.modelData.battery * 100) + "%" : "")
+                textFormat: Text.PlainText
                 color: Colors.text.base
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size

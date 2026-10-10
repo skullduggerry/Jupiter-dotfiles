@@ -3,7 +3,7 @@
 The map of the repo and the rules the code alone does not show. How to write
 code: `.github/llm.md`. Colours across apps: `.github/THEMING.md`.
 
-Installed: Quickshell 0.3.1, Hyprland 0.56.2 (configured in Lua), Qt 6.11, Arch.
+Installed: Quickshell 0.3.2, Hyprland 0.56.2 (configured in Lua), Qt 6.12, Arch.
 
 ## Repo
 
@@ -13,7 +13,7 @@ Installed: Quickshell 0.3.1, Hyprland 0.56.2 (configured in Lua), Qt 6.11, Arch.
 | `.config/quickshell/` | the shell |
 | `.config/hypr/` | Hyprland: `hyprland.lua`, `modules/` (binds, monitors, startup, workspaces…), `styles/` (layer rules, blur, animations) |
 | `.config/wallust/` | theming, see THEMING.md |
-| `etc/greetd/` | the login screen, a second Quickshell config; `scripts/install-greeter.sh` installs it as a copy |
+| `etc/greetd/` | the login screen, a second Quickshell config that logs in through `Quickshell.Services.Greetd` (`greeter-env.py` lists users and sessions); `scripts/install-greeter.sh` installs it as a copy, with `etc/pam.d/` |
 | `scripts/`, `tests/` | `check.sh` and its helpers; Python tests that `check.sh` runs |
 
 Package dependencies belong in Jupiter-installer's `packages/core.txt` and
@@ -80,6 +80,13 @@ and the installer must copy it as a file.
   `trailing`) and the separator. Hosts add no margins of their own.
 - A switch between a few values is a `PillGroup`. A clickable word or glyph is
   a `TextButton`. A level is a `SliderRow` (`VolumeRow` for a PipeWire node).
+- A `Text` showing anything from outside the shell (apps, notifications,
+  networks, devices, files, PAM) sets `textFormat: Text.PlainText`: otherwise
+  Qt renders tags in it and fetches `<img>` sources. Notification bodies keep
+  `StyledText`, without `<img>`.
+- Apps start through `Session.app()`/`Session.entry()` and logging out is
+  `Session.logout()`, as Hyprland's binds use `modules/session.lua`: under
+  uwsm each app gets a scope of its own (`uwsm-app`), and logout is `uwsm stop`.
 - Per-user state lives in `Quickshell.statePath(…)` or
   `$XDG_STATE_HOME/quickshell/`, never in the repo, and so do per-machine
   choices (keyboard layouts, monitor rules, the main bar's screen).
@@ -185,9 +192,10 @@ Night Light at login.
   TLS handshakes).
 - The server URL and login live in `nextcloud.json` and reach the helper
   through `Process.environment`. The app password stays in the keyring
-  (`secret-tool`) and never touches QML, state files or argv. Only `https://`
-  is accepted, except loopback. Sign-in uses Login Flow v2
-  (`nextcloud-login.py`). The calendar home is discovered through
+  (`secret-tool`, keyed by server and login) and never touches QML, state
+  files or argv. Only `https://` is accepted, except loopback, for the server
+  and for the URLs Login Flow v2 (`nextcloud-login.py`) answers with. One
+  object or calendar that cannot be read costs only itself. The calendar home is discovered through
   `current-user-principal`, never built from the login name.
 - `calendar-color` lives in Apple's namespace and arrives as `#rrggbbaa`. Cut
   it to `#rrggbb`, because QML reads eight hex digits as ARGB. Nested
@@ -235,8 +243,8 @@ or tab name opens its place (`openPage keybinds`).
   `keybinds.lua` carries a `description`. Key labels come from xkbcommon
   (`keymap.py`), and a bind's key is looked up in the first layout, as
   Hyprland does.
-- Startup: `modules/startup.lua` is plain data (`{ name, command, about }`,
-  never `hl`), so the tab can read it with `lua`. `autostart.py` decides what
+- Startup: `modules/startup.lua` is plain data (`{ name, command, slice,
+  about }`, never `hl`), so the tab can read it with `lua`. `autostart.py` decides what
   XDG autostart runs the way systemd-xdg-autostart-generator does.
 - Sound filters `Pipewire.nodes` by `PwNodeType`. An app's stream is
   `AudioOutStream`, and its `isSink` is true. Network details come from
@@ -280,12 +288,16 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
 - The apps' calculator (`quickmenu/QuickMenuApps`): only arithmetic-looking
   input, or input after `=`, goes to `qalc -t`. Set the command where the
   process starts, not through a binding. `.config/qalculate/qalc.cfg` is in
-  the repo.
+  the repo, with `save_config=0` so an interactive qalc never rewrites it.
 - Shelf: plain files in the Nextcloud sync folder's `Shelf/`. Files are
   written as `.<name>.part` and renamed, and password-manager copies are
   refused.
 - Lock: `WlSessionLock` with PAM `login`; `locked` lives in
-  `PersistentProperties` so it survives a reload. The login screen's look
+  `PersistentProperties` so it survives a reload, and in `quickshell-locked`
+  beside Hyprland's socket so a shell restarted after a crash locks again.
+  hypridle's `inhibit_sleep = 3` holds suspend until the lock is up. A PAM
+  question after the password (lock and login screen alike) is answered from
+  the field, and a failure shows what PAM said. The login screen's look
   only applies through `install-greeter.sh` (run through pkexec from the Lock
   Screen tab).
 - Overview: `ScreencopyView` per toplevel (hidden workspaces included).
@@ -414,9 +426,9 @@ scripts/check.sh --fix    # format first
 scripts/install-hooks.sh  # once per clone: pre-commit formats, pre-push checks
 ```
 
-qmllint runs against a corrected copy of Quickshell's type information
-(`scripts/quickshell-types.py`). It does not check writes inside handlers, or
-anything reached through `var`, so the log has the last word:
+qmllint runs on absolute paths against a corrected copy of Quickshell's type
+information (`scripts/quickshell-types.py`). It does not check writes inside
+handlers, or anything reached through `var`, so the log has the last word:
 
 ```bash
 qs log -r '*.debug=true;*.info=true' -- /run/user/$UID/quickshell/by-id/<id>/log.qslog

@@ -87,6 +87,7 @@ Item {
             anchors.leftMargin: Style.wallpaper.labelPadding
             anchors.rightMargin: Style.wallpaper.labelPadding
             text: root.fileBaseName
+            textFormat: Text.PlainText
             color: Colors.overlay.text
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize

@@ -22,9 +22,11 @@ in, and is read here from the keyring:
     NEXTCLOUD_APP_PASSWORD  an app password; optional, see below
 
 With no NEXTCLOUD_APP_PASSWORD the password is read from the session keyring
-via secret-tool, so it never appears in a shell profile or a process list:
+via secret-tool, so it never appears in a shell profile or a process list. It
+is stored per server, so a password is never sent to another one that has a
+user of the same name (the calendar's "Sign in" stores it this way):
 
-    secret-tool store --label='Nextcloud' service nextcloud username <user>
+    secret-tool store --label='Nextcloud' service nextcloud server <url> username <user>
 
 Use a Nextcloud *app password* (Settings -> Security -> Devices & sessions),
 not the account password: it can be revoked on its own and skips 2FA.
@@ -53,6 +55,7 @@ from __future__ import annotations
 import argparse
 import base64
 import concurrent.futures
+import http.client
 import json
 import os
 import subprocess
@@ -164,10 +167,10 @@ class Failed(Exception):
 # configuration
 
 
-def keyring_password(user: str) -> str:
+def keyring_password(url: str, user: str) -> str:
     try:
         result = subprocess.run(
-            ["secret-tool", "lookup", "service", "nextcloud", "username", user],
+            ["secret-tool", "lookup", "service", "nextcloud", "server", url, "username", user],
             capture_output=True,
             text=True,
             timeout=TIMEOUT_SECONDS,
@@ -181,8 +184,8 @@ def keyring_password(user: str) -> str:
 
     if result.returncode != 0 or not result.stdout:
         raise Unconfigured(
-            "no password: set NEXTCLOUD_APP_PASSWORD, or run "
-            f"secret-tool store --label='Nextcloud' service nextcloud username {user}"
+            f"no password for {user} on {url}: sign in with your browser, or run "
+            f"secret-tool store --label='Nextcloud' service nextcloud server {url} username {user}"
         )
     # secret-tool writes the secret verbatim; a trailing newline is the
     # storing tool's, not part of the password.
@@ -202,7 +205,7 @@ def read_config() -> tuple[str, str, str]:
 
     password = os.environ.get("NEXTCLOUD_APP_PASSWORD", "")
     if not password:
-        password = keyring_password(user)
+        password = keyring_password(url, user)
     return url, user, password
 
 
@@ -242,6 +245,10 @@ def request(method: str, url: str, auth: str, body: str, depth: str) -> bytes:
         raise Failed(f"{method} {url}: HTTP {error.code} {error.reason}{hint}") from None
     except urllib.error.URLError as error:
         raise Failed(f"{method} {url}: {error.reason}") from None
+    # A timeout or a dropped connection while reading the answer, which urllib
+    # passes on as it is rather than as a URLError.
+    except (OSError, http.client.HTTPException) as error:
+        raise Failed(f"{method} {url}: {error or type(error).__name__}") from None
 
 
 def principal_id(document: ElementTree.Element) -> str:
@@ -337,7 +344,10 @@ def home_path(home: str) -> str:
 def query(base: str, calendar: Calendar, auth: str, body: str) -> list[str]:
     """The iCalendar text of every object a calendar-query REPORT matches."""
     url = base + calendar.href if calendar.href.startswith("/") else calendar.href
-    document = ElementTree.fromstring(request("REPORT", url, auth, body, "1"))
+    try:
+        document = ElementTree.fromstring(request("REPORT", url, auth, body, "1"))
+    except ElementTree.ParseError as error:
+        raise Failed(f"REPORT {url}: malformed CalDAV response: {error}") from None
     return [data.text for data in document.findall(".//c:calendar-data", NS) if data.text]
 
 
@@ -505,14 +515,26 @@ def text(fields: dict, name: str, default: str = "") -> str:
     return unescape_text(fields[name][0]) if name in fields else default
 
 
+def built(build, ics: str, kind: str, calendar_name: str, colour: str) -> list[dict]:
+    """build() over every `kind` component, leaving out what it cannot read
+    (a malformed date, say): one bad object costs only itself."""
+    items = []
+    for fields in components(ics, kind):
+        try:
+            item = build(fields, calendar_name, colour)
+        except (ValueError, OverflowError):
+            continue
+        if item:
+            items.append(item)
+    return items
+
+
 def parse_ics(ics: str, calendar_name: str, colour: str = "") -> list[dict]:
-    events = (build_event(fields, calendar_name, colour) for fields in components(ics, "VEVENT"))
-    return [event for event in events if event]
+    return built(build_event, ics, "VEVENT", calendar_name, colour)
 
 
 def parse_tasks(ics: str, calendar_name: str, colour: str = "") -> list[dict]:
-    tasks = (build_task(fields, calendar_name, colour) for fields in components(ics, "VTODO"))
-    return [task for task in tasks if task]
+    return built(build_task, ics, "VTODO", calendar_name, colour)
 
 
 def build_event(fields: dict, calendar_name: str, colour: str = "") -> dict | None:
@@ -534,7 +556,6 @@ def build_event(fields: dict, calendar_name: str, colour: str = "") -> dict | No
 
     return {
         "summary": text(fields, "SUMMARY", "(no title)"),
-        "location": text(fields, "LOCATION"),
         # Always a full local date-time, never a bare date: QML parses
         # "2026-09-12" as UTC midnight but "2026-09-12T00:00:00" as local,
         # which would shift all-day events by the UTC offset.

@@ -33,26 +33,39 @@ dest=${1:-/etc/greetd}
 owner=${SUDO_USER:-$(id -nu "${PKEXEC_UID:-$(id -u)}")}
 owner_home=$(getent passwd "$owner" | cut -d: -f6)
 
+# Everything taken from the owner's home is read as the owner, never as root:
+# the paths come from files they can write, and what is installed here is
+# world readable.
+owned() {
+    if [[ $(id -u) == 0 ]]; then
+        setpriv --reuid="$(id -u "$owner")" --regid="$(id -g "$owner")" --init-groups -- "$@"
+    else
+        "$@"
+    fi
+}
+
 # The same path .config/hypr/modules/startup.lua checks. sudo resets the
 # environment, so this falls back to the owner's home rather than root's.
 picked=${XDG_STATE_HOME:-$owner_home/.local/state}/quickshell/hyprpaper.conf
 config=$repo/.config/hypr/hyprpaper.conf
-[[ -r $picked ]] && config=$picked
-wallpaper=$(sed -n 's/^[[:space:]]*path[[:space:]]*=[[:space:]]*//p' "$config" | tail -1)
+owned test -r "$picked" && config=$picked
+wallpaper=$(owned cat -- "$config" | sed -n 's/^[[:space:]]*path[[:space:]]*=[[:space:]]*//p' | tail -1)
 wallpaper=${wallpaper/#\~/$owner_home}
 
 look=${XDG_STATE_HOME:-$owner_home/.local/state}/quickshell/lockscreen.json
-background=wallpaper
-if [[ -r $look ]]; then
-    background=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("loginBackground", "wallpaper"))' "$look")
-    [[ $background == image ]] && wallpaper=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("loginImage", ""))' "$look")
-fi
+settings=$(owned cat -- "$look" 2>/dev/null) || settings='{}'
+setting() { python3 -c 'import json, sys; print(json.loads(sys.argv[1]).get(sys.argv[2], sys.argv[3]))' "$settings" "$@"; }
+background=$(setting loginBackground wallpaper)
+[[ $background == image ]] && wallpaper=$(setting loginImage "")
 [[ $background == plain ]] && wallpaper=
 
 # A fresh install has no wallpaper yet; the greeter shows its plain background
 # until one is picked and this runs again.
-if [[ -n $wallpaper && ! -r $wallpaper ]]; then
+if [[ -n $wallpaper ]] && ! owned test -r "$wallpaper"; then
     echo "install-greeter: no wallpaper at '$wallpaper', installing without one" >&2
+    wallpaper=
+elif [[ -n $wallpaper && $(owned file --brief --mime-type -- "$wallpaper") != image/* ]]; then
+    echo "install-greeter: '$wallpaper' is not an image, installing without one" >&2
     wallpaper=
 fi
 
@@ -69,11 +82,11 @@ install -m 0644 "$repo/etc/greetd/monitors.lua" "$dest/monitors.lua"
 # The same file .config/hypr/modules/monitors.lua loads after its own rules,
 # applied the same way: last, so it wins.
 kept=${XDG_STATE_HOME:-$owner_home/.local/state}/quickshell/monitors.lua
-if [[ -r $kept ]]; then
+if lua=$(owned cat -- "$kept" 2>/dev/null); then
     {
         printf '\n-- Kept by the Settings app, baked in by install-greeter.sh.\n'
         printf 'for _, rule in ipairs((function()\n'
-        cat "$kept"
+        printf '%s\n' "$lua"
         printf 'end)()) do\n\thl.monitor(rule)\nend\n'
     } >> "$dest/monitors.lua"
     echo "monitors    + $kept"
@@ -81,11 +94,11 @@ fi
 
 # The same file .config/hypr/modules/keybinds.lua applies to the session.
 kept=${XDG_STATE_HOME:-$owner_home/.local/state}/quickshell/keyboard.lua
-if [[ -r $kept ]]; then
+if lua=$(owned cat -- "$kept" 2>/dev/null); then
     {
         printf '\n-- Kept by the Settings app, baked in by install-greeter.sh.\n'
         printf 'hl.config({ input = (function()\n'
-        cat "$kept"
+        printf '%s\n' "$lua"
         printf 'end)() })\n'
     } >> "$dest/hyprland.lua"
     echo "keyboard    + $kept"
@@ -93,25 +106,27 @@ fi
 
 install -m 0644 "$repo/etc/greetd/quickshell/qmldir" "$dest/quickshell/qmldir"
 install -m 0644 "$repo"/etc/greetd/quickshell/*.qml "$dest/quickshell/"
-install -m 0755 "$repo/etc/greetd/quickshell/greetd-auth.py" \
-    "$dest/quickshell/greetd-auth.py"
+install -m 0755 "$repo/etc/greetd/quickshell/greeter-env.py" \
+    "$dest/quickshell/greeter-env.py"
+# Before Quickshell's own greetd client, the greeter spoke greetd through this.
+rm -f "$dest/quickshell/greetd-auth.py"
 
 install -m 0644 "$repo"/.config/quickshell/style/*.qml "$dest/quickshell/style/"
 install -m 0644 "$repo/.config/quickshell/style/qmldir" "$dest/quickshell/style/qmldir"
 
 if [[ -n $wallpaper ]]; then
-    install -m 0644 "$wallpaper" "$dest/quickshell/wallpaper.jpg"
+    owned cat -- "$wallpaper" > "$dest/quickshell/wallpaper.jpg"
+    chmod 0644 "$dest/quickshell/wallpaper.jpg"
 else
     rm -f "$dest/quickshell/wallpaper.jpg"
 fi
 
 # The Lock Screen choices, plus the image the background came from, by which
 # that tab tells whether the login screen is up to date.
-python3 - "$look" "$wallpaper" "$dest/quickshell/lockscreen.json" <<'PY'
+python3 - "$settings" "$wallpaper" "$dest/quickshell/lockscreen.json" <<'PY'
 import json, pathlib, sys
 look, image, out = sys.argv[1:]
-path = pathlib.Path(look)
-settings = json.loads(path.read_text()) if path.is_file() else {}
+settings = json.loads(look)
 settings["installedImage"] = image
 pathlib.Path(out).write_text(json.dumps(settings, indent=4) + "\n")
 PY
@@ -128,12 +143,14 @@ fi
 chmod -R a+rX "$dest"
 
 # The PAM stack adds the gnome-keyring lines SDDM used to provide, without which
-# the login keyring never unlocks. It is the one file here that could lock you
-# out, so: only on a real install, never when staging; keep a backup; and every
-# rule it adds is `optional` with a `-` prefix so it cannot fail a login.
+# the login keyring never unlocks; greetd-greeter, the greeter's own session, is
+# greetd's stock stack without them. They are the files here that could lock
+# you out, so: only on a real install, never when staging; keep a backup; and
+# every rule added is `optional` with a `-` prefix so it cannot fail a login.
 if [[ $dest == /etc/greetd ]]; then
     install -b -m 0644 "$repo/etc/pam.d/greetd" /etc/pam.d/greetd
-    echo "pam         /etc/pam.d/greetd (previous kept as greetd~)"
+    install -b -m 0644 "$repo/etc/pam.d/greetd-greeter" /etc/pam.d/greetd-greeter
+    echo "pam         /etc/pam.d/greetd, greetd-greeter (previous ones kept as ~)"
 else
     echo "pam         skipped (staging install, /etc/pam.d left alone)"
 fi

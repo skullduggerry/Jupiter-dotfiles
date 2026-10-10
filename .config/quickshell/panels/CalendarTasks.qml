@@ -13,7 +13,7 @@ Item {
 
     readonly property date startOfToday: new Date(Time.now.getFullYear(), Time.now.getMonth(), Time.now.getDate())
 
-    implicitHeight: Style.bar.spacing + Style.border.width + Style.bar.spacing + header.height + list.height
+    implicitHeight: Style.bar.spacing + Style.border.width + Style.bar.spacing + heading.height + list.height
 
     Rectangle {
         id: separator
@@ -30,7 +30,7 @@ Item {
     }
 
     Item {
-        id: header
+        id: heading
 
         height: Style.popup.itemHeight
 
@@ -70,7 +70,7 @@ Item {
         model: CalendarService.tasks
 
         anchors {
-            top: header.bottom
+            top: heading.bottom
             left: parent.left
             right: parent.right
         }
@@ -104,6 +104,7 @@ Item {
 
             Text {
                 text: taskRow.modelData.summary
+                textFormat: Text.PlainText
                 color: Colors.text.base
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size

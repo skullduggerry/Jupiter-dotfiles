@@ -1,5 +1,6 @@
 import "../icons"
 import "../panels"
+import "../services"
 import "../style"
 import QtQuick
 import Quickshell
@@ -201,7 +202,7 @@ ScrollPage {
             width: root.columnWidth
             text: "Edited in hypr/modules/startup.lua"
             action: "Edit startup.lua"
-            onActivated: Quickshell.execDetached(["xdg-open", root.hyprDir + "/modules/startup.lua"])
+            onActivated: Session.app(["xdg-open", root.hyprDir + "/modules/startup.lua"])
         }
     }
 
@@ -263,6 +264,7 @@ ScrollPage {
                             Text {
                                 width: parent.width
                                 text: app.modelData.name
+                                textFormat: Text.PlainText
                                 color: app.modelData.enabled ? Colors.text.base : Colors.text.muted
                                 font.family: Style.text.font
                                 font.pixelSize: Style.text.size
@@ -272,6 +274,7 @@ ScrollPage {
                             Text {
                                 width: parent.width
                                 text: app.modelData.comment !== "" ? app.modelData.comment : app.modelData.exec
+                                textFormat: Text.PlainText
                                 color: Colors.text.muted
                                 font.family: Style.text.font
                                 font.pixelSize: Style.text.smallSize
@@ -398,6 +401,7 @@ ScrollPage {
 
                     Text {
                         text: candidate.modelData.name
+                        textFormat: Text.PlainText
                         color: Colors.text.base
                         font.family: Style.text.font
                         font.pixelSize: Style.text.size

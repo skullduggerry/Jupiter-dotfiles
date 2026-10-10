@@ -323,6 +323,7 @@ Item {
                 width: parent.width
                 visible: CalendarService.message !== ""
                 text: CalendarService.message
+                textFormat: Text.PlainText
                 color: CalendarService.status === "error" ? Colors.status.error : Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
@@ -392,6 +393,7 @@ Item {
 
                 Text {
                     text: agendaRow.modelData.summary
+                    textFormat: Text.PlainText
                     color: Colors.text.base
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size

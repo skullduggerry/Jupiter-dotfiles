@@ -99,7 +99,7 @@ WlSessionLockSurface {
                 color: Colors.lock.text
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
-                echoMode: TextInput.Password
+                echoMode: LockService.promptVisible ? TextInput.Normal : TextInput.Password
                 passwordCharacter: "●"
                 readOnly: LockService.authenticating
                 clip: true
@@ -126,7 +126,8 @@ WlSessionLockSurface {
                 Text {
                     anchors.fill: parent
                     visible: passwordInput.text === ""
-                    text: LockService.authenticating ? "Checking…" : "Password"
+                    text: LockService.authenticating ? "Checking…" : LockService.prompt !== "" ? LockService.prompt : "Password"
+                    textFormat: Text.PlainText
                     color: Colors.lock.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
@@ -145,6 +146,7 @@ WlSessionLockSurface {
             anchors.horizontalCenter: parent.horizontalCenter
             width: Style.lock.fieldWidth
             text: LockService.errorText
+            textFormat: Text.PlainText
             color: Colors.status.error
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize

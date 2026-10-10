@@ -33,8 +33,8 @@ vim.keymap.set('n', '<leader>o', ':update<CR> :source<CR>') -- source current fi
 vim.keymap.set('n', '<leader>w', ':write<CR>')              -- write current file
 vim.keymap.set('n', '<leader>q', ':q<CR>')                  -- quit
 vim.keymap.set('t', '<Esc>', "<C-\\><C-n>")                 -- fix esc in terminal
-vim.keymap.set({ 'v', 'v', 'x' }, '<leader>y', '"+y<CR>')   -- yank to system clipboard
-vim.keymap.set({ 'v', 'v', 'x' }, '<leader>d', '"+d<CR>')   -- cut to sysyem clipboard
+vim.keymap.set('v', '<leader>y', '"+y')                     -- yank to system clipboard
+vim.keymap.set('v', '<leader>d', '"+d')                     -- cut to system clipboard
 vim.keymap.set('n', '<leader>lf', vim.lsp.buf.format)       -- format code
 vim.keymap.set('n', '<leader>f', ':lua MiniFiles.open() <CR>')
 

@@ -82,7 +82,7 @@ Item {
         anchors {
             top: search.bottom
             topMargin: Style.settings.spacing
-            bottom: footer.top
+            bottom: options.top
             bottomMargin: Style.settings.spacing
             left: parent.left
         }
@@ -109,7 +109,7 @@ Item {
     }
 
     Item {
-        id: footer
+        id: options
 
         height: Style.popup.itemHeight
 
@@ -144,6 +144,7 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: Theme.error !== "" ? Theme.error : Theme.applying ? "Applying…" : ""
+                textFormat: Text.PlainText
                 color: Theme.error !== "" ? Colors.status.error : Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize

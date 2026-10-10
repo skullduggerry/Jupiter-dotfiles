@@ -38,6 +38,7 @@ Column {
                 const media = root.properties["media.name"] || "";
                 return media !== "" && media !== name ? name + "  ·  " + media : name;
             }
+            textFormat: Text.PlainText
             color: Colors.text.base
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize

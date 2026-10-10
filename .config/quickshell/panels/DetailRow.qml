@@ -26,6 +26,7 @@ Item {
         id: value
 
         text: root.value
+        textFormat: Text.PlainText
         color: Colors.text.base
         font.family: Style.text.font
         font.pixelSize: Style.text.smallSize

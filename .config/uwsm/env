@@ -4,7 +4,7 @@
 # xdg autostart (Nextcloud), D-Bus activated apps and the portals. Hyprland's
 # wiki asks uwsm users to keep toolkit and theming variables here instead of in
 # the Hyprland config; modules/env.lua reads this file when uwsm is not in use.
-# One `export KEY=value` per line, unquoted.
+# One `export KEY=value` per line, unquoted; `$VAR` is expanded.
 
 # Qt apps take their widget style (Kvantum), icon theme and font from qt6ct's
 # config, KDE apps their colours from the colour scheme kdeglobals names; wallust
@@ -12,3 +12,8 @@
 export QT_QPA_PLATFORMTHEME=qt6ct
 # Hyprland draws the frame, not Qt.
 export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+
+# SSH keys go through gcr-ssh-agent (gnome-keyring 46 dropped its own agent),
+# whose socket unit is enabled per machine:
+# systemctl --user enable gcr-ssh-agent.socket
+export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/gcr/ssh
