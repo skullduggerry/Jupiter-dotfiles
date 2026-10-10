@@ -1,3 +1,4 @@
+import "../panels"
 import "../style"
 import QtQuick
 import Quickshell

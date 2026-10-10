@@ -680,7 +680,6 @@ FocusScope {
                         key: root.editing ? "" : root.ringKeys[slot.index] ?? ""
                         keyAt: root.polar(Style.quickMenu.ringInner + Style.quickMenu.keyInset - root.slotRadius, slot.angle)
                         selected: slot.selected
-                        raised: root.arcSlot === slot.index
                         confirming: root.confirming !== "" && root.confirming === slot.entry && root.selectedArea === "ring"
                     }
                 }

@@ -1,8 +1,6 @@
 pragma ComponentBehavior: Bound
 
-import "../icons"
 import "../panels"
-import "../services"
 import "../style"
 import QtQuick
 
@@ -27,18 +25,9 @@ RingList {
 
     title: "Clipboard"
     model: history.entries
-    trailing: [
-        TextButton {
-            visible: root.count > 0
-            text: "Clear"
-            onClicked: history.wipe()
-        },
-        TextButton {
-            text: QuickToggles.clipboardHistory ? "On" : "Off"
-            color: QuickToggles.clipboardHistory ? Colors.accent.primary : Colors.text.muted
-            onClicked: history.setEnabled(!QuickToggles.clipboardHistory)
-        }
-    ]
+    trailing: ClipboardControls {
+        clipboard: history
+    }
 
     delegate: Item {
         id: entry
@@ -63,35 +52,10 @@ RingList {
                 onClicked: root.pick(entry.index)
             }
 
-            Text {
-                text: history.label(entry.modelData)
-                color: Colors.text.base
-                font.family: Style.text.font
-                font.pixelSize: Style.text.smallSize
-                elide: Text.ElideRight
-                maximumLineCount: 1
-
-                anchors {
-                    left: parent.left
-                    right: forget.left
-                    leftMargin: Style.widgets.padding
-                    rightMargin: Style.widgets.spacing
-                    verticalCenter: parent.verticalCenter
-                }
-            }
-
-            TextButton {
-                id: forget
-
-                text: Icons.x
-                font.family: Icons.font
-                onClicked: history.forget(entry.modelData)
-
-                anchors {
-                    right: parent.right
-                    rightMargin: Style.widgets.padding
-                    verticalCenter: parent.verticalCenter
-                }
+            ClipboardEntry {
+                anchors.fill: parent
+                clipboard: history
+                line: entry.modelData
             }
         }
     }
@@ -110,7 +74,7 @@ RingList {
         y: (root.view.height - empty.height) / 2
         width: root.rowWidth
         horizontalAlignment: Text.AlignHCenter
-        text: QuickToggles.clipboardHistory ? "Nothing copied yet" : "History is off"
+        text: history.emptyText
         color: Colors.text.muted
         font.family: Style.text.font
         font.pixelSize: Style.text.size

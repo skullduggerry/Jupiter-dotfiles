@@ -176,11 +176,13 @@ Scope {
                     root.source.audio.muted = !root.source.audio.muted;
                 }
             },
+            // Greyed out with nothing to switch to, as plugging in headphones
+            // would otherwise move the items beside it.
             output: {
                 label: "Output",
                 keys: "O",
                 kind: "cycle",
-                available: () => Volume.outputs.length > 1,
+                disabled: () => Volume.outputs.length < 2,
                 icon: () => Icons.speaker,
                 detail: () => Volume.sink !== null ? Volume.label(Volume.sink) : "",
                 use: () => {
@@ -519,8 +521,9 @@ Scope {
     }
 
     // A category's items as the menu shows them: those picked for it (or
-    // its defaults), the paired devices in place of "devices", any this
-    // machine has no use for left out, at most maxItems.
+    // its defaults), the paired devices in place of "devices" (as many as
+    // the others leave room for, so a long list does not push them out), any
+    // this machine has no use for left out, at most maxItems.
     function itemsOf(entry: string): list<string> {
         const kind = entry.split(":")[0];
         const id = entry.split(":")[1];
@@ -529,12 +532,14 @@ Scope {
             return [];
 
         const picked = QuickMenu.categories[id] ?? category.shows ?? category.items;
+        const usable = item => root.definitions[item] !== undefined && (root.definitions[item].available === undefined || root.definitions[item].available());
+        const room = Style.quickMenu.maxItems - picked.filter(item => item !== "devices" && usable(item)).length;
         const expanded = [];
         for (const item of picked) {
             if (item === "devices") {
-                for (const device of root.devices)
+                for (const device of root.devices.slice(0, Math.max(0, room)))
                     expanded.push("device:" + device.address);
-            } else if (root.definitions[item] !== undefined && (root.definitions[item].available === undefined || root.definitions[item].available())) {
+            } else if (usable(item)) {
                 expanded.push("item:" + item);
             }
         }

@@ -6,8 +6,9 @@ import QtQuick
 // its glyph, on a filled disc while a toggle is on, in a meter for a level and
 // plain otherwise; under it the label, and a chevron after a category's or a
 // list's, as after a submenu's in a menu. The label shrinks where its piece of
-// the ring is narrower than it (`room`). Its letter is `keyAt` from its middle,
-// further in along the radius.
+// the ring is narrower than it (`room`), and where it would run into its
+// letter's cap. The letter is `keyAt` from its middle, further in along the
+// radius.
 Item {
     id: root
 
@@ -16,11 +17,23 @@ Item {
     property point keyAt: Qt.point(0, 0)
     property real room: Style.quickMenu.slotWidth
     property bool selected: false
-    property bool raised: false
     property bool confirming: false
     readonly property bool toggle: root.item.kind === "toggle"
     readonly property bool level: root.item.kind === "level"
     readonly property bool dimmed: root.item.disabled === true
+    // How wide the label can be before it meets the cap, where the two are
+    // level (on the pieces at the sides, the cap is beside the label's end;
+    // one that only brushes its row does not count), and no narrower than the
+    // centre's text may shrink to.
+    readonly property real clearance: {
+        const top = body.y + labelRow.y;
+        const shared = Math.min(top + labelRow.height, keyCap.y + keyCap.height) - Math.max(top, keyCap.y);
+        if (!keyCap.visible || shared <= Style.widgets.spacing)
+            return Infinity;
+
+        const least = labelRow.implicitWidth * Style.quickMenu.leastTextSize / Style.text.smallSize;
+        return Math.max(least, 2 * (Math.abs(keyCap.x + keyCap.width / 2 - root.width / 2) - keyCap.width / 2 - Style.widgets.spacing));
+    }
 
     width: Style.quickMenu.slotWidth
     height: body.implicitHeight
@@ -62,14 +75,16 @@ Item {
 
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: Style.widgets.spacing / 2
-            scale: Math.min(1, root.room / labelRow.implicitWidth)
+            scale: Math.min(1, Math.min(root.room, root.clearance) / labelRow.implicitWidth)
 
             Text {
                 id: label
 
                 width: Math.min(implicitWidth, root.width - (chevron.visible ? chevron.implicitWidth + parent.spacing : 0))
-                text: root.confirming ? "Again to confirm" : root.item.short ?? ""
-                color: root.confirming && root.item.danger === true ? Colors.power.danger : root.dimmed ? Colors.icon.disabled : root.selected || root.raised || root.confirming ? Colors.text.base : Colors.text.muted
+                // Asked again, by its name: the centre says what to do.
+                text: (root.item.short ?? "") + (root.confirming ? "?" : "")
+                // Muted text fails WCAG AA over a bright wallpaper's glass.
+                color: root.confirming && root.item.danger === true ? Colors.power.danger : root.dimmed ? Colors.icon.disabled : Colors.text.base
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
                 horizontalAlignment: Text.AlignHCenter

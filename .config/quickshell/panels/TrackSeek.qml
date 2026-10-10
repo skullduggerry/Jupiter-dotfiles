@@ -22,12 +22,6 @@ Column {
         return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${rest}` : `${minutes}:${rest}`;
     }
 
-    // The arrow keys' seconds forward or back.
-    function seekBy(seconds: real) {
-        if (root.timed && root.player.canSeek)
-            root.player.position = Math.max(0, Math.min(root.player.length, root.player.position + seconds));
-    }
-
     visible: root.timed
 
     // A player's position only updates when asked for while it plays.

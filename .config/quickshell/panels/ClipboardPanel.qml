@@ -1,7 +1,5 @@
 pragma ComponentBehavior: Bound
 
-import "../icons"
-import "../services"
 import "../style"
 import QtQuick
 
@@ -16,18 +14,9 @@ PanelFrame {
     implicitHeight: root.chromeHeight + Math.max(Style.popup.itemHeight, entryList.contentHeight)
 
     title: "Clipboard"
-    trailing: [
-        TextButton {
-            visible: history.entries.length > 0
-            text: "Clear"
-            onClicked: history.wipe()
-        },
-        TextButton {
-            text: QuickToggles.clipboardHistory ? "On" : "Off"
-            color: QuickToggles.clipboardHistory ? Colors.accent.primary : Colors.text.muted
-            onClicked: history.setEnabled(!QuickToggles.clipboardHistory)
-        }
-    ]
+    trailing: ClipboardControls {
+        clipboard: history
+    }
 
     ClipboardHistory {
         id: history
@@ -64,35 +53,10 @@ PanelFrame {
                 onClicked: history.copy(entry.modelData)
             }
 
-            Text {
-                text: history.label(entry.modelData)
-                color: Colors.text.base
-                font.family: Style.text.font
-                font.pixelSize: Style.text.smallSize
-                elide: Text.ElideRight
-                maximumLineCount: 1
-
-                anchors {
-                    left: parent.left
-                    right: forget.left
-                    leftMargin: Style.widgets.padding
-                    rightMargin: Style.widgets.spacing
-                    verticalCenter: parent.verticalCenter
-                }
-            }
-
-            TextButton {
-                id: forget
-
-                text: Icons.x
-                font.family: Icons.font
-                onClicked: history.forget(entry.modelData)
-
-                anchors {
-                    right: parent.right
-                    rightMargin: Style.widgets.padding
-                    verticalCenter: parent.verticalCenter
-                }
+            ClipboardEntry {
+                anchors.fill: parent
+                clipboard: history
+                line: entry.modelData
             }
         }
     }
@@ -100,7 +64,7 @@ PanelFrame {
     Text {
         anchors.centerIn: entryList
         visible: entryList.count === 0
-        text: QuickToggles.clipboardHistory ? "Nothing copied yet" : "History is off"
+        text: history.emptyText
         color: Colors.text.muted
         font.family: Style.text.font
         font.pixelSize: Style.text.size

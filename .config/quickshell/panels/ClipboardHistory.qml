@@ -11,6 +11,8 @@ Scope {
     required property bool active
     // cliphist's own lines, "<id>\t<preview>", which decode and delete take back.
     property list<string> entries: []
+    // What a list of them says while it has none.
+    readonly property string emptyText: QuickToggles.clipboardHistory ? "Nothing copied yet" : "History is off"
 
     function refresh() {
         if (lister.running)

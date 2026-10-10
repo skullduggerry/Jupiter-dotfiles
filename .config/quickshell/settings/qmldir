@@ -1,6 +1,8 @@
 AboutPage 1.0 AboutPage.qml
 ActionRow 1.0 ActionRow.qml
 AppearancePage 1.0 AppearancePage.qml
+AppVolumeRow 1.0 AppVolumeRow.qml
+AudioDeviceRow 1.0 AudioDeviceRow.qml
 BluetoothPage 1.0 BluetoothPage.qml
 Card 1.0 Card.qml
 ChoiceField 1.0 ChoiceField.qml

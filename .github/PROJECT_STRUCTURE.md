@@ -309,6 +309,14 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
   start `captureDelay` after the menu closes, or they capture it.
 - An arc reads left to right in its listed order, which runs the other way
   round the ring on its left and lower side (`arcAngle()`, `arcIndex()`).
+- An arc keeps its shape, because items that move break the habit of
+  reaching for them: an item with nothing to act on (one output, no player)
+  is greyed in its place (`disabled`), and `available` leaves out only what
+  this machine lacks (no microphone, no adapter). Paired devices fill what
+  the other items leave of `maxItems`.
+- A label is `Colors.text.base`, never muted: over a bright wallpaper's glass
+  muted text measured 2.7:1, under AA's 4.5:1. Where a label would run under
+  its key's cap, it shrinks short of it (`RingItem.clearance`).
 - A list item (the apps, the clipboard) shows its entries in a `RingList` out
   from its slot, as a category shows its arc; the pencil's options are a
   `RingPanel` too. The panel's body box overlaps the ring, so anything there

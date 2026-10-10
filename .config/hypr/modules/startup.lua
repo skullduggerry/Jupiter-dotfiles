@@ -25,7 +25,7 @@ end
 
 return {
 	-- The global shortcuts and the three-finger swipe all call into it.
-	{ name = "Shell", command = "qs", about = "The bar, launcher, notifications and lock screen" },
+	{ name = "Shell", command = "qs", about = "The bar, quick menu, notifications and lock screen" },
 	{ name = "Wallpaper", command = kept("hyprpaper", "hyprpaper.conf"), about = "hyprpaper, on the wallpaper picked last" },
 	{ name = "Idle", command = kept("hypridle", "hypridle.conf"), about = "Locks, turns the screens off and suspends when idle" },
 	{ name = "Keyring", command = "gnome-keyring-daemon --start --components=secrets,ssh,pkcs11", about = "Keeps passwords and SSH keys for apps" },

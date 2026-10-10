@@ -52,7 +52,7 @@ Scope {
     }
 
     QuickMenuItems {
-        id: items
+        id: menuItems
     }
 
     Connections {
@@ -131,7 +131,7 @@ Scope {
             focus: true
 
             sourceComponent: QuickMenuContent {
-                items: items
+                items: menuItems
                 origin: root.origin
                 holding: root.held
                 launcher: root.launcher
