@@ -84,9 +84,9 @@ hl.config({
 	},
 })
 
--- The keyboard layouts the Settings app's Keyboard page kept on this machine
--- (Hyprland's own us until then). scripts/install-greeter.sh gives the login
--- screen the same.
+-- The keyboard layouts the Settings app's Keyboard page kept on this machine,
+-- the system's until then (modules/vconsole.lua). scripts/install-greeter.sh
+-- gives the login screen the same.
 local state = os.getenv("XDG_STATE_HOME")
 if state == nil or state == "" then
 	state = (os.getenv("HOME") or "") .. "/.local/state"
@@ -94,6 +94,8 @@ end
 local ok, kept = pcall(dofile, state .. "/quickshell/keyboard.lua")
 if ok and type(kept) == "table" then
 	hl.config({ input = kept })
+else
+	hl.config({ input = require("modules.vconsole") })
 end
 
 -- Caps Lock opens the quick menu unless the Keyboard page kept it off

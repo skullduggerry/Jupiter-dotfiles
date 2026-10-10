@@ -11,6 +11,10 @@
 -- panel and is unusably small — the reason the greeter has a config at all.
 require("monitors")
 
+-- The system's keyboard layout, as the session has it until the Settings app
+-- keeps one; scripts/install-greeter.sh appends that one at the end.
+hl.config({ input = require("vconsole") })
+
 hl.config({
 	misc = {
 		disable_hyprland_logo = true,

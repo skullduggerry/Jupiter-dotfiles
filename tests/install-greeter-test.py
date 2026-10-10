@@ -7,7 +7,7 @@ self-contained: the `greeter` user cannot read $HOME, so a symlink left in it --
 etc/greetd/monitors.lua is one in the repo -- would dangle at boot and take the
 greeter's compositor config down with it. Monitor rules the Settings app kept
 are baked into the copy, applied after the config's own as in the session, and
-so are the keyboard layouts it kept.
+so are the keyboard layouts it kept, over the system's (/etc/vconsole.conf).
 
     python3 tests/install-greeter-test.py        exit 0 on success
 """
@@ -39,6 +39,20 @@ PNG = (b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
        b"\x08\x02\x00\x00\x00\x90wS\xde")
 
 
+def greeter_layouts(dest: pathlib.Path, vconsole: pathlib.Path) -> subprocess.CompletedProcess[str]:
+    """Run the staged compositor config under plain lua, with a stub `hl` and
+    vconsole read as /etc/vconsole.conf; prints the layouts it ends on."""
+    stub = ('local layouts\nhl = { monitor = function() end, on = function() end,\n'
+            '  config = function(values) if values.input then layouts = values.input.kb_layout end end }\n'
+            'local open = io.open\n'
+            f'io.open = function(path, ...) return open(path == "/etc/vconsole.conf" and "{vconsole}" or path, ...) end\n'
+            f'package.path = "{dest}/?.lua;" .. package.path\n'
+            f'dofile("{dest / "hyprland.lua"}")\nprint(layouts)\n')
+    return subprocess.run(["lua", "-e", stub], capture_output=True, text=True,
+                          env={key: value for key, value in os.environ.items()
+                               if key not in ("HOME", "XDG_STATE_HOME")})
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         tmp = pathlib.Path(tmp)
@@ -51,6 +65,10 @@ def main() -> int:
         wallpaper.write_bytes(JPEG)
         (state / "quickshell/hyprpaper.conf").write_text(
             f"wallpaper {{\n    monitor =\n    path = {wallpaper}\n}}\n")
+        # As Jupiter-installer writes it for a German console keymap.
+        vconsole = tmp / "vconsole.conf"
+        vconsole.write_text("KEYMAP=de-latin1\nXKBLAYOUT=de\nXKBMODEL=pc105\n"
+                            "XKBOPTIONS=terminate:ctrl_alt_bksp\n")
 
         run = subprocess.run(["bash", str(SCRIPT), str(dest)], capture_output=True, text=True,
                              env=dict(os.environ, XDG_STATE_HOME=str(state)))
@@ -66,8 +84,17 @@ def main() -> int:
               monitors.is_file() and monitors.read_bytes()
               == (REPO / ".config/hypr/modules/monitors.lua").read_bytes())
 
+        system = dest / "vconsole.lua"
+        check("vconsole.lua is the session's own",
+              system.is_file() and system.read_bytes()
+              == (REPO / ".config/hypr/modules/vconsole.lua").read_bytes())
+
         config = (dest / "hyprland.lua").read_text()
         check("compositor config loads the monitors", 'require("monitors")' in config)
+        if shutil.which("lua"):
+            layouts = greeter_layouts(dest, vconsole)
+            check("the greeter starts on the system's keyboard layout", layouts.stdout.strip() == "de",
+                  (layouts.stdout + layouts.stderr).strip())
         check("staged paths point into the staging tree",
               f"{dest}/quickshell/shell.qml" in config and "/etc/greetd" not in config)
 
@@ -114,14 +141,8 @@ def main() -> int:
             check("the kept rule is applied last", order.stdout.strip() == "desc:Test Monitor 1",
                   (order.stdout + order.stderr).strip())
         if shutil.which("lua"):
-            stub = ('local layouts\nhl = { monitor = function() end, on = function() end,\n'
-                    '  config = function(values) if values.input then layouts = values.input.kb_layout end end }\n'
-                    f'package.path = "{dest}/?.lua;" .. package.path\n'
-                    f'dofile("{dest / "hyprland.lua"}")\nprint(layouts)\n')
-            layouts = subprocess.run(["lua", "-e", stub], capture_output=True, text=True,
-                                     env={key: value for key, value in os.environ.items()
-                                          if key not in ("HOME", "XDG_STATE_HOME")})
-            check("the greeter starts on the kept keyboard layouts", layouts.stdout.strip() == "us,de",
+            layouts = greeter_layouts(dest, vconsole)
+            check("the kept keyboard layouts win over the system's", layouts.stdout.strip() == "us,de",
                   (layouts.stdout + layouts.stderr).strip())
         if shutil.which("Hyprland"):
             verify = subprocess.run(["Hyprland", "--verify-config", "-c", str(dest / "hyprland.lua")],

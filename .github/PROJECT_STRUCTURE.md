@@ -50,8 +50,8 @@ lives in `services/` (`DropdownState`, `LockService`, `SettingsState`).
 `$HOME`. It may only read files until a choice is made, start no process while
 it is constructed, and never call `Quickshell.statePath()`, because that call
 creates the directory. Check with `HOME=/nonexistent`.
-`etc/greetd/monitors.lua` is a symlink to `.config/hypr/modules/monitors.lua`,
-and the installer must copy it as a file.
+`etc/greetd/monitors.lua` and `vconsole.lua` are symlinks into
+`.config/hypr/modules/`, and the installer must copy them as files.
 
 ## Conventions
 

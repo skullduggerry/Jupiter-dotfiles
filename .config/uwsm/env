@@ -17,3 +17,7 @@ export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
 # whose socket unit Jupiter-installer's phase 2 enables (by hand:
 # systemctl --user enable gcr-ssh-agent.socket).
 export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/gcr/ssh
+
+# KDE apps (Dolphin's Open With) find the installed apps through an XDG menu,
+# and uwsm names Hyprland's, which nothing ships; archlinux-xdg-menu has arch-.
+export XDG_MENU_PREFIX=arch-

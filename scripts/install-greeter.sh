@@ -78,6 +78,7 @@ install -d -m 0755 "$dest" "$dest/quickshell" "$dest/quickshell/style"
 install -m 0644 "$repo/etc/greetd/config.toml"  "$dest/config.toml"
 install -m 0644 "$repo/etc/greetd/hyprland.lua" "$dest/hyprland.lua"
 install -m 0644 "$repo/etc/greetd/monitors.lua" "$dest/monitors.lua"
+install -m 0644 "$repo/etc/greetd/vconsole.lua" "$dest/vconsole.lua"
 
 # The same file .config/hypr/modules/monitors.lua loads after its own rules,
 # applied the same way: last, so it wins.
