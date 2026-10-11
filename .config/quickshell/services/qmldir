@@ -1,4 +1,5 @@
 singleton AppTint 1.0 AppTint.qml
+singleton Apps 1.0 Apps.qml
 singleton BarLayout 1.0 BarLayout.qml
 singleton Brightness 1.0 Brightness.qml
 singleton CalendarService 1.0 CalendarService.qml

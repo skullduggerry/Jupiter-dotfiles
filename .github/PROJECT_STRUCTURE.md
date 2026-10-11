@@ -341,7 +341,9 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
   that takes input is masked (`bodyMask`) or sits inside a row: a
   `containmentMask` on a `Flickable` does not keep its children's MouseAreas
   from taking clicks.
-- The apps' list is the launcher. SUPER+R (`launcherToggle`) opens the menu
+- The apps' list is the launcher, over `services/Apps`, which leaves out an
+  entry whose program is gone: Quickshell ignores `TryExec`, and an app's own
+  copy of its entry can outlive the package. SUPER+R (`launcherToggle`) opens the menu
   centred with that list entered; letters type into a list only while it is
   entered, and are slot shortcuts otherwise.
 

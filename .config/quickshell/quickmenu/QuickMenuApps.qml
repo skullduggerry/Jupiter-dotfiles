@@ -15,7 +15,7 @@ import Quickshell.Io
 RingList {
     id: root
 
-    readonly property var apps: DesktopEntries.applications.values.filter(entry => entry.name !== "").sort(LauncherHistory.compare)
+    readonly property var apps: Apps.installed.slice().sort(LauncherHistory.compare)
     readonly property var shown: {
         const query = root.query.trim().toLowerCase();
         return query === "" ? root.apps : root.apps.filter(entry => entry.name.toLowerCase().includes(query) || entry.comment.toLowerCase().includes(query));
@@ -68,6 +68,7 @@ RingList {
     }
 
     searchable: true
+    Component.onCompleted: Apps.check()
     model: root.entries
     onExpressionChanged: root.calculate()
     leading: [

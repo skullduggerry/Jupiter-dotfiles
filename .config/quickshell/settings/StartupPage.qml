@@ -27,7 +27,7 @@ ScrollPage {
 
         const query = appSearch.text.trim().toLowerCase();
         const taken = root.apps.map(app => app.id);
-        return Array.from(DesktopEntries.applications.values).filter(entry => !entry.noDisplay && entry.name !== "" && !taken.includes(entry.id) && (query === "" || entry.name.toLowerCase().includes(query))).sort((left, right) => left.name.localeCompare(right.name));
+        return Apps.installed.filter(entry => !entry.noDisplay && !taken.includes(entry.id) && (query === "" || entry.name.toLowerCase().includes(query))).sort((left, right) => left.name.localeCompare(right.name));
     }
 
     function change(args) {
@@ -339,8 +339,10 @@ ScrollPage {
             onActivated: {
                 root.adding = !root.adding;
                 appSearch.text = "";
-                if (root.adding)
+                if (root.adding) {
+                    Apps.check();
                     appSearch.focusInput();
+                }
             }
         }
 

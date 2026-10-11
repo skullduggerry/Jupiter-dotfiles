@@ -54,7 +54,7 @@ Everything runs from the repo root.
 | `tests/nextcloud-principal-test.py` | The calendar finding your Nextcloud user id however it is spelled, and refusing to send the password over plain http. |
 | `tests/nextcloud-tasks-test.py` | The calendar's open tasks, dated or not, from task lists and calendars alike, in the order the dropdown lists them, against a stand-in Nextcloud. |
 | `tests/palettes-test.py` | The Settings app's theme list: saved schemes first, every palette complete, and a theme wallust cannot render left out. |
-| `tests/qml-test.py` | The QML tests in `tests/qml/`, run inside Quickshell offscreen with nothing of the session around them: colours, the greeter's `style/`, idle times, keybind rows, calendar addresses, unlocking with a finger. |
+| `tests/qml-test.py` | The QML tests in `tests/qml/`, run inside Quickshell offscreen with nothing of the session around them: colours, the greeter's `style/`, idle times, keybind rows, calendar addresses, unlocking with a finger, the launcher leaving out removed apps. |
 | `tests/screen-record-test.py` | Screen Record's file in `Videos/Recordings`, and the recording ending with the shell. |
 | `tests/shelf-test.py` | The shelf: pasting text, images and copied files without overwriting, refusing a password manager's copy, notes named after their first line, copying back. |
 | `tests/wallpaper-import-test.py` | Adding a wallpaper: copied into the library, the same image once, another one under a taken name numbered. |
