@@ -26,8 +26,13 @@ import sys
 PASSWD = "/etc/passwd"
 SESSION_DIRS = ("/usr/share/wayland-sessions", "/usr/share/xsessions")
 
-NOLOGIN_SHELLS = ("/usr/bin/nologin", "/sbin/nologin", "/usr/sbin/nologin",
-                  "/bin/false", "/usr/bin/false")
+NOLOGIN_SHELLS = (
+    "/usr/bin/nologin",
+    "/sbin/nologin",
+    "/usr/sbin/nologin",
+    "/bin/false",
+    "/usr/bin/false",
+)
 
 
 def list_users(path: str = PASSWD) -> list[dict]:
@@ -43,19 +48,26 @@ def list_users(path: str = PASSWD) -> list[dict]:
                 continue
             if shell in NOLOGIN_SHELLS:
                 continue
-            users.append({"name": name, "display": gecos.split(",")[0] or name})
+            users.append(
+                {"name": name, "display": gecos.split(",")[0] or name}
+            )
     return sorted(users, key=lambda user: user["name"])
 
 
 def desktop_entry(path: str) -> dict[str, str]:
     """The [Desktop Entry] group's keys, first occurrence winning."""
-    keys, group = {}, None
+    keys: dict[str, str] = {}
+    group = None
     with open(path, encoding="utf-8", errors="replace") as handle:
         for line in handle:
             line = line.strip()
             if line.startswith("[") and line.endswith("]"):
                 group = line[1:-1]
-            elif group == "Desktop Entry" and "=" in line and not line.startswith("#"):
+            elif (
+                group == "Desktop Entry"
+                and "=" in line
+                and not line.startswith("#")
+            ):
                 key, value = line.split("=", 1)
                 keys.setdefault(key.strip(), value.strip())
     return keys
@@ -79,8 +91,14 @@ def list_sessions(directories: tuple[str, ...] = SESSION_DIRS) -> list[dict]:
             except ValueError:
                 continue
             if name and command:
-                sessions.append({"id": entry[:-len(".desktop")], "name": name,
-                                 "exec": exec_line, "command": command})
+                sessions.append(
+                    {
+                        "id": entry[: -len(".desktop")],
+                        "name": name,
+                        "exec": exec_line,
+                        "command": command,
+                    }
+                )
     return sessions
 
 

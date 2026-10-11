@@ -11,6 +11,7 @@ get is what the shell last recorded in tint.conf beside it
 from a copy of templates/ with this in place of the committed appearance.jinja,
 which holds the defaults; so do a missing file and an empty value.
 """
+
 import json
 import os
 import sys
@@ -48,8 +49,13 @@ def main(path):
             settings = json.load(file)
     except (OSError, ValueError):
         settings = {}
-    accent = SLOTS.get(os.environ.get("APPEARANCE_ACCENT", settings.get("accent")), SLOTS["blue"])
-    font = os.environ.get("APPEARANCE_FONT", settings.get("font")) or DEFAULT_FONT
+    accent = SLOTS.get(
+        os.environ.get("APPEARANCE_ACCENT", settings.get("accent")),
+        SLOTS["blue"],
+    )
+    font = (
+        os.environ.get("APPEARANCE_FONT", settings.get("font")) or DEFAULT_FONT
+    )
     # A family name goes into kdeglobals' comma-separated font lines as it is.
     font = font.replace(",", " ")
     print("{%- macro accent_color() -%}{{ " + accent + " }}{%- endmacro -%}")
@@ -57,7 +63,9 @@ def main(path):
     # Kvantum's window and dialog backgrounds, which KvMojave drew at 93% and
     # 92%, as the shell writes the tint (app-tint.sh), two decimals.
     glass = tint(os.path.join(os.path.dirname(path), "tint.conf"))
-    print("{%- macro window_opacity() -%}" + "%.2f" % glass + "{%- endmacro -%}")
+    print(
+        "{%- macro window_opacity() -%}" + f"{glass:.2f}" + "{%- endmacro -%}"
+    )
 
 
 if __name__ == "__main__":

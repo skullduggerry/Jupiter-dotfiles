@@ -98,13 +98,13 @@ copy() {
     local file=$1 mime
     mime=$(file --brief --mime-type -- "$file")
     case $mime in
-    text/*) wl-copy <"$file" ;;
-    image/*) wl-copy --type "$mime" <"$file" ;;
-    *) python3 -c 'import pathlib, sys; print(pathlib.Path(sys.argv[1]).as_uri())' "$file" | wl-copy --type text/uri-list ;;
+        text/*) wl-copy <"$file" ;;
+        image/*) wl-copy --type "$mime" <"$file" ;;
+        *) python3 -c 'import pathlib, sys; print(pathlib.Path(sys.argv[1]).as_uri())' "$file" | wl-copy --type text/uri-list ;;
     esac
 }
 
 case ${1-} in
-paste | note | copy) "$@" ;;
-*) exit 2 ;;
+    paste | note | copy) "$@" ;;
+    *) exit 2 ;;
 esac

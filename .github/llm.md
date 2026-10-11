@@ -53,6 +53,8 @@ or 2.
 
 - `scripts/check.sh` passes (`--fix` formats first). Fix every failure you
   introduced, and name any that were already there.
+- New behaviour has a test: a helper script a `tests/<name>-test.py`, QML
+  logic a `tests/qml/<Name>Test.qml` ("Where things go").
 - You have read the whole diff and checked the running shell's log after the
   reload (see "Validating" in PROJECT_STRUCTURE.md). Some failures only show
   up in the log.

@@ -18,3 +18,15 @@ indent_size = 4
 indent_style = space
 indent_size = 4
 trim_trailing_whitespace = false
+
+# shfmt reads these.
+[{*.sh,pre-commit,pre-push}]
+indent_style = space
+indent_size = 4
+switch_case_indent = true
+
+# stylua reads these: Hyprland's config is indented with tabs, and a bind
+# stays on one line.
+[*.lua]
+indent_style = tab
+max_line_length = 160

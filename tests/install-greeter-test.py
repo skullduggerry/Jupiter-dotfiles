@@ -11,6 +11,7 @@ so are the keyboard layouts it kept, over the system's (/etc/vconsole.conf).
 
     python3 tests/install-greeter-test.py        exit 0 on success
 """
+
 from __future__ import annotations
 
 import json
@@ -35,27 +36,41 @@ def check(label: str, ok: bool, detail: str = "") -> None:
 
 # The smallest files `file` takes for images.
 JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xd9"
-PNG = (b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
-       b"\x08\x02\x00\x00\x00\x90wS\xde")
+PNG = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+    b"\x08\x02\x00\x00\x00\x90wS\xde"
+)
 
 
-def greeter_layouts(dest: pathlib.Path, vconsole: pathlib.Path) -> subprocess.CompletedProcess[str]:
+def greeter_layouts(
+    dest: pathlib.Path, vconsole: pathlib.Path
+) -> subprocess.CompletedProcess[str]:
     """Run the staged compositor config under plain lua, with a stub `hl` and
     vconsole read as /etc/vconsole.conf; prints the layouts it ends on."""
-    stub = ('local layouts\nhl = { monitor = function() end, on = function() end,\n'
-            '  config = function(values) if values.input then layouts = values.input.kb_layout end end }\n'
-            'local open = io.open\n'
-            f'io.open = function(path, ...) return open(path == "/etc/vconsole.conf" and "{vconsole}" or path, ...) end\n'
-            f'package.path = "{dest}/?.lua;" .. package.path\n'
-            f'dofile("{dest / "hyprland.lua"}")\nprint(layouts)\n')
-    return subprocess.run(["lua", "-e", stub], capture_output=True, text=True,
-                          env={key: value for key, value in os.environ.items()
-                               if key not in ("HOME", "XDG_STATE_HOME")})
+    stub = (
+        "local layouts\nhl = { monitor = function() end, on = function() end,\n"
+        "  config = function(values) if values.input then layouts = values.input.kb_layout end end }\n"
+        "local open = io.open\n"
+        f'io.open = function(path, ...) return open(path == "/etc/vconsole.conf" and "{vconsole}" or path, ...) end\n'
+        f'package.path = "{dest}/?.lua;" .. package.path\n'
+        f'dofile("{dest / "hyprland.lua"}")\nprint(layouts)\n'
+    )
+    return subprocess.run(
+        ["lua", "-e", stub],
+        capture_output=True,
+        text=True,
+        env={
+            key: value
+            for key, value in os.environ.items()
+            if key not in ("HOME", "XDG_STATE_HOME")
+        },
+        check=False,
+    )
 
 
 def main() -> int:
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp = pathlib.Path(tmp)
+    with tempfile.TemporaryDirectory() as name:
+        tmp = pathlib.Path(name)
         dest = tmp / "greetd"
         # The script takes the wallpaper from the saved hyprpaper config under
         # XDG_STATE_HOME, so the test brings its own instead of needing yours.
@@ -64,137 +79,296 @@ def main() -> int:
         wallpaper = tmp / "wallpaper.jpg"
         wallpaper.write_bytes(JPEG)
         (state / "quickshell/hyprpaper.conf").write_text(
-            f"wallpaper {{\n    monitor =\n    path = {wallpaper}\n}}\n")
+            f"wallpaper {{\n    monitor =\n    path = {wallpaper}\n}}\n"
+        )
         # As Jupiter-installer writes it for a German console keymap.
         vconsole = tmp / "vconsole.conf"
-        vconsole.write_text("KEYMAP=de-latin1\nXKBLAYOUT=de\nXKBMODEL=pc105\n"
-                            "XKBOPTIONS=terminate:ctrl_alt_bksp\n")
+        vconsole.write_text(
+            "KEYMAP=de-latin1\nXKBLAYOUT=de\nXKBMODEL=pc105\n"
+            "XKBOPTIONS=terminate:ctrl_alt_bksp\n"
+        )
 
-        run = subprocess.run(["bash", str(SCRIPT), str(dest)], capture_output=True, text=True,
-                             env=dict(os.environ, XDG_STATE_HOME=str(state)))
+        run = subprocess.run(
+            ["bash", str(SCRIPT), str(dest)],
+            capture_output=True,
+            text=True,
+            env=dict(os.environ, XDG_STATE_HOME=str(state)),
+            check=False,
+        )
         check("script succeeds", run.returncode == 0, run.stderr.strip())
         if run.returncode != 0:
             return report()
 
-        links = [str(p.relative_to(dest)) for p in dest.rglob("*") if p.is_symlink()]
+        links = [
+            str(p.relative_to(dest)) for p in dest.rglob("*") if p.is_symlink()
+        ]
         check("no symlinks in the installed tree", not links, ", ".join(links))
 
         monitors = dest / "monitors.lua"
-        check("monitors.lua is the session's own layout",
-              monitors.is_file() and monitors.read_bytes()
-              == (REPO / ".config/hypr/modules/monitors.lua").read_bytes())
+        check(
+            "monitors.lua is the session's own layout",
+            monitors.is_file()
+            and monitors.read_bytes()
+            == (REPO / ".config/hypr/modules/monitors.lua").read_bytes(),
+        )
 
         system = dest / "vconsole.lua"
-        check("vconsole.lua is the session's own",
-              system.is_file() and system.read_bytes()
-              == (REPO / ".config/hypr/modules/vconsole.lua").read_bytes())
+        check(
+            "vconsole.lua is the session's own",
+            system.is_file()
+            and system.read_bytes()
+            == (REPO / ".config/hypr/modules/vconsole.lua").read_bytes(),
+        )
 
         config = (dest / "hyprland.lua").read_text()
-        check("compositor config loads the monitors", 'require("monitors")' in config)
+        check(
+            "compositor config loads the monitors",
+            'require("monitors")' in config,
+        )
         if shutil.which("lua"):
             layouts = greeter_layouts(dest, vconsole)
-            check("the greeter starts on the system's keyboard layout", layouts.stdout.strip() == "de",
-                  (layouts.stdout + layouts.stderr).strip())
-        check("staged paths point into the staging tree",
-              f"{dest}/quickshell/shell.qml" in config and "/etc/greetd" not in config)
+            check(
+                "the greeter starts on the system's keyboard layout",
+                layouts.stdout.strip() == "de",
+                (layouts.stdout + layouts.stderr).strip(),
+            )
+        check(
+            "staged paths point into the staging tree",
+            f"{dest}/quickshell/shell.qml" in config
+            and "/etc/greetd" not in config,
+        )
 
-        for name in ("shell.qml", "qmldir", "greeter-env.py", "style/qmldir",
-                     "style/Colors.qml", "style/Style.qml", "style/Theme.qml"):
-            check(f"quickshell/{name} installed", (dest / "quickshell" / name).is_file())
-        check("wallpaper copied",
-              (dest / "quickshell/wallpaper.jpg").read_bytes() == wallpaper.read_bytes())
+        for name in (
+            "shell.qml",
+            "qmldir",
+            "greeter-env.py",
+            "style/qmldir",
+            "style/Colors.qml",
+            "style/Style.qml",
+            "style/Theme.qml",
+        ):
+            check(
+                f"quickshell/{name} installed",
+                (dest / "quickshell" / name).is_file(),
+            )
+        check(
+            "wallpaper copied",
+            (dest / "quickshell/wallpaper.jpg").read_bytes()
+            == wallpaper.read_bytes(),
+        )
 
         # Hyprland's own parser on the staged copy: proves `require` resolves
         # inside the staged tree rather than through the repo.
         if shutil.which("Hyprland"):
-            verify = subprocess.run(["Hyprland", "--verify-config", "-c", str(dest / "hyprland.lua")],
-                                    capture_output=True, text=True)
+            verify = subprocess.run(
+                [
+                    "Hyprland",
+                    "--verify-config",
+                    "-c",
+                    str(dest / "hyprland.lua"),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
             output = (verify.stdout + verify.stderr).strip()
-            check("staged compositor config verifies", "config ok" in output,
-                  output.splitlines()[-1] if output else "")
+            check(
+                "staged compositor config verifies",
+                "config ok" in output,
+                output.splitlines()[-1] if output else "",
+            )
         else:
-            print("  [skip] Hyprland not installed, staged config not verified")
+            print(
+                "  [skip] Hyprland not installed, staged config not verified"
+            )
 
         # A second install with a monitor rule and keyboard layouts the
         # Settings app kept: appended to the copies, applied last, and still a
         # config Hyprland takes.
         kept = state / "quickshell/monitors.lua"
-        kept.write_text('return {\n\t{ output = "desc:Test Monitor 1", mode = "1920x1080@60", '
-                        'position = "0x0", scale = 1.25, transform = 0 },\n}\n')
+        kept.write_text(
+            'return {\n\t{ output = "desc:Test Monitor 1", mode = "1920x1080@60", '
+            'position = "0x0", scale = 1.25, transform = 0 },\n}\n'
+        )
         (state / "quickshell/keyboard.lua").write_text(
-            '-- Written by the shell.\nreturn { kb_layout = "us,de", kb_variant = ",nodeadkeys" }\n')
+            '-- Written by the shell.\nreturn { kb_layout = "us,de", kb_variant = ",nodeadkeys" }\n'
+        )
         dest = tmp / "greetd-kept"
-        run = subprocess.run(["bash", str(SCRIPT), str(dest)], capture_output=True, text=True,
-                             env=dict(os.environ, XDG_STATE_HOME=str(state)))
-        check("script succeeds with kept monitors", run.returncode == 0, run.stderr.strip())
+        run = subprocess.run(
+            ["bash", str(SCRIPT), str(dest)],
+            capture_output=True,
+            text=True,
+            env=dict(os.environ, XDG_STATE_HOME=str(state)),
+            check=False,
+        )
+        check(
+            "script succeeds with kept monitors",
+            run.returncode == 0,
+            run.stderr.strip(),
+        )
         monitors = dest / "monitors.lua"
         text = monitors.read_bytes() if monitors.is_file() else b""
         own = (REPO / ".config/hypr/modules/monitors.lua").read_bytes()
-        check("kept monitors come after the session's layout",
-              text.startswith(own) and b"desc:Test Monitor 1" in text[len(own):])
+        check(
+            "kept monitors come after the session's layout",
+            text.startswith(own)
+            and b"desc:Test Monitor 1" in text[len(own) :],
+        )
         if shutil.which("lua"):
-            stub = ('local last\nhl = { monitor = function(rule) last = rule.output end }\n'
-                    f'dofile("{monitors}")\nprint(last)\n')
-            order = subprocess.run(["lua", "-e", stub], capture_output=True, text=True,
-                                   env={key: value for key, value in os.environ.items()
-                                        if key not in ("HOME", "XDG_STATE_HOME")})
-            check("the kept rule is applied last", order.stdout.strip() == "desc:Test Monitor 1",
-                  (order.stdout + order.stderr).strip())
+            stub = (
+                "local last\nhl = { monitor = function(rule) last = rule.output end }\n"
+                f'dofile("{monitors}")\nprint(last)\n'
+            )
+            order = subprocess.run(
+                ["lua", "-e", stub],
+                capture_output=True,
+                text=True,
+                env={
+                    key: value
+                    for key, value in os.environ.items()
+                    if key not in ("HOME", "XDG_STATE_HOME")
+                },
+                check=False,
+            )
+            check(
+                "the kept rule is applied last",
+                order.stdout.strip() == "desc:Test Monitor 1",
+                (order.stdout + order.stderr).strip(),
+            )
         if shutil.which("lua"):
             layouts = greeter_layouts(dest, vconsole)
-            check("the kept keyboard layouts win over the system's", layouts.stdout.strip() == "us,de",
-                  (layouts.stdout + layouts.stderr).strip())
+            check(
+                "the kept keyboard layouts win over the system's",
+                layouts.stdout.strip() == "us,de",
+                (layouts.stdout + layouts.stderr).strip(),
+            )
         if shutil.which("Hyprland"):
-            verify = subprocess.run(["Hyprland", "--verify-config", "-c", str(dest / "hyprland.lua")],
-                                    capture_output=True, text=True)
+            verify = subprocess.run(
+                [
+                    "Hyprland",
+                    "--verify-config",
+                    "-c",
+                    str(dest / "hyprland.lua"),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
             output = (verify.stdout + verify.stderr).strip()
-            check("staged config with kept monitors and layouts verifies", "config ok" in output,
-                  output.splitlines()[-1] if output else "")
+            check(
+                "staged config with kept monitors and layouts verifies",
+                "config ok" in output,
+                output.splitlines()[-1] if output else "",
+            )
 
         # A fresh install, before any wallpaper is on the disk: the greeter
         # goes without one rather than the install failing.
         wallpaper.unlink()
         dest = tmp / "greetd-fresh"
-        run = subprocess.run(["bash", str(SCRIPT), str(dest)], capture_output=True, text=True,
-                             env=dict(os.environ, XDG_STATE_HOME=str(state)))
-        check("script succeeds without a wallpaper", run.returncode == 0, run.stderr.strip())
-        check("no wallpaper installed", not (dest / "quickshell/wallpaper.jpg").exists())
+        run = subprocess.run(
+            ["bash", str(SCRIPT), str(dest)],
+            capture_output=True,
+            text=True,
+            env=dict(os.environ, XDG_STATE_HOME=str(state)),
+            check=False,
+        )
+        check(
+            "script succeeds without a wallpaper",
+            run.returncode == 0,
+            run.stderr.strip(),
+        )
+        check(
+            "no wallpaper installed",
+            not (dest / "quickshell/wallpaper.jpg").exists(),
+        )
 
         # The Lock Screen tab's choices: an image of its own for the login
         # screen, then none, each with the choices installed beside it and the
         # image they came from, which that page compares with its own.
-        own = tmp / "login.png"
-        own.write_bytes(PNG)
+        image = tmp / "login.png"
+        image.write_bytes(PNG)
         look = state / "quickshell/lockscreen.json"
-        look.write_text(json.dumps({"loginBackground": "image", "loginImage": str(own), "dim": 0.3}))
+        look.write_text(
+            json.dumps(
+                {
+                    "loginBackground": "image",
+                    "loginImage": str(image),
+                    "dim": 0.3,
+                }
+            )
+        )
         dest = tmp / "greetd-look"
-        run = subprocess.run(["bash", str(SCRIPT), str(dest)], capture_output=True, text=True,
-                             env=dict(os.environ, XDG_STATE_HOME=str(state)))
-        check("script succeeds with a login image", run.returncode == 0, run.stderr.strip())
-        check("the login image is the wallpaper",
-              (dest / "quickshell/wallpaper.jpg").read_bytes() == own.read_bytes())
-        installed = json.loads((dest / "quickshell/lockscreen.json").read_text())
-        check("the choices are installed with their image",
-              installed.get("dim") == 0.3 and installed.get("installedImage") == str(own), str(installed))
-        check("the greeter is told where they are",
-              f"LOCKSCREEN_STYLE={dest}/quickshell/lockscreen.json" in (dest / "hyprland.lua").read_text())
+        run = subprocess.run(
+            ["bash", str(SCRIPT), str(dest)],
+            capture_output=True,
+            text=True,
+            env=dict(os.environ, XDG_STATE_HOME=str(state)),
+            check=False,
+        )
+        check(
+            "script succeeds with a login image",
+            run.returncode == 0,
+            run.stderr.strip(),
+        )
+        check(
+            "the login image is the wallpaper",
+            (dest / "quickshell/wallpaper.jpg").read_bytes()
+            == image.read_bytes(),
+        )
+        installed = json.loads(
+            (dest / "quickshell/lockscreen.json").read_text()
+        )
+        check(
+            "the choices are installed with their image",
+            installed.get("dim") == 0.3
+            and installed.get("installedImage") == str(image),
+            str(installed),
+        )
+        check(
+            "the greeter is told where they are",
+            f"LOCKSCREEN_STYLE={dest}/quickshell/lockscreen.json"
+            in (dest / "hyprland.lua").read_text(),
+        )
         # A path to anything but an image (the paths are the owner's to write,
         # the copy world readable) is not installed.
         other = tmp / "notes.txt"
         other.write_text("not an image\n")
-        look.write_text(json.dumps({"loginBackground": "image", "loginImage": str(other)}))
-        run = subprocess.run(["bash", str(SCRIPT), str(dest)], capture_output=True, text=True,
-                             env=dict(os.environ, XDG_STATE_HOME=str(state)))
-        check("a file that is no image is not installed",
-              run.returncode == 0 and not (dest / "quickshell/wallpaper.jpg").exists(), run.stderr.strip())
+        look.write_text(
+            json.dumps({"loginBackground": "image", "loginImage": str(other)})
+        )
+        run = subprocess.run(
+            ["bash", str(SCRIPT), str(dest)],
+            capture_output=True,
+            text=True,
+            env=dict(os.environ, XDG_STATE_HOME=str(state)),
+            check=False,
+        )
+        check(
+            "a file that is no image is not installed",
+            run.returncode == 0
+            and not (dest / "quickshell/wallpaper.jpg").exists(),
+            run.stderr.strip(),
+        )
         look.write_text(json.dumps({"loginBackground": "plain"}))
         # An install from before Quickshell's own greetd client left its helper.
         (dest / "quickshell/greetd-auth.py").write_text("")
-        run = subprocess.run(["bash", str(SCRIPT), str(dest)], capture_output=True, text=True,
-                             env=dict(os.environ, XDG_STATE_HOME=str(state)))
-        check("a plain login screen drops the wallpaper",
-              run.returncode == 0 and not (dest / "quickshell/wallpaper.jpg").exists(), run.stderr.strip())
-        check("the old greetd helper is gone", not (dest / "quickshell/greetd-auth.py").exists())
+        run = subprocess.run(
+            ["bash", str(SCRIPT), str(dest)],
+            capture_output=True,
+            text=True,
+            env=dict(os.environ, XDG_STATE_HOME=str(state)),
+            check=False,
+        )
+        check(
+            "a plain login screen drops the wallpaper",
+            run.returncode == 0
+            and not (dest / "quickshell/wallpaper.jpg").exists(),
+            run.stderr.strip(),
+        )
+        check(
+            "the old greetd helper is gone",
+            not (dest / "quickshell/greetd-auth.py").exists(),
+        )
 
     return report()
 

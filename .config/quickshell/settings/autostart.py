@@ -44,9 +44,17 @@ def system_dirs():
 
 
 def application_dirs():
-    data_home = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
-    data_dirs = os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share"
-    return [os.path.join(d, "applications") for d in [data_home] + data_dirs.split(":") if d]
+    data_home = os.environ.get("XDG_DATA_HOME") or os.path.expanduser(
+        "~/.local/share"
+    )
+    data_dirs = (
+        os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share"
+    )
+    return [
+        os.path.join(d, "applications")
+        for d in [data_home, *data_dirs.split(":")]
+        if d
+    ]
 
 
 def read(path):
@@ -56,7 +64,8 @@ def read(path):
 
 def parse(text):
     """The [Desktop Entry] group's keys, first occurrence winning."""
-    keys, group = {}, None
+    keys: dict[str, str] = {}
+    group = None
     for line in text.splitlines():
         line = line.strip()
         if not line or line.startswith("#"):
@@ -74,7 +83,11 @@ def boolean(value):
 
 
 def listed(value):
-    return [item.strip().lower() for item in (value or "").split(";") if item.strip()]
+    return [
+        item.strip().lower()
+        for item in (value or "").split(";")
+        if item.strip()
+    ]
 
 
 def set_key(text, key, value):
@@ -91,7 +104,7 @@ def set_key(text, key, value):
             if group == GROUP:
                 start = index
     if start is None:
-        lines = ["[" + GROUP + "]"] + lines
+        lines = ["[" + GROUP + "]", *lines]
         start, end = 0, len(lines)
     for index in range(start + 1, end):
         if re.match(r"\s*" + re.escape(key) + r"\s*=", lines[index]):
@@ -107,12 +120,19 @@ def set_key(text, key, value):
 
 
 def without_key(text, key):
-    return [line for line in text.splitlines() if not re.match(r"\s*" + re.escape(key) + r"\s*=", line) and line.strip()]
+    return [
+        line
+        for line in text.splitlines()
+        if not re.match(r"\s*" + re.escape(key) + r"\s*=", line)
+        and line.strip()
+    ]
 
 
 def write(path, text):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    handle, temporary = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".autostart-")
+    handle, temporary = tempfile.mkstemp(
+        dir=os.path.dirname(path), prefix=".autostart-"
+    )
     with os.fdopen(handle, "w", encoding="utf-8") as file:
         file.write(text)
     os.chmod(temporary, 0o644)
@@ -146,41 +166,66 @@ def starts_here(keys, desktops):
         return False
     only, never = listed(keys.get("OnlyShowIn")), listed(keys.get("NotShowIn"))
     if keys.get("X-GNOME-Autostart-Phase"):
-        only = [desktop for desktop in only if desktop != "gnome"] if only else only
-        never = never + ["gnome"]
+        only = (
+            [desktop for desktop in only if desktop != "gnome"]
+            if only
+            else only
+        )
+        never = [*never, "gnome"]
         if not only and listed(keys.get("OnlyShowIn")):
             return False
     if only and not any(desktop in only for desktop in desktops):
         return False
-    if any(desktop in never for desktop in desktops):
-        return False
-    return True
+    return not any(desktop in never for desktop in desktops)
 
 
 def unit_states():
     """Desktop file id -> the sub state of the unit the generator made for it."""
     try:
         out = subprocess.run(
-            ["systemctl", "--user", "list-units", "--all", "--output=json", "app-*@autostart.service"],
-            capture_output=True, text=True, timeout=5).stdout
+            [
+                "systemctl",
+                "--user",
+                "list-units",
+                "--all",
+                "--output=json",
+                "app-*@autostart.service",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        ).stdout
         units = json.loads(out or "[]")
     except (OSError, ValueError, subprocess.TimeoutExpired):
         return {}
     states = {}
     for unit in units:
-        match = re.fullmatch(r"app-(.*)@autostart\.service", unit.get("unit", ""))
+        match = re.fullmatch(
+            r"app-(.*)@autostart\.service", unit.get("unit", "")
+        )
         if match:
-            name = re.sub(r"\\x([0-9a-fA-F]{2})", lambda hexa: chr(int(hexa.group(1), 16)), match.group(1))
+            name = re.sub(
+                r"\\x([0-9a-fA-F]{2})",
+                lambda hexa: chr(int(hexa.group(1), 16)),
+                match.group(1),
+            )
             states[name] = unit.get("sub", "")
     return states
 
 
 def entries():
-    desktops = listed((os.environ.get("XDG_CURRENT_DESKTOP") or "").replace(":", ";"))
-    names = set()
-    for directory in [user_dir()] + system_dirs():
+    desktops = listed(
+        (os.environ.get("XDG_CURRENT_DESKTOP") or "").replace(":", ";")
+    )
+    names: set[str] = set()
+    for directory in [user_dir(), *system_dirs()]:
         if os.path.isdir(directory):
-            names.update(name for name in os.listdir(directory) if name.endswith(".desktop"))
+            names.update(
+                name
+                for name in os.listdir(directory)
+                if name.endswith(".desktop")
+            )
     states = unit_states()
     found = []
     for name in sorted(names):
@@ -189,18 +234,22 @@ def entries():
         keys = parse(read(path))
         if not starts_here(keys, desktops):
             continue
-        ident = name[:-len(".desktop")]
-        found.append({
-            "id": ident,
-            "name": keys.get("Name") or ident,
-            "comment": keys.get("Comment") or keys.get("GenericName") or "",
-            "icon": keys.get("Icon") or "",
-            "exec": keys.get("Exec"),
-            "enabled": not boolean(keys.get("Hidden")),
-            # Only the user's folder has it: removing it is the way to undo it.
-            "custom": theirs is None,
-            "state": states.get(ident, ""),
-        })
+        ident = name[: -len(".desktop")]
+        found.append(
+            {
+                "id": ident,
+                "name": keys.get("Name") or ident,
+                "comment": keys.get("Comment")
+                or keys.get("GenericName")
+                or "",
+                "icon": keys.get("Icon") or "",
+                "exec": keys.get("Exec"),
+                "enabled": not boolean(keys.get("Hidden")),
+                # Only the user's folder has it: removing it is the way to undo it.
+                "custom": theirs is None,
+                "state": states.get(ident, ""),
+            }
+        )
     return sorted(found, key=lambda entry: entry["name"].lower())
 
 
@@ -210,17 +259,27 @@ def switch(ident, enabled):
     if mine is None and theirs is None:
         raise SystemExit(f"autostart: no entry {ident}")
     if enabled:
-        if mine is not None and theirs is not None and \
-                without_key(read(mine), "Hidden") == without_key(read(theirs), "Hidden") and \
-                not boolean(parse(read(theirs)).get("Hidden")):
+        if (
+            mine is not None
+            and theirs is not None
+            and without_key(read(mine), "Hidden")
+            == without_key(read(theirs), "Hidden")
+            and not boolean(parse(read(theirs)).get("Hidden"))
+        ):
             os.remove(mine)
         elif mine is not None:
             write(mine, set_key(read(mine), "Hidden", "false"))
         elif boolean(parse(read(theirs)).get("Hidden")):
-            write(os.path.join(user_dir(), name), set_key(read(theirs), "Hidden", "false"))
+            write(
+                os.path.join(user_dir(), name),
+                set_key(read(theirs), "Hidden", "false"),
+            )
     else:
         source = mine or theirs
-        write(os.path.join(user_dir(), name), set_key(read(source), "Hidden", "true"))
+        write(
+            os.path.join(user_dir(), name),
+            set_key(read(source), "Hidden", "true"),
+        )
 
 
 def find_application(app_id):
@@ -254,7 +313,9 @@ def add(app_id):
 def remove(ident):
     name = ident + ".desktop"
     if system_file(name) is not None:
-        raise SystemExit(f"autostart: {ident} is the system's; switch it off instead")
+        raise SystemExit(
+            f"autostart: {ident} is the system's; switch it off instead"
+        )
     mine = user_file(name)
     if mine is not None:
         os.remove(mine)

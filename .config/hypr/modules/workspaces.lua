@@ -15,9 +15,9 @@ local function blocksPath()
 	return os.getenv("XDG_RUNTIME_DIR") .. "/hypr/" .. os.getenv("HYPRLAND_INSTANCE_SIGNATURE") .. "/workspace-blocks.json"
 end
 
-local function saveBlocks()
+local function saveBlocks(known)
 	local entries = {}
-	for name, block in pairs(blocks) do
+	for name, block in pairs(known) do
 		table.insert(entries, string.format("%q: %d", name, block))
 	end
 	table.sort(entries)
@@ -57,7 +57,7 @@ local function block(monitor)
 		end
 
 		blocks[monitor.name] = candidate
-		saveBlocks()
+		saveBlocks(blocks)
 	end
 
 	return blocks[monitor.name]
@@ -94,7 +94,10 @@ end
 -- a new one, unless the last one is empty itself.
 function M.step(direction)
 	local monitor = hl.get_active_monitor()
-	local current = monitor.active_workspace
+	local current = monitor and monitor.active_workspace
+	if monitor == nil or current == nil then
+		return
+	end
 	local target = nil
 
 	for _, workspace in ipairs(hl.get_workspaces()) do
@@ -154,7 +157,9 @@ local function settle(monitor)
 		hl.dispatch(hl.dsp.focus({ workspace = free(monitor, base(monitor)) }))
 		if focused ~= monitor then
 			hl.dispatch(hl.dsp.focus({ monitor = focused }))
-			hl.dispatch(hl.dsp.cursor.move({ x = pointer.x, y = pointer.y }))
+			if pointer then
+				hl.dispatch(hl.dsp.cursor.move({ x = pointer.x, y = pointer.y }))
+			end
 		end
 	end
 end

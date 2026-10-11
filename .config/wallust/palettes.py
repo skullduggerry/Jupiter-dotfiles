@@ -9,6 +9,7 @@ shell takes its colours from, so a preview shows exactly what applying gives.
 Everything is written to a temporary directory, and -s keeps wallust away from
 the terminals. The shell's wallpaper app runs this for its theme picker.
 """
+
 from __future__ import annotations
 
 import concurrent.futures
@@ -28,15 +29,24 @@ SCHEMES = HERE / "colorschemes"
 
 def find_wallust() -> str | None:
     # See apply.sh: the compositor's environment does not include cargo's bin.
-    path = os.environ.get("PATH", "") + os.pathsep + str(pathlib.Path.home() / ".cargo" / "bin")
+    path = (
+        os.environ.get("PATH", "")
+        + os.pathsep
+        + str(pathlib.Path.home() / ".cargo" / "bin")
+    )
     return shutil.which("wallust", path=path)
 
 
 def builtin_names(wallust: str) -> list[str]:
-    listing = subprocess.run([wallust, "theme", "list"], capture_output=True, text=True, check=True).stdout
+    listing = subprocess.run(
+        [wallust, "theme", "list"], capture_output=True, text=True, check=True
+    ).stdout
     # "- Nord" per theme; "random" and "list" are commands, and carry a description.
-    return [line[2:].strip() for line in listing.splitlines()
-            if line.startswith("- ") and " " not in line[2:].strip()]
+    return [
+        line[2:].strip()
+        for line in listing.splitlines()
+        if line.startswith("- ") and " " not in line[2:].strip()
+    ]
 
 
 class Renderer:
@@ -53,7 +63,8 @@ class Renderer:
             (path / "templates").mkdir()
             shutil.copy(TEMPLATE, path / "templates" / "quickshell.json")
             (path / "wallust.toml").write_text(
-                f"[templates]\nquickshell = {{ src = 'quickshell.json', target = '{path / 'out.json'}' }}\n")
+                f"[templates]\nquickshell = {{ src = 'quickshell.json', target = '{path / 'out.json'}' }}\n"
+            )
             self.local.dir = path
         return self.local.dir
 
@@ -61,8 +72,12 @@ class Renderer:
         path = self.config_dir()
         out = path / "out.json"
         out.unlink(missing_ok=True)
-        result = subprocess.run([self.wallust, "-d", str(path), "-s", "-q", *args],
-                                capture_output=True, text=True)
+        result = subprocess.run(
+            [self.wallust, "-d", str(path), "-s", "-q", *args],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
         if result.returncode != 0 or not out.exists():
             return None
         return json.loads(out.read_text())
@@ -74,16 +89,26 @@ def main() -> int:
         print("wallust is not installed", file=sys.stderr)
         return 1
 
-    jobs = [(scheme.stem, True, ["cs", str(scheme)]) for scheme in sorted(SCHEMES.glob("*.json"))]
+    jobs = [
+        (scheme.stem, True, ["cs", str(scheme)])
+        for scheme in sorted(SCHEMES.glob("*.json"))
+    ]
     jobs += [(name, False, ["theme", name]) for name in builtin_names(wallust)]
 
     with tempfile.TemporaryDirectory() as root:
         renderer = Renderer(wallust, pathlib.Path(root))
-        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() or 4) as pool:
-            palettes = list(pool.map(lambda job: renderer.render(job[2]), jobs))
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=os.cpu_count() or 4
+        ) as pool:
+            palettes = list(
+                pool.map(lambda job: renderer.render(job[2]), jobs)
+            )
 
-    themes = [{"name": name, "custom": custom, "palette": palette}
-              for (name, custom, _), palette in zip(jobs, palettes) if palette is not None]
+    themes = [
+        {"name": name, "custom": custom, "palette": palette}
+        for (name, custom, _), palette in zip(jobs, palettes, strict=True)
+        if palette is not None
+    ]
     json.dump(themes, sys.stdout)
     return 0
 

@@ -1,0 +1,30 @@
+# The settings of the Python tools scripts/check.sh runs; the repo is no package.
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "B", "UP", "I", "SIM", "RUF", "PLW1510"]
+# ruff format wraps the code; a long string or comment stays as written.
+ignore = ["E501"]
+# keymap.py's dead keys, as the accents they type.
+allowed-confusables = ["´", "¸", "˛"]
+
+[tool.mypy]
+# Unannotated helpers are checked too, without asking for annotations.
+check_untyped_defs = true
+disallow_incomplete_defs = true
+strict_equality = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+# check.sh runs the tests with COVERAGE_PROCESS_START pointing here, which
+# measures the helpers they run as well as those they import.
+[tool.coverage.run]
+parallel = true
+source = ["${REPO-.}/.config", "${REPO-.}/etc", "${REPO-.}/scripts"]
+
+[tool.coverage.report]
+# The share of the helpers' lines the tests run; raise it as tests are added.
+fail_under = 85
+skip_empty = true

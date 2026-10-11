@@ -1,0 +1,46 @@
+import QtQuick
+import "../../.config/quickshell/services"
+
+// The binds as the Keybinds tab and the shortcuts overlay list them, from
+// what `hyprctl binds -j` reports.
+TestCase {
+    function bind(key: string, modmask: int, description: string): var {
+        return {
+            key: key,
+            keycode: 0,
+            modmask: modmask,
+            submap: "",
+            has_description: description !== "",
+            description: description
+        };
+    }
+
+    function test_rowsByDescriptionAndModifiers() {
+        // No compositor here, so no binds of its own to read, and Keymap's
+        // shortcut has nowhere to register.
+        ignoreWarning("HYPRLAND_INSTANCE_SIGNATURE is unset");
+        ignoreWarning("Process failed to start");
+        ignoreWarning("wl_display|hyprland_global_shortcuts_v1|GlobalShortcut will not work");
+        const keycode = bind("", 0, "Quick menu");
+        keycode.keycode = 66;
+        Keybinds.load([bind("1", 64, "Go to that workspace"), bind("2", 64, "Go to that workspace"), bind("Q", 65, "Close"), bind("Q", 65, "Close"), bind("3", 64, "Go to that workspace"), keycode, bind("X", 64, ""), bind("Y", 64, "")], []);
+        compare(Keybinds.rows.length, 5);
+        compare(Keybinds.rows[0].keys, ["1", "2", "3"]);
+        compare(Keybinds.rows[0].modifiers, ["SUPER"]);
+        compare(Keybinds.rows[1].keys, ["Q"], "a press and a release bind are one key");
+        compare(Keybinds.rows[1].modifiers, ["SUPER", "SHIFT"]);
+        compare(Keybinds.rows[2].keys, ["code:66"]);
+        compare(Keybinds.rows[3].keys, ["X"], "binds without a description stay apart");
+    }
+
+    function test_keysFromTheTextOutput() {
+        const keycode = bind("", 0, "Quick menu");
+        Keybinds.load([bind("A", 0, "First"), keycode], ["A", "Caps_Lock"]);
+        compare(Keybinds.rows[1].keys, ["Caps_Lock"]);
+    }
+
+    function test_digitRunsAreRanges() {
+        compare(Keybinds.keysLabel(["1", "2", "3", "4"]), "1–4");
+        verify(Keybinds.keysLabel(["1", "3"]) !== "1–3");
+    }
+}

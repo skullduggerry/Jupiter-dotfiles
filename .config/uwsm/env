@@ -1,3 +1,4 @@
+# shellcheck shell=sh disable=SC2086 # unquoted, as modules/env.lua reads it
 # The session's environment. uwsm, which starts Hyprland here (the greeter
 # prefers its session), sources this before the compositor and hands it to
 # systemd as well, so it also reaches what systemd starts rather than Hyprland:

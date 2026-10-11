@@ -13,3 +13,7 @@ trim_trailing_whitespace = true
 
 [*.md]
 trim_trailing_whitespace = false
+
+# shfmt reads this, as the root .editorconfig.
+[*.sh]
+switch_case_indent = true

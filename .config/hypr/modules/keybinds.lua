@@ -23,16 +23,16 @@ hl.bind(vars.mainMod .. " + PRINT", hl.dsp.exec_cmd(session.app("hyprshot -m win
 hl.bind("Print", hl.dsp.exec_cmd(session.app("hyprshot -m output")), { description = "Screenshot of a screen" })
 hl.bind(vars.mainMod .. " + SHIFT + PRINT", hl.dsp.exec_cmd(session.app("hyprshot -m region")), { description = "Screenshot of a region" })
 -- The shell changes these and shows the reading (.config/quickshell/osd/).
-hl.bind("XF86MonBrightnessUp",   hl.dsp.global("quickshell:brightnessUp"), { locked = true, repeating = true, description = "Brightness up" })
+hl.bind("XF86MonBrightnessUp", hl.dsp.global("quickshell:brightnessUp"), { locked = true, repeating = true, description = "Brightness up" })
 hl.bind("XF86MonBrightnessDown", hl.dsp.global("quickshell:brightnessDown"), { locked = true, repeating = true, description = "Brightness down" })
-hl.bind("XF86AudioRaiseVolume",  hl.dsp.global("quickshell:volumeUp"), { locked = true, repeating = true, description = "Volume up" })
-hl.bind("XF86AudioLowerVolume",  hl.dsp.global("quickshell:volumeDown"), { locked = true, repeating = true, description = "Volume down" })
-hl.bind("XF86AudioMute",         hl.dsp.global("quickshell:volumeMute"), { locked = true, description = "Mute" })
+hl.bind("XF86AudioRaiseVolume", hl.dsp.global("quickshell:volumeUp"), { locked = true, repeating = true, description = "Volume up" })
+hl.bind("XF86AudioLowerVolume", hl.dsp.global("quickshell:volumeDown"), { locked = true, repeating = true, description = "Volume down" })
+hl.bind("XF86AudioMute", hl.dsp.global("quickshell:volumeMute"), { locked = true, description = "Mute" })
 -- The player the bar shows (.config/quickshell/services/Media.qml).
-hl.bind("XF86AudioPlay",  hl.dsp.global("quickshell:mediaPlayPause"), { locked = true, description = "Play or pause" })
+hl.bind("XF86AudioPlay", hl.dsp.global("quickshell:mediaPlayPause"), { locked = true, description = "Play or pause" })
 hl.bind("XF86AudioPause", hl.dsp.global("quickshell:mediaPlayPause"), { locked = true, description = "Play or pause" })
-hl.bind("XF86AudioNext",  hl.dsp.global("quickshell:mediaNext"), { locked = true, description = "Next track" })
-hl.bind("XF86AudioPrev",  hl.dsp.global("quickshell:mediaPrevious"), { locked = true, description = "Previous track" })
+hl.bind("XF86AudioNext", hl.dsp.global("quickshell:mediaNext"), { locked = true, description = "Next track" })
+hl.bind("XF86AudioPrev", hl.dsp.global("quickshell:mediaPrevious"), { locked = true, description = "Previous track" })
 -- The next of input.kb_layout's layouts (.config/quickshell/services/KeyboardLayout.qml).
 hl.bind(vars.mainMod .. " + space", hl.dsp.global("quickshell:keyboardLayout"), { description = "Switch the keyboard layout" })
 -- The shell holds logind off the power button while unlocked
@@ -43,13 +43,21 @@ hl.bind(vars.mainMod .. " + Q", hl.dsp.exec_cmd(session.app(vars.terminal)), { d
 -- (modules/workspaces.lua). With CTRL the arrows go to the next monitor over
 -- instead, and with CTRL + SHIFT they take the window along, since SUPER+SHIFT+1
 -- to 9 only reach the focused monitor's own workspaces.
-hl.bind(vars.mainMod .. " + left",  function() workspaces.step(-1) end, { description = "Previous workspace" })
-hl.bind(vars.mainMod .. " + right", function() workspaces.step(1) end, { description = "Next workspace" })
-hl.bind(vars.mainMod .. " + up",    hl.dsp.focus({ direction = "up" }), { description = "Focus the window above" })
-hl.bind(vars.mainMod .. " + down",  hl.dsp.focus({ direction = "down" }), { description = "Focus the window below" })
+hl.bind(vars.mainMod .. " + left", function()
+	workspaces.step(-1)
+end, { description = "Previous workspace" })
+hl.bind(vars.mainMod .. " + right", function()
+	workspaces.step(1)
+end, { description = "Next workspace" })
+hl.bind(vars.mainMod .. " + up", hl.dsp.focus({ direction = "up" }), { description = "Focus the window above" })
+hl.bind(vars.mainMod .. " + down", hl.dsp.focus({ direction = "down" }), { description = "Focus the window below" })
 for _, direction in ipairs({ "left", "right", "up", "down" }) do
-  hl.bind(vars.mainMod .. " + CTRL + " .. direction, hl.dsp.focus({ monitor = direction }), { description = "Focus the monitor in that direction" })
-  hl.bind(vars.mainMod .. " + CTRL + SHIFT + " .. direction, hl.dsp.window.move({ monitor = direction }), { description = "Move the window to the monitor in that direction" })
+	hl.bind(vars.mainMod .. " + CTRL + " .. direction, hl.dsp.focus({ monitor = direction }), { description = "Focus the monitor in that direction" })
+	hl.bind(
+		vars.mainMod .. " + CTRL + SHIFT + " .. direction,
+		hl.dsp.window.move({ monitor = direction }),
+		{ description = "Move the window to the monitor in that direction" }
+	)
 end
 hl.bind(vars.mainMod .. " + SHIFT + C", hl.dsp.window.kill(), { description = "Force-quit the window" })
 hl.bind(vars.mainMod .. " + P", hl.dsp.window.pseudo(), { description = "Pseudo-tile the window" })
@@ -72,8 +80,12 @@ hl.bind(vars.mainMod .. " + slash", hl.dsp.global("quickshell:shortcutsToggle"),
 hl.bind("Control_L", cursor.tap, { release = true, non_consuming = true, ignore_mods = true, description = "Find the pointer (tap twice)" })
 -- Workspace 1 to 9 of the focused monitor, i.e. the one the pointer is on.
 for number = 1, 9 do
-  hl.bind(vars.mainMod .. " + " .. number, function() workspaces.focus(number) end, { description = "Go to that workspace" })
-  hl.bind(vars.mainMod .. " + SHIFT + " .. number, function() workspaces.moveWindow(number) end, { description = "Move the window to that workspace" })
+	hl.bind(vars.mainMod .. " + " .. number, function()
+		workspaces.focus(number)
+	end, { description = "Go to that workspace" })
+	hl.bind(vars.mainMod .. " + SHIFT + " .. number, function()
+		workspaces.moveWindow(number)
+	end, { description = "Move the window to that workspace" })
 end
 hl.config({
 	input = {
@@ -109,17 +121,20 @@ hl.gesture({
 	action = "workspace",
 })
 
-
 -- Three-finger swipe down opens the shell's dropdown for the third of the
 -- monitor under the pointer: workspaces, calendar or quick settings.
 hl.gesture({
 	fingers = 3,
 	direction = "down",
+	-- The stubs know a dispatcher or a function here, but Hyprland takes
+	-- callbacks for the gesture's phases too.
+	---@diagnostic disable-next-line: assign-type-mismatch
 	action = {
 		finish = function()
 			local pos = hl.get_cursor_pos()
-			hl.exec_cmd(string.format("qs ipc call dropdown openAt %d %d",
-				math.floor(pos.x), math.floor(pos.y)))
+			if pos then
+				hl.exec_cmd(string.format("qs ipc call dropdown openAt %d %d", math.floor(pos.x), math.floor(pos.y)))
+			end
 		end,
 	},
 })

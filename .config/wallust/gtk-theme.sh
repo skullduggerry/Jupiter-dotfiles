@@ -21,6 +21,9 @@ current=$(gsettings get org.gnome.desktop.interface gtk-theme 2>/dev/null) || ex
 case $current in
     "'Wallust'") next=Wallust-2 ;;
     "'Wallust-2'") next=Wallust ;;
-    *) [[ ${1:-} == --reload ]] && exit 0; next=Wallust ;;
+    *)
+        [[ ${1:-} == --reload ]] && exit 0
+        next=Wallust
+        ;;
 esac
 gsettings set org.gnome.desktop.interface gtk-theme "$next"

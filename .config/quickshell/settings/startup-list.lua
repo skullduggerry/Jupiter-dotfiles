@@ -8,14 +8,14 @@ package.path = arg[1] .. "/?.lua;" .. package.path
 
 local ok, list = pcall(require, "modules.startup")
 if not ok then
-	io.stderr:write(tostring(list), "\n")
-	os.exit(1)
+    io.stderr:write(tostring(list), "\n")
+    os.exit(1)
 end
 
 local function field(value)
-	return (tostring(value or ""):gsub("[\t\n]", " "))
+    return (tostring(value or ""):gsub("[\t\n]", " "))
 end
 
 for _, entry in ipairs(list) do
-	print(field(entry.name) .. "\t" .. field(entry.command) .. "\t" .. field(entry.about))
+    print(field(entry.name) .. "\t" .. field(entry.command) .. "\t" .. field(entry.about))
 end

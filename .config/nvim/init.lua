@@ -2,7 +2,7 @@
 -- renders. It is run again whenever a theme is applied, so an open nvim
 -- follows too.
 -- The background stays the terminal's, which is translucent.
-local colors = vim.fn.stdpath('config') .. '/lua/colors.lua'
+local colors = vim.fn.stdpath("config") .. "/lua/colors.lua"
 local function load_colors()
 	if vim.uv.fs_stat(colors) then
 		dofile(colors)
@@ -11,9 +11,15 @@ local function load_colors()
 	vim.api.nvim_set_hl(0, "Normal", vim.tbl_extend("force", normal, { bg = "NONE", ctermbg = "NONE" }))
 end
 load_colors()
-vim.uv.new_fs_event():start(vim.fs.dirname(colors), {}, vim.schedule_wrap(function(_, name)
-	if name == 'colors.lua' then load_colors() end
-end))
+vim.uv.new_fs_event():start(
+	vim.fs.dirname(colors),
+	{},
+	vim.schedule_wrap(function(_, name)
+		if name == "colors.lua" then
+			load_colors()
+		end
+	end)
+)
 
 vim.o.number = true
 vim.o.relativenumber = true
@@ -29,43 +35,42 @@ vim.o.winborder = "rounded"
 
 vim.g.mapleader = " "
 
-vim.keymap.set('n', '<leader>o', ':update<CR> :source<CR>') -- source current file
-vim.keymap.set('n', '<leader>w', ':write<CR>')              -- write current file
-vim.keymap.set('n', '<leader>q', ':q<CR>')                  -- quit
-vim.keymap.set('t', '<Esc>', "<C-\\><C-n>")                 -- fix esc in terminal
-vim.keymap.set('v', '<leader>y', '"+y')                     -- yank to system clipboard
-vim.keymap.set('v', '<leader>d', '"+d')                     -- cut to system clipboard
-vim.keymap.set('n', '<leader>lf', vim.lsp.buf.format)       -- format code
-vim.keymap.set('n', '<leader>f', ':lua MiniFiles.open() <CR>')
+vim.keymap.set("n", "<leader>o", ":update<CR> :source<CR>") -- source current file
+vim.keymap.set("n", "<leader>w", ":write<CR>") -- write current file
+vim.keymap.set("n", "<leader>q", ":q<CR>") -- quit
+vim.keymap.set("t", "<Esc>", "<C-\\><C-n>") -- fix esc in terminal
+vim.keymap.set("v", "<leader>y", '"+y') -- yank to system clipboard
+vim.keymap.set("v", "<leader>d", '"+d') -- cut to system clipboard
+vim.keymap.set("n", "<leader>lf", vim.lsp.buf.format) -- format code
+vim.keymap.set("n", "<leader>f", ":lua MiniFiles.open() <CR>")
 
 -- plugins
 
 vim.pack.add({
-	{ src = "https://github.com/nvim-mini/mini.nvim" },          -- autopairs (maybe replace with snipets),
-	{ src = "https://github.com/mason-org/mason.nvim" },         -- manage lsp's
-	{ src = "https://github.com/neovim/nvim-lspconfig" },        -- configurations for lsp's
+	{ src = "https://github.com/nvim-mini/mini.nvim" }, -- autopairs (maybe replace with snipets),
+	{ src = "https://github.com/mason-org/mason.nvim" }, -- manage lsp's
+	{ src = "https://github.com/neovim/nvim-lspconfig" }, -- configurations for lsp's
 	{ src = "https://github.com/mason-org/mason-lspconfig.nvim" }, -- automatically enable lsp's
-	{ src = "https://github.com/hrsh7th/nvim-cmp" },             -- code completion, TODO: replace with native
-	{ src = "https://github.com/hrsh7th/cmp-nvim-lsp" },         -- code completion source
-	{ src = "https://github.com/L3MON4D3/LuaSnip" },             -- snippet engine TODO: propper setup/ replace with native
+	{ src = "https://github.com/hrsh7th/nvim-cmp" }, -- code completion, TODO: replace with native
+	{ src = "https://github.com/hrsh7th/cmp-nvim-lsp" }, -- code completion source
+	{ src = "https://github.com/L3MON4D3/LuaSnip" }, -- snippet engine TODO: propper setup/ replace with native
 })
-
 
 -- plugin config
 
-require "mason".setup()           --disabled bc nix
-require "mason-lspconfig".setup() --disabled bc nix
-require 'mini.pairs'.setup()
-require 'mini.files'.setup()
-require 'mini.hipatterns'.setup()
-require 'mini.clue'.setup({
+require("mason").setup() --disabled bc nix
+require("mason-lspconfig").setup() --disabled bc nix
+require("mini.pairs").setup()
+require("mini.files").setup()
+require("mini.hipatterns").setup()
+require("mini.clue").setup({
 	triggers = {
-		{ mode = { 'n', 'x' }, keys = '<Leader>' },
-		{ mode = { 'n', 'x' }, keys = 'g' },
+		{ mode = { "n", "x" }, keys = "<Leader>" },
+		{ mode = { "n", "x" }, keys = "g" },
 	},
 })
-local ls = require 'luasnip'
-local cmp = require 'cmp'
+local ls = require("luasnip")
+local cmp = require("cmp")
 
 cmp.setup({
 	snippet = {
@@ -74,10 +79,10 @@ cmp.setup({
 		end,
 	},
 	mapping = cmp.mapping.preset.insert({
-		['<C-b>'] = cmp.mapping.scroll_docs(-4),
-		['<C-f>'] = cmp.mapping.scroll_docs(4),
-		['<C-e>'] = cmp.mapping.abort(),
-		['<CR>'] = cmp.mapping.confirm({ select = true }),
+		["<C-b>"] = cmp.mapping.scroll_docs(-4),
+		["<C-f>"] = cmp.mapping.scroll_docs(4),
+		["<C-e>"] = cmp.mapping.abort(),
+		["<CR>"] = cmp.mapping.confirm({ select = true }),
 		["<Tab>"] = cmp.mapping(function(fallback)
 			if cmp.visible() then
 				cmp.select_next_item()
@@ -99,7 +104,7 @@ cmp.setup({
 		end, { "i", "s" }),
 	}),
 	sources = cmp.config.sources({
-		{ name = 'nvim_lsp' },
-		{ name = 'luasnip' },
-	})
+		{ name = "nvim_lsp" },
+		{ name = "luasnip" },
+	}),
 })

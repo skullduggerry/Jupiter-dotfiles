@@ -6,5 +6,5 @@ repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 git -C "$repo" config core.hooksPath .githooks
 chmod +x "$repo"/.githooks/*
 echo "hooks installed: $(git -C "$repo" config core.hooksPath)"
-echo "  pre-commit  formats staged QML, then verifies"
+echo "  pre-commit  formats staged files, then checks"
 echo "  pre-push    full suite, no auto-fix"

@@ -64,6 +64,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ElementTree
+from collections.abc import Callable
 from datetime import date, datetime, time, timedelta, timezone
 from typing import NamedTuple
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -170,17 +171,29 @@ class Failed(Exception):
 def keyring_password(url: str, user: str) -> str:
     try:
         result = subprocess.run(
-            ["secret-tool", "lookup", "service", "nextcloud", "server", url, "username", user],
+            [
+                "secret-tool",
+                "lookup",
+                "service",
+                "nextcloud",
+                "server",
+                url,
+                "username",
+                user,
+            ],
             capture_output=True,
             text=True,
             timeout=TIMEOUT_SECONDS,
+            check=False,
         )
     except FileNotFoundError:
         raise Unconfigured(
             "NEXTCLOUD_APP_PASSWORD is not set and secret-tool is not installed"
         ) from None
     except subprocess.TimeoutExpired:
-        raise Failed("secret-tool timed out; is the keyring unlocked?") from None
+        raise Failed(
+            "secret-tool timed out; is the keyring unlocked?"
+        ) from None
 
     if result.returncode != 0 or not result.stdout:
         raise Unconfigured(
@@ -218,7 +231,11 @@ def is_secure(url: str) -> bool:
     parts = urllib.parse.urlsplit(url)
     if parts.scheme == "https":
         return True
-    return parts.scheme == "http" and parts.hostname in ("localhost", "127.0.0.1", "::1")
+    return parts.scheme == "http" and parts.hostname in (
+        "localhost",
+        "127.0.0.1",
+        "::1",
+    )
 
 
 def request(method: str, url: str, auth: str, body: str, depth: str) -> bytes:
@@ -234,7 +251,9 @@ def request(method: str, url: str, auth: str, body: str, depth: str) -> bytes:
         },
     )
     try:
-        with urllib.request.urlopen(http_request, timeout=TIMEOUT_SECONDS) as response:
+        with urllib.request.urlopen(
+            http_request, timeout=TIMEOUT_SECONDS
+        ) as response:
             return response.read()
     except urllib.error.HTTPError as error:
         hint = ""
@@ -242,13 +261,17 @@ def request(method: str, url: str, auth: str, body: str, depth: str) -> bytes:
             hint = " (wrong user or app password)"
         elif error.code == 404:
             hint = f" (no calendar home for this user at {url})"
-        raise Failed(f"{method} {url}: HTTP {error.code} {error.reason}{hint}") from None
+        raise Failed(
+            f"{method} {url}: HTTP {error.code} {error.reason}{hint}"
+        ) from None
     except urllib.error.URLError as error:
         raise Failed(f"{method} {url}: {error.reason}") from None
     # A timeout or a dropped connection while reading the answer, which urllib
     # passes on as it is rather than as a URLError.
     except (OSError, http.client.HTTPException) as error:
-        raise Failed(f"{method} {url}: {error or type(error).__name__}") from None
+        raise Failed(
+            f"{method} {url}: {error or type(error).__name__}"
+        ) from None
 
 
 def principal_id(document: ElementTree.Element) -> str:
@@ -257,7 +280,9 @@ def principal_id(document: ElementTree.Element) -> str:
     `<d:current-user-principal><d:href>/remote.php/dav/principals/users/a1b2/`
     means the account's id is `a1b2`, whatever name was used to log in.
     """
-    href = document.findtext(".//d:current-user-principal/d:href", default="", namespaces=NS)
+    href = document.findtext(
+        ".//d:current-user-principal/d:href", default="", namespaces=NS
+    )
     return href.strip().rstrip("/").rsplit("/", 1)[-1] if href.strip() else ""
 
 
@@ -298,7 +323,9 @@ def normalise_colour(value: str) -> str:
 def list_calendars(base: str, user: str, auth: str) -> list[Calendar]:
     """Every collection of `user` that holds events, tasks or both."""
     home = calendar_home(base, user, auth)
-    document = ElementTree.fromstring(request("PROPFIND", home, auth, PROPFIND_BODY, "1"))
+    document = ElementTree.fromstring(
+        request("PROPFIND", home, auth, PROPFIND_BODY, "1")
+    )
 
     calendars = []
     for response in document.findall("d:response", NS):
@@ -323,7 +350,9 @@ def list_calendars(base: str, user: str, auth: str) -> list[Calendar]:
             continue
 
         name = response.findtext(".//d:displayname", default="", namespaces=NS)
-        colour = response.findtext(".//a:calendar-color", default="", namespaces=NS)
+        colour = response.findtext(
+            ".//a:calendar-color", default="", namespaces=NS
+        )
         calendars.append(
             Calendar(
                 href,
@@ -343,18 +372,32 @@ def home_path(home: str) -> str:
 
 def query(base: str, calendar: Calendar, auth: str, body: str) -> list[str]:
     """The iCalendar text of every object a calendar-query REPORT matches."""
-    url = base + calendar.href if calendar.href.startswith("/") else calendar.href
+    url = (
+        base + calendar.href
+        if calendar.href.startswith("/")
+        else calendar.href
+    )
     try:
-        document = ElementTree.fromstring(request("REPORT", url, auth, body, "1"))
+        document = ElementTree.fromstring(
+            request("REPORT", url, auth, body, "1")
+        )
     except ElementTree.ParseError as error:
-        raise Failed(f"REPORT {url}: malformed CalDAV response: {error}") from None
-    return [data.text for data in document.findall(".//c:calendar-data", NS) if data.text]
+        raise Failed(
+            f"REPORT {url}: malformed CalDAV response: {error}"
+        ) from None
+    return [
+        data.text
+        for data in document.findall(".//c:calendar-data", NS)
+        if data.text
+    ]
 
 
 def fetch_events(
     base: str, calendar: Calendar, auth: str, start: datetime, end: datetime
 ) -> list[dict]:
-    body = EVENTS_BODY.format(start=as_caldav_utc(start), end=as_caldav_utc(end))
+    body = EVENTS_BODY.format(
+        start=as_caldav_utc(start), end=as_caldav_utc(end)
+    )
     return [
         event
         for ics in query(base, calendar, auth, body)
@@ -396,7 +439,7 @@ def split_property(line: str) -> tuple[str, dict[str, str], str]:
         if character == '"':
             in_quotes = not in_quotes
         elif character == ":" and not in_quotes:
-            head, content = line[:index], line[index + 1:]
+            head, content = line[:index], line[index + 1 :]
             break
     else:
         return "", {}, ""
@@ -438,9 +481,13 @@ def unescape_text(value: str) -> str:
     return "".join(out)
 
 
-def parse_datetime(value: str, parameters: dict[str, str]) -> tuple[datetime, bool]:
+def parse_datetime(
+    value: str, parameters: dict[str, str]
+) -> tuple[datetime, bool]:
     """Return (local datetime, is all-day) for a DTSTART/DTEND value."""
-    if parameters.get("VALUE") == "DATE" or (len(value) == 8 and "T" not in value):
+    if parameters.get("VALUE") == "DATE" or (
+        len(value) == 8 and "T" not in value
+    ):
         return datetime.combine(date.fromisoformat(value), time()), True
 
     naive = datetime.strptime(value.rstrip("Z"), "%Y%m%dT%H%M%S")
@@ -483,7 +530,9 @@ def parse_duration(value: str) -> timedelta:
     )
 
 
-def components(ics: str, kind: str) -> list[dict[str, tuple[str, dict[str, str]]]]:
+def components(
+    ics: str, kind: str
+) -> list[dict[str, tuple[str, dict[str, str]]]]:
     """The properties of every `kind` component (VEVENT, VTODO) in `ics`.
 
     What is nested inside one, a VALARM, is skipped: an alarm has a SUMMARY
@@ -515,7 +564,13 @@ def text(fields: dict, name: str, default: str = "") -> str:
     return unescape_text(fields[name][0]) if name in fields else default
 
 
-def built(build, ics: str, kind: str, calendar_name: str, colour: str) -> list[dict]:
+def built(
+    build: Callable[[dict, str, str], dict | None],
+    ics: str,
+    kind: str,
+    calendar_name: str,
+    colour: str,
+) -> list[dict]:
     """build() over every `kind` component, leaving out what it cannot read
     (a malformed date, say): one bad object costs only itself."""
     items = []
@@ -537,7 +592,9 @@ def parse_tasks(ics: str, calendar_name: str, colour: str = "") -> list[dict]:
     return built(build_task, ics, "VTODO", calendar_name, colour)
 
 
-def build_event(fields: dict, calendar_name: str, colour: str = "") -> dict | None:
+def build_event(
+    fields: dict, calendar_name: str, colour: str = ""
+) -> dict | None:
     if "DTSTART" not in fields:
         return None
     if text(fields, "STATUS") == "CANCELLED":
@@ -569,7 +626,9 @@ def build_event(fields: dict, calendar_name: str, colour: str = "") -> dict | No
     }
 
 
-def build_task(fields: dict, calendar_name: str, colour: str = "") -> dict | None:
+def build_task(
+    fields: dict, calendar_name: str, colour: str = ""
+) -> dict | None:
     # The server leaves out tasks with a completion time; a client that only
     # sets the status, and a cancelled task, are left out here.
     if text(fields, "STATUS") in ("COMPLETED", "CANCELLED"):
@@ -579,7 +638,9 @@ def build_task(fields: dict, calendar_name: str, colour: str = "") -> dict | Non
     if "RECURRENCE-ID" in fields:
         return None
 
-    due, all_day = parse_datetime(*fields["DUE"]) if "DUE" in fields else (None, False)
+    due, all_day = (
+        parse_datetime(*fields["DUE"]) if "DUE" in fields else (None, False)
+    )
     priority = text(fields, "PRIORITY")
     return {
         "summary": text(fields, "SUMMARY", "(no title)"),
@@ -597,7 +658,12 @@ def build_task(fields: dict, calendar_name: str, colour: str = "") -> dict | Non
 def task_order(task: dict) -> tuple:
     """Due ones first, the soonest (the overdue) at the top, then the rest;
     within each, by priority, unset last."""
-    return (task["due"] == "", task["due"], task["priority"] or 10, task["summary"].lower())
+    return (
+        task["due"] == "",
+        task["due"],
+        task["priority"] or 10,
+        task["summary"].lower(),
+    )
 
 
 # --------------------------------------------------------------------------
@@ -626,7 +692,12 @@ def collect(start: date, end: date) -> tuple[list[dict], list[dict], str]:
     # Events and tasks are separate REPORTs, a calendar holding both costing
     # two, and all of them share the pool.
     jobs = [
-        (fetch_events, (base, calendar, auth, window_start, window_end), events, calendar.name)
+        (
+            fetch_events,
+            (base, calendar, auth, window_start, window_end),
+            events,
+            calendar.name,
+        )
         for calendar in calendars
         if calendar.events
     ] + [
@@ -659,7 +730,11 @@ def collect(start: date, end: date) -> tuple[list[dict], list[dict], str]:
 
     events.sort(key=lambda event: (event["start"], event["summary"]))
     tasks.sort(key=task_order)
-    return events, tasks, f"could not read {', '.join(failed)}" if failed else ""
+    return (
+        events,
+        tasks,
+        f"could not read {', '.join(failed)}" if failed else "",
+    )
 
 
 def main() -> int:
@@ -681,7 +756,9 @@ def main() -> int:
 
     if arguments.end <= arguments.start:
         print(
-            json.dumps({"status": "error", "message": "--end must be after --start"}),
+            json.dumps(
+                {"status": "error", "message": "--end must be after --start"}
+            ),
             flush=True,
         )
         return 1
@@ -689,22 +766,37 @@ def main() -> int:
     try:
         events, tasks, warning = collect(arguments.start, arguments.end)
     except Unconfigured as error:
-        print(json.dumps({"status": "unconfigured", "message": str(error)}), flush=True)
+        print(
+            json.dumps({"status": "unconfigured", "message": str(error)}),
+            flush=True,
+        )
         return 2
     except Failed as error:
-        print(json.dumps({"status": "error", "message": str(error)}), flush=True)
+        print(
+            json.dumps({"status": "error", "message": str(error)}), flush=True
+        )
         return 1
     except ElementTree.ParseError as error:
         print(
             json.dumps(
-                {"status": "error", "message": f"malformed CalDAV response: {error}"}
+                {
+                    "status": "error",
+                    "message": f"malformed CalDAV response: {error}",
+                }
             ),
             flush=True,
         )
         return 1
 
     print(
-        json.dumps({"status": "ok", "events": events, "tasks": tasks, "message": warning}),
+        json.dumps(
+            {
+                "status": "ok",
+                "events": events,
+                "tasks": tasks,
+                "message": warning,
+            }
+        ),
         flush=True,
     )
     return 0

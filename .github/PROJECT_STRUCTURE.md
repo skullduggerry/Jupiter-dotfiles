@@ -14,10 +14,11 @@ Installed: Quickshell 0.3.2, Hyprland 0.56.2 (configured in Lua), Qt 6.12, Arch.
 | `.config/hypr/` | Hyprland: `hyprland.lua`, `modules/` (binds, monitors, startup, workspaces…), `styles/` (layer rules, blur, animations) |
 | `.config/wallust/` | theming, see THEMING.md |
 | `etc/greetd/` | the login screen, a second Quickshell config that logs in through `Quickshell.Services.Greetd` (`greeter-env.py` lists users and sessions); `scripts/install-greeter.sh` installs it as a copy, with `etc/pam.d/` |
-| `scripts/`, `tests/` | `check.sh` and its helpers; Python tests that `check.sh` runs |
+| `scripts/`, `tests/` | `check.sh` and its helpers; a `*-test.py` per helper script, and the QML tests (`tests/qml/`), which `check.sh` runs |
+| `pyproject.toml`, `.luarc.json`, `.editorconfig` | settings of the formatters and linters `check.sh` runs (no Python package) |
 
 Package dependencies belong in Jupiter-installer's `packages/core.txt` and
-`aur.txt`, not here.
+`aur.txt`, not here; the tools `check.sh` runs are in its `pacman.txt`.
 
 ## The shell
 
@@ -55,8 +56,9 @@ creates the directory. Check with `HOME=/nonexistent`.
 
 ## Conventions
 
-- Format with Qt 6's `qmlformat` (`scripts/check.sh --fix`; the pre-commit
-  hook formats staged files). `/usr/bin/qmlformat` and `qmllint` are the Qt 5
+- Format with Qt 6's `qmlformat`, and Python, shell and Lua with ruff, shfmt
+  and stylua (`scripts/check.sh --fix`; the pre-commit hook formats staged
+  files). `/usr/bin/qmlformat` and `qmllint` are the Qt 5
   versions and mangle Qt 6 syntax, so `check.sh` puts `/usr/lib/qt6/bin` first
   on PATH. Members stay in the order they were written. Don't use
   `--normalize`.
@@ -109,6 +111,8 @@ creates the directory. Check with `HOME=/nonexistent`.
 | Something that must run from login | a service with an `active` flag, bound from something that is always built (as `SettingsApp.qml` binds `WallpaperService.active`) |
 | A surface in the top right | publish its area with `PopupAreas.set()` so toasts move below it |
 | A new `-popup` that is not a dropdown | the `qs-not-dropdowns` layer rule in `.config/hypr/styles/layout.lua` |
+| A helper script (`*.py`, `*.sh`) | a `tests/<name>-test.py` that runs it against stand-in commands in a temporary home; `check.sh` fails on a helper no test runs |
+| QML logic: a formula, a parser, a state change | a `tests/qml/<Name>Test.qml`: a `TestCase` whose `test_*` functions use the singleton (`tests/qml-test.py` says how they run) |
 
 A widget that needs its monitor declares `required property ShellScreen screen`,
 which is passed down from `Bar.qml` through `BarContent`/`SmallBarContent`.
@@ -297,7 +301,9 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
   beside Hyprland's socket so a shell restarted after a crash locks again.
   hypridle's `inhibit_sleep = 3` holds suspend until the lock is up. A PAM
   question after the password (lock and login screen alike) is answered from
-  the field, and a failure shows what PAM said. The login screen's look
+  the field, and a failure shows what PAM said. A finger unlocks too, through
+  `pam/fingerprint.conf` beside the password, never in the password's stack
+  (each attempt would wait on the reader). The login screen's look
   only applies through `install-greeter.sh` (run through pkexec from the Lock
   Screen tab).
 - Overview: `ScreencopyView` per toplevel (hidden workspaces included).
@@ -419,12 +425,23 @@ Each of these has already caused a bug.
 ## Validating
 
 ```bash
-scripts/check.sh          # format check, whitespace, qmllint (0 warnings), qmldirs,
-                          # -popup names, glyphs, py/lua/sh syntax, both Hyprland
-                          # configs, tests/
-scripts/check.sh --fix    # format first
-scripts/install-hooks.sh  # once per clone: pre-commit formats, pre-push checks
+scripts/check.sh            # formatting, whitespace, qmllint (0 warnings), qmldirs,
+                            # -popup names, glyphs, ruff + mypy, luac +
+                            # lua-language-server, shellcheck, json/toml, both
+                            # Hyprland configs, tests/ under coverage
+scripts/check.sh --fix      # format and apply the safe lint fixes first
+scripts/install-hooks.sh    # once per clone: pre-commit formats, pre-push checks
+python3 tests/qml-test.py ColorsTest   # one QML test file; any *-test.py runs alone
 ```
+
+`check.sh` names the packages of any tool it is missing. Every helper script
+has to be run by a test: Python is measured with coverage (`fail_under` in
+`pyproject.toml` is the floor) and each bash script a test starts is noted.
+lua-language-server reads Hyprland's stubs (`.luarc.json`); where they are
+narrower than Hyprland, a `---@diagnostic` comment says so. The QML tests run
+in Quickshell, offscreen and with no session around them: a service that
+reaches for one fails there, and `ignoreWarning()` lets an expected warning
+through.
 
 qmllint runs on absolute paths against a corrected copy of Quickshell's type
 information (`scripts/quickshell-types.py`). It does not check writes inside

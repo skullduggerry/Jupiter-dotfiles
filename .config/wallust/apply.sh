@@ -25,10 +25,16 @@ state=${XDG_STATE_HOME:-$HOME/.local/state}/wallust/theme
 
 shell_only=0
 if [[ $# -eq 0 && -z ${WALLUST_THEME:-} && -f $state ]]; then
-    { read -r theme; read -r scope || true; } <"$state"
+    {
+        read -r theme
+        read -r scope || true
+    } <"$state"
     [[ $scope == shell-only ]] && shell_only=1
 else
-    [[ ${1:-} == --shell-only ]] && { shell_only=1; shift; }
+    [[ ${1:-} == --shell-only ]] && {
+        shell_only=1
+        shift
+    }
     if [[ ${1:-} == --from ]]; then
         image=$2
         wallust -q -s -T run --save-scheme "$image"
@@ -71,7 +77,7 @@ else
     wallust "${args[@]}" theme "$theme"
 fi
 
-if ((!shell_only)); then
+if ((! shell_only)); then
     # Merged rather than rendered over: KDE apps keep settings of their own in
     # kdeglobals.
     python3 "$dir/kdeglobals.py" \

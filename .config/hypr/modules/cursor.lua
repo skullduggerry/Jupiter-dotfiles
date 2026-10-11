@@ -18,9 +18,11 @@ local pressed = nil -- the last key pressed: its keycode, time and the pointer t
 local released = nil -- the keycode of the last key released
 local tapped = nil -- the press of the last tap
 local shown = false
+---@type HL.Vec2?
 local last = nil -- where the pointer was at the last reading
 local still = 0 -- ms the pointer has been where it is
 local moved = false
+---@type HL.Timer?
 local ticker = nil
 
 local function send(message)
@@ -28,7 +30,7 @@ local function send(message)
 end
 
 function M.hide()
-	if shown then
+	if shown and ticker then
 		shown = false
 		ticker:set_enabled(false)
 		send("hide")
@@ -37,7 +39,7 @@ end
 
 local function read()
 	local pointer = hl.get_cursor_pos()
-	if pointer.x ~= last.x or pointer.y ~= last.y then
+	if pointer and last and (pointer.x ~= last.x or pointer.y ~= last.y) then
 		last, still, moved = pointer, 0, true
 		send(string.format("move %.1f %.1f", pointer.x, pointer.y))
 	else
@@ -49,8 +51,12 @@ local function read()
 end
 
 local function show()
-	last, still, moved, shown = hl.get_cursor_pos(), 0, false, true
-	send(string.format("show %.1f %.1f", last.x, last.y))
+	local pointer = hl.get_cursor_pos()
+	if pointer == nil then
+		return
+	end
+	last, still, moved, shown = pointer, 0, false, true
+	send(string.format("show %.1f %.1f", pointer.x, pointer.y))
 	-- Made on first use: timers belong to the running config, and a reload
 	-- drops them along with this module's state.
 	ticker = ticker or hl.timer(read, { timeout = tick, type = "repeat" })
@@ -64,7 +70,7 @@ hl.on("input.keyboard.key", function(keycode, time, state)
 			tapped = nil
 		end
 		local pointer = hl.get_cursor_pos()
-		pressed = { keycode = keycode, time = time, x = pointer.x, y = pointer.y }
+		pressed = pointer and { keycode = keycode, time = time, x = pointer.x, y = pointer.y }
 	elseif state == 0 then
 		released = keycode
 	end
@@ -79,8 +85,7 @@ function M.tap()
 
 	local previous = tapped
 	tapped = press
-	if previous == nil or press.time - previous.time > doubleTap
-		or math.abs(press.x - previous.x) > slop or math.abs(press.y - previous.y) > slop then
+	if previous == nil or press.time - previous.time > doubleTap or math.abs(press.x - previous.x) > slop or math.abs(press.y - previous.y) > slop then
 		return
 	end
 

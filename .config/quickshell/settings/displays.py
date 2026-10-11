@@ -21,12 +21,21 @@ import subprocess
 import sys
 import tempfile
 
-FIELDS = {"output": str, "mode": str, "position": str, "scale": (int, float),
-          "transform": int, "vrr": int, "disabled": bool}
+FIELDS: dict[str, type | tuple[type, ...]] = {
+    "output": str,
+    "mode": str,
+    "position": str,
+    "scale": (int, float),
+    "transform": int,
+    "vrr": int,
+    "disabled": bool,
+}
 
 
 def state_dir():
-    state = os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state")
+    state = os.environ.get("XDG_STATE_HOME") or os.path.expanduser(
+        "~/.local/state"
+    )
     return os.path.join(state, "quickshell")
 
 
@@ -34,14 +43,20 @@ def checked(rules):
     if not isinstance(rules, list):
         raise SystemExit("displays: rules must be a list")
     for rule in rules:
-        if not isinstance(rule, dict) or not isinstance(rule.get("output"), str) or not rule["output"]:
+        if (
+            not isinstance(rule, dict)
+            or not isinstance(rule.get("output"), str)
+            or not rule["output"]
+        ):
             raise SystemExit(f"displays: a rule needs an output: {rule!r}")
         for key, value in rule.items():
             kind = FIELDS.get(key)
             if kind is None:
                 raise SystemExit(f"displays: unknown field {key!r}")
             # bool is an int in Python; only disabled takes one.
-            if not isinstance(value, kind) or (isinstance(value, bool) and kind is not bool):
+            if not isinstance(value, kind) or (
+                isinstance(value, bool) and kind is not bool
+            ):
                 raise SystemExit(f"displays: {key} cannot be {value!r}")
     return rules
 
@@ -50,18 +65,32 @@ def lua_value(value):
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, (int, float)):
-        return str(int(value)) if float(value).is_integer() else repr(float(value))
-    escaped = value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+        return (
+            str(int(value))
+            if float(value).is_integer()
+            else repr(float(value))
+        )
+    escaped = (
+        value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+    )
     return '"' + escaped + '"'
 
 
 def lua_table(rule):
-    return "{ " + ", ".join(f"{key} = {lua_value(rule[key])}" for key in FIELDS if key in rule) + " }"
+    return (
+        "{ "
+        + ", ".join(
+            f"{key} = {lua_value(rule[key])}" for key in FIELDS if key in rule
+        )
+        + " }"
+    )
 
 
 def apply(rules):
     code = "\n".join(f"hl.monitor({lua_table(rule)})" for rule in rules)
-    result = subprocess.run(["hyprctl", "eval", code], capture_output=True, text=True)
+    result = subprocess.run(
+        ["hyprctl", "eval", code], capture_output=True, text=True, check=False
+    )
     out = (result.stdout + result.stderr).strip()
     if result.returncode != 0 or out != "ok":
         raise SystemExit(f"displays: {out or 'hyprctl failed'}")
@@ -69,7 +98,9 @@ def apply(rules):
 
 def kept():
     try:
-        with open(os.path.join(state_dir(), "monitors.json"), encoding="utf-8") as file:
+        with open(
+            os.path.join(state_dir(), "monitors.json"), encoding="utf-8"
+        ) as file:
             return checked(json.load(file))
     except (FileNotFoundError, ValueError, SystemExit):
         return []
@@ -87,10 +118,12 @@ def write(name, text):
 
 def store(rules):
     write("monitors.json", json.dumps(rules, indent=2) + "\n")
-    lines = ["-- Written by the shell's Settings app (Displays); edits here are lost on",
-             "-- its next save. .config/hypr/modules/monitors.lua applies these after",
-             "-- its own rules, so they win.",
-             "return {"]
+    lines = [
+        "-- Written by the shell's Settings app (Displays); edits here are lost on",
+        "-- its next save. .config/hypr/modules/monitors.lua applies these after",
+        "-- its own rules, so they win.",
+        "return {",
+    ]
     lines += [f"\t{lua_table(rule)}," for rule in rules]
     lines.append("}")
     write("monitors.lua", "\n".join(lines) + "\n")
@@ -112,7 +145,9 @@ def main(argv):
         try:
             rules = checked(json.loads(argv[2]))
         except ValueError as error:
-            raise SystemExit(f"displays: rules are not JSON: {error}")
+            raise SystemExit(
+                f"displays: rules are not JSON: {error}"
+            ) from None
         (apply if argv[1] == "apply" else save)(rules)
     elif len(argv) == 3 and argv[1] == "forget":
         forget(argv[2])

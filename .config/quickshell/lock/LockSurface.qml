@@ -126,7 +126,7 @@ WlSessionLockSurface {
                 Text {
                     anchors.fill: parent
                     visible: passwordInput.text === ""
-                    text: LockService.authenticating ? "Checking…" : LockService.prompt !== "" ? LockService.prompt : "Password"
+                    text: LockService.authenticating ? "Checking…" : LockService.prompt !== "" ? LockService.prompt : LockService.fingerprint ? "Password or fingerprint" : "Password"
                     textFormat: Text.PlainText
                     color: Colors.lock.muted
                     font.family: Style.text.font

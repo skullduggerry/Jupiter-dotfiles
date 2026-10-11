@@ -61,7 +61,11 @@ def is_secure(url: str) -> bool:
     parts = urllib.parse.urlsplit(url)
     if parts.scheme == "https":
         return True
-    return parts.scheme == "http" and parts.hostname in ("localhost", "127.0.0.1", "::1")
+    return parts.scheme == "http" and parts.hostname in (
+        "localhost",
+        "127.0.0.1",
+        "::1",
+    )
 
 
 def post(url: str, fields: dict | None = None) -> tuple[int, bytes]:
@@ -73,7 +77,9 @@ def post(url: str, fields: dict | None = None) -> tuple[int, bytes]:
         headers={"User-Agent": DEVICE_NAME},
     )
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+        with urllib.request.urlopen(
+            request, timeout=TIMEOUT_SECONDS
+        ) as response:
             return response.status, response.read()
     except urllib.error.HTTPError as error:
         return error.code, error.read()
@@ -87,16 +93,30 @@ def store(server: str, login_name: str, app_password: str) -> None:
     """Hand the secret to the keyring over stdin, never over argv."""
     try:
         result = subprocess.run(
-            ["secret-tool", "store", "--label=Nextcloud",
-             "service", "nextcloud", "server", server, "username", login_name],
+            [
+                "secret-tool",
+                "store",
+                "--label=Nextcloud",
+                "service",
+                "nextcloud",
+                "server",
+                server,
+                "username",
+                login_name,
+            ],
             input=app_password,
             text=True,
             capture_output=True,
+            check=False,
         )
     except FileNotFoundError:
-        raise Failed("could not save to the keyring: secret-tool is not installed") from None
+        raise Failed(
+            "could not save to the keyring: secret-tool is not installed"
+        ) from None
     if result.returncode != 0:
-        detail = result.stderr.strip() or f"secret-tool exited {result.returncode}"
+        detail = (
+            result.stderr.strip() or f"secret-tool exited {result.returncode}"
+        )
         raise Failed(f"could not save to the keyring: {detail}")
 
 
@@ -120,8 +140,15 @@ def sign_in(base: str) -> str:
     # open any scheme it has a handler for), and the poll's answer carries the
     # app password, which a proxy that forgot it is behind https would send
     # back in the clear.
-    if not (isinstance(login, str) and isinstance(poll_url, str) and is_secure(login) and is_secure(poll_url)):
-        raise Failed("the server answered with an address that is not https://")
+    if not (
+        isinstance(login, str)
+        and isinstance(poll_url, str)
+        and is_secure(login)
+        and is_secure(poll_url)
+    ):
+        raise Failed(
+            "the server answered with an address that is not https://"
+        )
     emit({"status": "open", "url": login})
 
     deadline = time.monotonic() + GIVE_UP_SECONDS

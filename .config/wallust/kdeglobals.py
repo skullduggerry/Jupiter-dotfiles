@@ -8,6 +8,7 @@ dialog's, for one), and rendering over the whole file threw them away at every
 login. Only the keys the template sets are replaced. Comments are dropped, as
 KConfig drops them whenever an app writes the file.
 """
+
 import os
 import re
 import stat
@@ -21,7 +22,7 @@ ENTRY = re.compile(r"^\s*([^=\[]+?)\s*(\[[^\]]*\])*\s*=(.*)$")
 def read_groups(path):
     """[(group, [lines])] in file order, comments left out; lines before the
     first header go under None."""
-    groups = [(None, [])]
+    groups: list[tuple[str | None, list[str]]] = [(None, [])]
     try:
         with open(path) as file:
             lines = file.read().splitlines()
@@ -48,7 +49,11 @@ def entries(lines):
 
 
 def merge(rendered_path, target_path):
-    rendered = [(name, entries(lines)) for name, lines in read_groups(rendered_path) if name]
+    rendered = [
+        (name, entries(lines))
+        for name, lines in read_groups(rendered_path)
+        if name
+    ]
     target = read_groups(target_path)
 
     for name, values in rendered:
@@ -68,7 +73,7 @@ def merge(rendered_path, target_path):
                     end -= 1
                 lines.insert(end, f"{key}={value}")
 
-    out = []
+    out: list[str] = []
     for name, lines in target:
         if name is not None:
             if out and out[-1].strip() != "":

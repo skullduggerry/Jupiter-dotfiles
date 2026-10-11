@@ -24,6 +24,14 @@ Singleton {
     // What PAM said during this attempt (pam_faillock's lockout, say), which
     // a failure shows rather than a guess.
     property list<string> said: []
+    // A finger unlocks too: pam/fingerprint.conf runs pam_fprintd on its own,
+    // beside the password, because in the password's stack every attempt
+    // would wait on the reader first. An attempt that never asked for a
+    // finger found no reader or no enrolled print (fprintd-enroll) and is not
+    // repeated until the next lock; one that timed out is; too many failed
+    // matches leave the password.
+    readonly property bool fingerprint: fingerprintPam.active && root.fingerprintAsked
+    property bool fingerprintAsked: false
 
     function lock() {
         if (root.locked)
@@ -58,13 +66,27 @@ Singleton {
         if (root.password !== "")
             root.errorText = "";
     }
-    onLockedChanged: lockFile.setText(root.locked ? "locked\n" : "")
+    function listenForFinger() {
+        root.fingerprintAsked = false;
+        if (root.locked && !fingerprintPam.active)
+            fingerprintPam.start();
+        else if (!root.locked && fingerprintPam.active)
+            fingerprintPam.abort();
+    }
+
+    onLockedChanged: {
+        lockFile.setText(root.locked ? "locked\n" : "");
+        root.listenForFinger();
+    }
     // A shell that crashed while locked comes back unlocked (Quickshell's
     // crash handler starts it again), and Hyprland keeps the screen covered
     // until a lock takes over (misc.allow_session_lock_restore): lock again.
+    // One reloaded while locked listens for a finger again.
     Component.onCompleted: {
         if (!root.locked && lockFile.text().trim() === "locked")
             root.locked = true;
+        else
+            root.listenForFinger();
     }
 
     PersistentProperties {
@@ -126,5 +148,44 @@ Singleton {
             root.answered = false;
             root.errorText = "PAM: " + PamError.toString(error);
         }
+    }
+
+    PamContext {
+        id: fingerprintPam
+
+        config: "fingerprint.conf"
+        configDirectory: Quickshell.shellPath("pam")
+        onPamMessage: {
+            // pam_fprintd only tells (place a finger, no match); a question
+            // would come from a stack that is not this one.
+            if (fingerprintPam.responseRequired)
+                fingerprintPam.abort();
+            else
+                root.fingerprintAsked = true;
+        }
+        onCompleted: result => {
+            if (!root.locked)
+                return;
+            if (result === PamResult.Success) {
+                if (pam.active)
+                    pam.abort();
+                root.password = "";
+                root.errorText = "";
+                root.locked = false;
+            } else if (result === PamResult.MaxTries) {
+                root.errorText = "Fingerprint not recognised: type the password";
+            } else if (root.fingerprintAsked) {
+                fingerprintRetry.restart();
+            }
+        }
+    }
+
+    // A moment between attempts, so a reader that fails at once (just after
+    // a resume, say) is not asked again in a loop.
+    Timer {
+        id: fingerprintRetry
+
+        interval: 1000
+        onTriggered: root.listenForFinger()
     }
 }

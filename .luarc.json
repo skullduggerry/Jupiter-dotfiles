@@ -1,0 +1,6 @@
+{
+  "runtime.version": "Lua 5.5",
+  "workspace.library": ["/usr/share/hypr/stubs", "/usr/share/nvim/runtime/lua"],
+  "workspace.checkThirdParty": false,
+  "workspace.ignoreDir": [".claude", ".config/wallust/templates"]
+}

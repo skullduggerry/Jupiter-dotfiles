@@ -75,7 +75,7 @@ echo "wallpaper   ${wallpaper:-none}"
 
 install -d -m 0755 "$dest" "$dest/quickshell" "$dest/quickshell/style"
 
-install -m 0644 "$repo/etc/greetd/config.toml"  "$dest/config.toml"
+install -m 0644 "$repo/etc/greetd/config.toml" "$dest/config.toml"
 install -m 0644 "$repo/etc/greetd/hyprland.lua" "$dest/hyprland.lua"
 install -m 0644 "$repo/etc/greetd/monitors.lua" "$dest/monitors.lua"
 install -m 0644 "$repo/etc/greetd/vconsole.lua" "$dest/vconsole.lua"
@@ -89,7 +89,7 @@ if lua=$(owned cat -- "$kept" 2>/dev/null); then
         printf 'for _, rule in ipairs((function()\n'
         printf '%s\n' "$lua"
         printf 'end)()) do\n\thl.monitor(rule)\nend\n'
-    } >> "$dest/monitors.lua"
+    } >>"$dest/monitors.lua"
     echo "monitors    + $kept"
 fi
 
@@ -101,7 +101,7 @@ if lua=$(owned cat -- "$kept" 2>/dev/null); then
         printf 'hl.config({ input = (function()\n'
         printf '%s\n' "$lua"
         printf 'end)() })\n'
-    } >> "$dest/hyprland.lua"
+    } >>"$dest/hyprland.lua"
     echo "keyboard    + $kept"
 fi
 
@@ -116,7 +116,7 @@ install -m 0644 "$repo"/.config/quickshell/style/*.qml "$dest/quickshell/style/"
 install -m 0644 "$repo/.config/quickshell/style/qmldir" "$dest/quickshell/style/qmldir"
 
 if [[ -n $wallpaper ]]; then
-    owned cat -- "$wallpaper" > "$dest/quickshell/wallpaper.jpg"
+    owned cat -- "$wallpaper" >"$dest/quickshell/wallpaper.jpg"
     chmod 0644 "$dest/quickshell/wallpaper.jpg"
 else
     rm -f "$dest/quickshell/wallpaper.jpg"
