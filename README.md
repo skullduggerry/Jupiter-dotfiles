@@ -2,7 +2,7 @@
 
 Dotfiles by @skullduggery and @lwctr, usually set up with [Jupiter-installer](https://codeberg.org/skullduggery/Jupiter-installer).
 
-To use your own configuration it is recommended to create a fork and clone that and symlink it. 
+To use your own configuration it is recommended to create a fork of the project,clone it onto your machine and symlink to the relevant folders. 
 Any changes in the dotfiles can then simply be pushed and reused upon reinstall, this is made easier by adding the link to your fork to `jupiter/config.py` in the installer.
 
 ## Installing
