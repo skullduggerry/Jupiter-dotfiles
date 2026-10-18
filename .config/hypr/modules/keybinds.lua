@@ -109,7 +109,6 @@ if ok and type(kept) == "table" then
 else
 	hl.config({ input = require("modules.vconsole") })
 end
-
 -- Caps Lock opens the quick menu unless the Keyboard page kept it off
 -- (.config/quickshell/services/QuickMenu.qml).
 local menuKept, menu = pcall(dofile, state .. "/quickshell/quickmenu.lua")
@@ -138,3 +137,11 @@ hl.gesture({
 		end,
 	},
 })
+
+hl.bind(vars.mainMod .. " + T", function()
+	local mon = hl.get_active_monitor()
+	hl.device({name = vars.tablet, output = mon.name })
+	end,
+	{ description = "Focus display for tablet" }
+)
+
