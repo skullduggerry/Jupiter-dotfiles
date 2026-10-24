@@ -101,6 +101,12 @@ FocusScope {
             ]
         },
         {
+            name: "tablet",
+            title: "Tablet",
+            icon: Icons.penTool,
+            keywords: "drawing tablet wacom pen stylus pressure sensitivity area screen window proportions left handed expresskeys pad buttons keys"
+        },
+        {
             name: "about",
             title: "About",
             icon: Icons.info,
@@ -370,6 +376,8 @@ FocusScope {
                     return keyboardPage;
                 case "keybinds":
                     return keybindsPage;
+                case "tablet":
+                    return tabletPage;
                 case "startup":
                     return startupPage;
                 case "about":
@@ -443,6 +451,12 @@ FocusScope {
         id: keybindsPage
 
         KeybindsPage {}
+    }
+
+    Component {
+        id: tabletPage
+
+        TabletPage {}
     }
 
     Component {

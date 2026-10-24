@@ -1,0 +1,16 @@
+# Copies of the desktop entries uwsm refuses to start, without what it
+# refuses, in /usr/local/share/applications (Nextcloud's, for its
+# CloudProviders group): scripts/uwsm-desktop-entries.py says why. Installed
+# by scripts/install-system.sh.
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Type = Path
+Target = usr/share/applications/*.desktop
+
+[Action]
+Description = Writing copies of the desktop entries uwsm refuses...
+When = PostTransaction
+Exec = /usr/local/lib/jupiter/uwsm-desktop-entries.py
+NeedsTargets

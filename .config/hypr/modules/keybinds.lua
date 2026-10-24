@@ -1,6 +1,7 @@
 local cursor = require("modules.cursor")
 local quickmenu = require("modules.quickmenu")
 local session = require("modules.session")
+local tablet = require("modules.tablet")
 local vars = require("modules.vars")
 local workspaces = require("modules.workspaces")
 -- Every bind carries a description: hyprctl binds reports Lua binds only as a
@@ -138,10 +139,7 @@ hl.gesture({
 	},
 })
 
-hl.bind(vars.mainMod .. " + T", function()
-	local mon = hl.get_active_monitor()
-	hl.device({name = vars.tablet, output = mon.name })
-	end,
-	{ description = "Focus display for tablet" }
-)
-
+-- The drawing tablet (modules/tablet.lua) on the focused screen or window
+-- alone, until the same keys let it go again.
+hl.bind(vars.mainMod .. " + T", tablet.holdScreen, { description = "Hold the tablet to this screen" })
+hl.bind(vars.mainMod .. " + SHIFT + T", tablet.holdWindow, { description = "Hold the tablet to this window" })

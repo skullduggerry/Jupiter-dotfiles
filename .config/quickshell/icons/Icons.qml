@@ -60,6 +60,7 @@ Singleton {
     readonly property string palette: "\u{E1DD}"
     readonly property string pause: "\u{E12E}"
     readonly property string pencil: "\u{E1F9}"
+    readonly property string penTool: "\u{E131}"
     readonly property string plane: "\u{E1DE}"
     readonly property string play: "\u{E13C}"
     readonly property string power: "\u{E140}"

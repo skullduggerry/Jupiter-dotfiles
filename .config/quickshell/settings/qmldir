@@ -24,6 +24,7 @@ SettingsContent 1.0 SettingsContent.qml
 SoundPage 1.0 SoundPage.qml
 StartupPage 1.0 StartupPage.qml
 StyleOptions 1.0 StyleOptions.qml
+TabletPage 1.0 TabletPage.qml
 ThemeCard 1.0 ThemeCard.qml
 ThemeGrid 1.0 ThemeGrid.qml
 WallpaperGrid 1.0 WallpaperGrid.qml

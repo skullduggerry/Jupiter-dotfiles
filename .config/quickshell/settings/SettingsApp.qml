@@ -14,6 +14,13 @@ Scope {
         value: true
     }
 
+    // The tablet's pad keys work whether or not the window is open.
+    Binding {
+        target: Tablet
+        property: "active"
+        value: true
+    }
+
     // Kitty, the Qt apps and the GTK apps follow the glass while themes apply
     // to apps.
     Binding {
@@ -39,7 +46,7 @@ Scope {
 
         // By name: appearance (and its tabs wallpaper, themes and lockscreen),
         // displays, sound, network (and bluetooth), notifications, power,
-        // keyboard (and keybinds), about (and startup).
+        // keyboard (and keybinds), tablet, about (and startup).
         function openPage(page: string): void {
             SettingsState.show(page);
         }
@@ -70,6 +77,11 @@ Scope {
             implicitHeight: Style.settings.windowHeight
             minimumSize: Qt.size(Style.settings.minimumWidth, Style.settings.minimumHeight)
             color: Colors.base.surface
+            // Quickshell picks the surface's alpha channel once, from the
+            // colour the window is created with: opened over Solid, it would
+            // stay opaque, and glass (Blur, or a theme over it) would show only
+            // once the window was opened again.
+            surfaceFormat.opaque: false
             visible: true
             // Closed by the compositor (SUPER+C), not by us.
             onClosed: SettingsState.open = false

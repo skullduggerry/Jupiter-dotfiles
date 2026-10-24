@@ -14,6 +14,7 @@ Installed: Quickshell 0.3.2, Hyprland 0.56.2 (configured in Lua), Qt 6.12, Arch.
 | `.config/hypr/` | Hyprland: `hyprland.lua`, `modules/` (binds, monitors, startup, workspaces…), `styles/` (layer rules, blur, animations) |
 | `.config/wallust/` | theming, see THEMING.md |
 | `etc/greetd/` | the login screen, a second Quickshell config that logs in through `Quickshell.Services.Greetd` (`greeter-env.py` lists users and sessions); `scripts/install-greeter.sh` installs it as a copy, with `etc/pam.d/` |
+| `etc/udev/`, `etc/pacman.d/` | system files `scripts/install-system.sh` installs as root (Jupiter-installer's phase 4): the tablet pad's udev rule, and the pacman hook that runs `scripts/uwsm-desktop-entries.py` |
 | `scripts/`, `tests/` | `check.sh` and its helpers; a `*-test.py` per helper script, and the QML tests (`tests/qml/`), which `check.sh` runs |
 | `pyproject.toml`, `.luarc.json`, `.editorconfig` | settings of the formatters and linters `check.sh` runs (no Python package) |
 
@@ -89,6 +90,11 @@ creates the directory. Check with `HOME=/nonexistent`.
 - Apps start through `Session.app()`/`Session.entry()` and logging out is
   `Session.logout()`, as Hyprland's binds use `modules/session.lua`: under
   uwsm each app gets a scope of its own (`uwsm-app`), and logout is `uwsm stop`.
+  uwsm refuses an entry pyxdg finds anything wrong with, and pyxdg does not
+  know the spec's `Implements=` or reverse-DNS groups: Nextcloud's
+  `[org.freedesktop.CloudProviders]` stopped it starting at all. The pacman
+  hook keeps a copy without them in `/usr/local/share/applications`, which
+  comes first in `XDG_DATA_DIRS`; never patch `/usr/share`.
 - Per-user state lives in `Quickshell.statePath(…)` or
   `$XDG_STATE_HOME/quickshell/`, never in the repo, and so do per-machine
   choices (keyboard layouts, monitor rules, the main bar's screen).
@@ -225,8 +231,11 @@ Night Light at login.
   the GTK stylesheets.
 
 **Settings app.** A `FloatingWindow` built by a `LazyLoader` only while it is
-open. `SettingsState` holds whether it is open and on which page, and any page
-or tab name opens its place (`openPage keybinds`).
+open, with `surfaceFormat.opaque: false`: Quickshell picks a window's alpha
+channel from its colour when it is created, so one opened over Solid stayed
+opaque when Blur (or a theme over it) came on. `SettingsState` holds whether
+it is open and on which page, and any page or tab name opens its place
+(`openPage keybinds`).
 - Displays: `DisplayChange` applies rules through `displays.py` and
   `hyprctl eval` and reverts them unless Keep is pressed within 15 s. Kept
   rules (`desc:<description>`) go to `monitors.json`/`monitors.lua`, which
@@ -260,6 +269,24 @@ or tab name opens its place (`openPage keybinds`).
 `configreloaded`, ignoring `hl-virtual-keyboard*` devices. Switch with
 `hyprctl switchxkblayout all <i>` and read back afterwards (Hyprland sends no
 event when switching back to the previous layout).
+
+**Tablet** (`Tablet`, `modules/tablet.lua`, Settings → Tablet):
+- Hyprland applies it through `input.tablet`/`input.tablettool`, never
+  `hl.device`, so no device name is kept. The page's choices reach Lua as
+  `tablet.lua` at start and live as `require("modules.tablet").use({…})`.
+  SUPER+T and SUPER+SHIFT+T hold it to the focused screen or window for the
+  session; a held window is followed by a 200 ms timer (no move or resize
+  event reaches Lua) and let go when it closes.
+- Keep proportions sets `active_area_*` in mm, from udev's
+  `ID_INPUT_WIDTH_MM`/`HEIGHT_MM` (`tablet.py`). Hyprland keeps the last active
+  area when it is set back to 0x0, so the whole tablet is always given.
+- `hl.timer` made while the config loads crashes `Hyprland --verify-config`
+  (and would at startup): make timers on first use, as `cursor.lua` does.
+- Hyprland gives the pad's buttons only to the app under the pen. While a
+  button is bound, `tablet.py pad` grabs the pad's event node (readable
+  through `etc/udev/rules.d/70-tablet-pad.rules`) and a press sends
+  `hl.dsp.send_key_state` down and up at once: Hyprland releases the
+  modifiers right after the key, so a held key would repeat bare.
 
 **Notifications** (`NotificationService`, which owns
 `org.freedesktop.Notifications`):
@@ -480,5 +507,5 @@ the three-finger swipe is an `hl.gesture` that calls `dropdown openAt`.
 
 State files (`$XDG_STATE_HOME/quickshell/`): `appearance.json`,
 `monitors.{json,lua}`, `keyboard.lua`, `quickmenu.lua`, `blur.lua`, `dropdowns.lua`,
-`hypridle.conf`, `hyprpaper.conf`, `tint.conf`, `lockscreen.json`, and the
+`tablet.lua`, `hypridle.conf`, `hyprpaper.conf`, `tint.conf`, `lockscreen.json`, and the
 `statePath()` JSON files of individual services.

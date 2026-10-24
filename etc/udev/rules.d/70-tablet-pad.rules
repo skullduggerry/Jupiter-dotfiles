@@ -1,0 +1,6 @@
+# A drawing tablet's pad (its ExpressKeys), readable by the user at the seat:
+# Hyprland binds none of its buttons, so the shell reads them itself
+# (.config/quickshell/services/tablet.py). The pad alone: the pen, keyboards
+# and mice stay root's. Before 73-seat-late.rules, which turns the tag into
+# an ACL; installed by Jupiter-installer's phase 4.
+SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_TABLET_PAD}=="1", TAG+="uaccess"
