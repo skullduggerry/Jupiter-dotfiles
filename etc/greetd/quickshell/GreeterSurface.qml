@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Widgets
 import "style"
 
 PanelWindow {
@@ -42,6 +43,8 @@ PanelWindow {
     }
 
     MultiEffect {
+        id: background
+
         anchors.fill: parent
         source: wallpaper
         visible: wallpaper.status === Image.Ready
@@ -63,6 +66,8 @@ PanelWindow {
     }
 
     Column {
+        id: column
+
         anchors.centerIn: parent
         spacing: Style.lock.spacing
 
@@ -70,7 +75,7 @@ PanelWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: LockLook.clock
             text: Qt.formatDateTime(clock.date, "HH:mm")
-            color: Colors.text.base
+            color: Colors.lock.text
             font.family: Style.text.font
             font.pixelSize: Style.text.displaySize
         }
@@ -79,7 +84,7 @@ PanelWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: LockLook.clock
             text: Qt.formatDateTime(clock.date, "ddd d MMM")
-            color: Colors.text.muted
+            color: Colors.lock.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.size
         }
@@ -105,18 +110,50 @@ PanelWindow {
         }
 
         Rectangle {
+            id: field
+
             anchors.horizontalCenter: parent.horizontalCenter
             width: Style.lock.fieldWidth
             height: Style.lock.fieldHeight
             radius: Style.lock.fieldRadius
-            color: Colors.lock.field
+            color: "transparent"
             border.width: Style.border.width
             border.color: GreeterService.busy ? Colors.lock.busy : Colors.lock.fieldBorder
+
+            // Inside the border, the desktop's glass (LockLook.glass): the
+            // wallpaper behind the field, frosted, under the field's tint.
+            ClippingRectangle {
+                id: frost
+
+                anchors.fill: parent
+                anchors.margins: field.border.width
+                visible: LockLook.glass && wallpaper.status === Image.Ready
+                radius: field.radius - field.border.width
+                color: "transparent"
+
+                MultiEffect {
+                    x: -(column.x + field.x + frost.x)
+                    y: -(column.y + field.y + frost.y)
+                    width: background.width
+                    height: background.height
+                    source: wallpaper
+                    autoPaddingEnabled: false
+                    blurEnabled: true
+                    blurMax: Style.lock.blurMax
+                    blur: Style.lock.blurAmount
+                }
+            }
+
+            Rectangle {
+                anchors.fill: frost
+                radius: frost.radius
+                color: Colors.lock.field
+            }
 
             TextInput {
                 id: passwordInput
 
-                color: Colors.text.base
+                color: Colors.lock.text
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
                 echoMode: GreeterService.promptSecret ? TextInput.Password : TextInput.Normal
@@ -148,7 +185,7 @@ PanelWindow {
                     visible: passwordInput.text === ""
                     text: GreeterService.busy ? "Checking…" : GreeterService.promptText
                     textFormat: Text.PlainText
-                    color: Colors.text.muted
+                    color: Colors.lock.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
                     verticalAlignment: Text.AlignVCenter

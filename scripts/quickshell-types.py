@@ -14,13 +14,16 @@ anything in this repo, so every Quickshell type would otherwise go unchecked:
   out Wayland's `Toplevel`), and the window types are an `optional import`; `prefer` points at resources only the
   running shell can read;
 - core's value types (margins) do not resolve across its import cycle with the
-  window module;
+  window module, nor do its enums where a copied core type names them
+  (PopupAnchor's edges);
 - since Qt 6.12, a module declares another module's types it uses as opaque
   stand-ins (`isTypeOpaque`), which hide the real declaration's members, so
   each is replaced by a copy of the real one;
 - PanelWindow is declared uncreatable, though every panel creates one;
 - Process.exited passes a QProcess::ExitStatus, which nothing declares, and
-  Process.environment is a QVariantHash, which QML fills from a JS object.
+  Process.environment is a QVariantHash, which QML fills from a JS object;
+- flag properties (PopupAnchor's edges) name a `Flags` type nothing declares
+  either, where their enum is meant.
 """
 
 import pathlib
@@ -101,6 +104,13 @@ value_types = {
     )
     if 'accessSemantics: "value"' in block
 }
+enums = {
+    first(r'name: "([^"]+)"', block): block
+    for block in re.findall(
+        r"^    Component \{\n.*?^    \}\n", core, re.S | re.M
+    )
+    if 'accessSemantics: "none"' in block and "Enum {" in block
+}
 exit_status = """    Component {
         name: "QProcess"
         accessSemantics: "reference"
@@ -120,7 +130,7 @@ def resolve(name):
 def reference(match):
     listed = re.fullmatch(r"QList<(.+)\*>", match.group(2))
     name = listed.group(1) if listed else match.group(2)
-    enum = re.fullmatch(r"(.+)::Enum", name)
+    enum = re.fullmatch(r"(.+)::(?:Enum|Flags)", name)
     name = resolve(enum.group(1)) + "::Enum" if enum else resolve(name)
     return f'{match.group(1)}: "{name}"' + ("; isList: true" if listed else "")
 
@@ -149,6 +159,11 @@ for path in source.rglob("*"):
                     block
                     for name, block in value_types.items()
                     if f'type: "{name}"' in text
+                )
+                + "".join(
+                    block
+                    for name, block in enums.items()
+                    if f'"{name}::' in text
                 ),
                 1,
             )

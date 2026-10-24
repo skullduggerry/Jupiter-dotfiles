@@ -193,16 +193,22 @@ QtObject {
     }
     readonly property PillColors pill: PillColors {}
 
+    // The lock and login screens. With the Lock Screen tab's Theme on the
+    // desktop's, they are the theme's: its text over a veil of its background,
+    // and its surface for the field (glass where Blur is on). Otherwise they
+    // are over the wallpaper as the overlay is, and only the accent follows.
     component LockColors: QtObject {
-        // Over the wallpaper, like the overlay: only the accent follows the theme.
-        readonly property color background: "#0b0b0b"
-        readonly property color text: root.overlay.text
-        readonly property color muted: root.overlay.muted
-        readonly property color field: Qt.rgba(1, 1, 1, 0.06)
-        readonly property color fieldBorder: root.overlay.border
+        id: lockColors
+
+        readonly property bool themed: LockLook.followTheme
+        readonly property color background: lockColors.themed ? root.palette.background : "#0b0b0b"
+        readonly property color text: lockColors.themed ? root.text.base : root.overlay.text
+        readonly property color muted: lockColors.themed ? root.text.muted : root.overlay.muted
+        readonly property color field: lockColors.themed ? root.base.surface : Qt.rgba(1, 1, 1, 0.06)
+        readonly property color fieldBorder: lockColors.themed ? root.base.border : root.overlay.border
         readonly property color busy: root.accent.primary
-        // As dark as Appearance's Lock Screen tab says.
-        readonly property color scrim: Qt.rgba(0, 0, 0, LockLook.dim)
+        // As strong as Appearance's Lock Screen tab's Dim says.
+        readonly property color scrim: lockColors.themed ? root.withAlpha(root.palette.background, LockLook.dim) : Qt.rgba(0, 0, 0, LockLook.dim)
     }
     readonly property LockColors lock: LockColors {}
 

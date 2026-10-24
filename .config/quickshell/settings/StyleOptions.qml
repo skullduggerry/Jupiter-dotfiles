@@ -30,8 +30,6 @@ Column {
 
     Section {
         title: "THEME"
-        // Above the sections after it, which the font list opens over.
-        z: 1
 
         FormCard {
             width: Style.settings.pageWidth

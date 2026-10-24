@@ -43,4 +43,22 @@ TestCase {
         compare(Keybinds.keysLabel(["1", "2", "3", "4"]), "1–4");
         verify(Keybinds.keysLabel(["1", "3"]) !== "1–3");
     }
+
+    // A pad key's shortcut names the bind it runs.
+    function test_describeAShortcut() {
+        Keybinds.load([bind("R", 64, "Open the launcher"), bind("1", 64, "Go to that workspace"), bind("2", 64, "Go to that workspace"), bind("M", 65, "Log out")], []);
+        compare(Keybinds.describe("SUPER + r"), "Open the launcher");
+        compare(Keybinds.describe("SUPER + 2"), "Go to that workspace");
+        compare(Keybinds.describe("SHIFT + SUPER + m"), "Log out", "modifiers in any order");
+        compare(Keybinds.describe("SUPER + SHIFT + r"), "", "more modifiers are another shortcut");
+        compare(Keybinds.describe("CTRL + z"), "");
+    }
+
+    // The tablet's recording submap binds Escape, which is no bind of the desktop's.
+    function test_otherSubmapsLeftOut() {
+        const recording = bind("Escape", 0, "Stop recording a pad key's shortcut");
+        recording.submap = "tablet-record";
+        Keybinds.load([bind("A", 64, "First"), recording], []);
+        compare(Keybinds.rows.length, 1);
+    }
 }

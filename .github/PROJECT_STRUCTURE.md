@@ -51,7 +51,10 @@ lives in `services/` (`DropdownState`, `LockService`, `SettingsState`).
 **`style/` must work as the greeter**, which runs as a user without a readable
 `$HOME`. It may only read files until a choice is made, start no process while
 it is constructed, and never call `Quickshell.statePath()`, because that call
-creates the directory. Check with `HOME=/nonexistent`.
+creates the directory. Check with `HOME=/nonexistent`. What it reads of the
+desktop's comes from copies `install-greeter.sh` puts beside it, named in
+`LOCKSCREEN_STYLE` (LockLook) and `LOCKSCREEN_THEME` (Theme's palette,
+appearance and theme name), and it never writes them back.
 `etc/greetd/monitors.lua` and `vconsole.lua` are symlinks into
 `.config/hypr/modules/`, and the installer must copy them as files.
 
@@ -236,6 +239,12 @@ channel from its colour when it is created, so one opened over Solid stayed
 opaque when Blur (or a theme over it) came on. `SettingsState` holds whether
 it is open and on which page, and any page or tab name opens its place
 (`openPage keybinds`).
+- A `ChoiceField`'s list is a `PopupWindow` (an xdg_popup with a grab), so it
+  is drawn over the whole window and past its edges, flips above the field
+  where the screen has no room below, and is glass through Hyprland's
+  `blur.popups` (`styles/layout.lua`). Hyprland closes it at a click in another
+  window but passes a click in this one on, so a full-window `MouseArea` takes
+  that click while the list is open. Pages need no `z` or row order for it.
 - Displays: `DisplayChange` applies rules through `displays.py` and
   `hyprctl eval` and reverts them unless Keep is pressed within 15 s. Kept
   rules (`desc:<description>`) go to `monitors.json`/`monitors.lua`, which
@@ -284,9 +293,20 @@ event when switching back to the previous layout).
   (and would at startup): make timers on first use, as `cursor.lua` does.
 - Hyprland gives the pad's buttons only to the app under the pen. While a
   button is bound, `tablet.py pad` grabs the pad's event node (readable
-  through `etc/udev/rules.d/70-tablet-pad.rules`) and a press sends
-  `hl.dsp.send_key_state` down and up at once: Hyprland releases the
-  modifiers right after the key, so a held key would repeat bare.
+  through `etc/udev/rules.d/70-tablet-pad.rules`) and a press runs
+  `require("modules.tablet").press(mods, key)`.
+- A shortcut on a pad key works as on the keyboard. Hyprland runs no bind for
+  keys it is sent (`send_key_state` goes straight to the window), so
+  `keybinds.lua` binds through `tablet.bind`, which keeps each bind by its keys,
+  and `press()` runs the one on those keys. Anything else goes to the focused
+  window, down and up at once: Hyprland releases the modifiers right after the
+  key, so a held key would repeat bare.
+- The page records a shortcut (`ShortcutField`) rather than taking it typed,
+  naming the key by its unshifted keysym in the layout binds go by
+  (`Keymap.symOf`, from the key event's keycode). While it records, Hyprland is
+  in the submap `tablet-record`, so the desktop's binds reach the window too.
+  Escape is that submap's one bind, so a shell gone mid-recording cannot leave
+  the keyboard without binds; `Keybinds` leaves other submaps' binds out.
 
 **Notifications** (`NotificationService`, which owns
 `org.freedesktop.Notifications`):
@@ -333,6 +353,12 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
   (each attempt would wait on the reader). The login screen's look
   only applies through `install-greeter.sh` (run through pkexec from the Lock
   Screen tab).
+- Both screens are in the desktop's theme unless the Lock Screen tab's Theme
+  is Dark (`LockLook.followTheme`, `Colors.lock`): its text over a veil of its
+  background, at the tab's Dim, and with Blur on its glass for the password
+  field, a frosted copy of the wallpaper under the theme's tint. The login
+  screen gets the theme with the rest at Apply, and the tab compares the theme
+  and Appearance choices installed with the desktop's.
 - Overview: `ScreencopyView` per toplevel (hidden workspaces included).
   Positions come from `lastIpcObject` after `Hyprland.refreshToplevels()`.
   Only the window on the focused screen takes the keyboard.
@@ -440,7 +466,7 @@ Each of these has already caused a bug.
 - A `Binding` destroyed with its object leaves its target set. For a service
   flag, count `viewers` in `onCompleted`/`onDestruction` instead.
 - **Qt 6.11 can stop delivering the pointer** to a list that opens below its
-  card if a later sibling lies inside the card. Keep such a row last, or move
+  card if a later sibling lies inside the card (not `ChoiceField`'s, a popup). Keep such a row last, or move
   the sibling out (`PowerPage`). Debug with
   `QT_LOGGING_RULES="qt.quick.effectiveclip.debug=true"`.
 - Add a `qmldir` line before the first file that uses the type. Saving only

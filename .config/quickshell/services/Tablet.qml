@@ -9,8 +9,9 @@ import Quickshell.Io
 // (.config/hypr/modules/tablet.lua), kept in tablet.lua for its start and
 // handed over live through hyprctl eval. What the pad's buttons (ExpressKeys)
 // do is the shell's, because Hyprland gives them to the app under the pen and
-// binds none: while one is bound, tablet.py reads the pad, and a press sends
-// the bound shortcut to the focused window or holds the tablet.
+// binds none: while one is bound, tablet.py reads the pad, and a press
+// presses the bound shortcut as the keyboard would (modules/tablet.lua's
+// press()) or holds the tablet.
 Singleton {
     id: root
 
@@ -131,6 +132,12 @@ Singleton {
         };
     }
 
+    // While the Settings app records a shortcut, every key goes to its window,
+    // the desktop's binds too: modules/tablet.lua's submap, which Escape leaves.
+    function setRecording(recording: bool) {
+        Hyprland.dispatch(`hl.dsp.submap("${recording ? "tablet-record" : "reset"}")`);
+    }
+
     function changed() {
         writeDebounce.restart();
         hyprlandDebounce.restart();
@@ -163,13 +170,8 @@ Singleton {
             return;
         }
         const keys = action.startsWith("keys:") ? root.shortcut(action.slice(5)) : null;
-        if (keys === null)
-            return;
-
-        // Down and up at once: Hyprland sends the modifiers with the key and
-        // releases them right after, so a key held down would repeat bare.
-        for (const state of ["down", "up"])
-            Hyprland.dispatch(`hl.dsp.send_key_state({ mods = ${JSON.stringify(keys.mods)}, key = ${JSON.stringify(keys.key)}, state = "${state}" })`);
+        if (keys !== null)
+            root.evalLua(`require("modules.tablet").press(${JSON.stringify(keys.mods)}, ${JSON.stringify(keys.key)})`);
     }
 
     onActiveChanged: {
@@ -212,7 +214,8 @@ Singleton {
     Process {
         id: padReader
 
-        running: root.active && root.buttons.some(action => action !== "")
+        // A custom shortcut not yet recorded ("keys:") does nothing.
+        running: root.active && root.buttons.some(action => action !== "" && action !== "keys:")
         command: ["setpriv", "--pdeathsig", "TERM", "python3", root.helper, "pad"]
 
         stdout: SplitParser {

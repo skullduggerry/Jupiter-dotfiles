@@ -22,8 +22,11 @@
 # an image of its own, none, or by default the desktop's wallpaper, read from
 # the hyprpaper config the desktop starts from: the Settings app's saved one
 # once something was picked there, .config/hypr/hyprpaper.conf before that.
-# Re-run it after picking a new wallpaper, too. That page runs this through
-# pkexec, hence PKEXEC_UID for whose home it is.
+# Re-run it after picking a new wallpaper, too. So does the desktop's theme,
+# which the login screen follows unless that tab says otherwise: the palette
+# wallust rendered, the Appearance choices (blur, tint, accent, font) and the
+# theme's name go into quickshell/theme. That page runs this through pkexec,
+# hence PKEXEC_UID for whose home it is.
 set -euo pipefail
 
 # Physical: the Settings app reaches this through ~/.config/quickshell, a link.
@@ -73,7 +76,7 @@ echo "repo        $repo"
 echo "destination $dest"
 echo "wallpaper   ${wallpaper:-none}"
 
-install -d -m 0755 "$dest" "$dest/quickshell" "$dest/quickshell/style"
+install -d -m 0755 "$dest" "$dest/quickshell" "$dest/quickshell/style" "$dest/quickshell/theme"
 
 install -m 0644 "$repo/etc/greetd/config.toml" "$dest/config.toml"
 install -m 0644 "$repo/etc/greetd/hyprland.lua" "$dest/hyprland.lua"
@@ -115,6 +118,22 @@ rm -f "$dest/quickshell/greetd-auth.py"
 install -m 0644 "$repo"/.config/quickshell/style/*.qml "$dest/quickshell/style/"
 install -m 0644 "$repo/.config/quickshell/style/qmldir" "$dest/quickshell/style/qmldir"
 
+# The desktop's theme, as style/Theme.qml reads it at home; one that is not
+# there yet leaves the greeter on the shell's own colours.
+state=${XDG_STATE_HOME:-$owner_home/.local/state}
+cache=${XDG_CACHE_HOME:-$owner_home/.cache}
+for pair in "palette.json:$cache/wallust/quickshell.json" \
+    "appearance.json:$state/quickshell/appearance.json" \
+    "theme:$state/wallust/theme"; do
+    if owned test -r "${pair#*:}"; then
+        owned cat -- "${pair#*:}" >"$dest/quickshell/theme/${pair%%:*}"
+    else
+        rm -f "$dest/quickshell/theme/${pair%%:*}"
+    fi
+done
+theme=$(head -n 1 "$dest/quickshell/theme/theme" 2>/dev/null || true)
+echo "theme       ${theme:-none}"
+
 if [[ -n $wallpaper ]]; then
     owned cat -- "$wallpaper" >"$dest/quickshell/wallpaper.jpg"
     chmod 0644 "$dest/quickshell/wallpaper.jpg"
@@ -122,14 +141,24 @@ else
     rm -f "$dest/quickshell/wallpaper.jpg"
 fi
 
-# The Lock Screen choices, plus the image the background came from, by which
-# that tab tells whether the login screen is up to date.
-python3 - "$settings" "$wallpaper" "$dest/quickshell/lockscreen.json" <<'PY'
+# The Lock Screen choices, plus the image the background came from and the
+# theme, by which that tab tells whether the login screen is up to date.
+python3 - "$settings" "$wallpaper" "$theme" "$dest/quickshell" <<'PY'
 import json, pathlib, sys
-look, image, out = sys.argv[1:]
+look, image, theme, out = sys.argv[1:]
 settings = json.loads(look)
 settings["installedImage"] = image
-pathlib.Path(out).write_text(json.dumps(settings, indent=4) + "\n")
+settings["installedTheme"] = theme
+try:
+    appearance = json.loads(pathlib.Path(out, "theme/appearance.json").read_text())
+except (OSError, ValueError):
+    appearance = {}
+settings["installedAppearance"] = {
+    key: appearance[key]
+    for key in ("blur", "accent", "font", "lightTint", "darkTint")
+    if key in appearance
+}
+pathlib.Path(out, "lockscreen.json").write_text(json.dumps(settings, indent=4) + "\n")
 PY
 
 # The repo copies name /etc/greetd directly so they read as the real thing.

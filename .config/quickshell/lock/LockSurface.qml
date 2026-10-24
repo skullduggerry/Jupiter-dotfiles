@@ -5,6 +5,7 @@ import QtQuick
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Widgets
 
 WlSessionLockSurface {
     id: root
@@ -29,6 +30,8 @@ WlSessionLockSurface {
     }
 
     MultiEffect {
+        id: background
+
         anchors.fill: parent
         source: wallpaper
         visible: wallpaper.status === Image.Ready
@@ -50,6 +53,8 @@ WlSessionLockSurface {
     }
 
     Column {
+        id: column
+
         anchors.centerIn: parent
         spacing: Style.lock.spacing
 
@@ -72,13 +77,45 @@ WlSessionLockSurface {
         }
 
         Rectangle {
+            id: field
+
             anchors.horizontalCenter: parent.horizontalCenter
             width: Style.lock.fieldWidth
             height: Style.lock.fieldHeight
             radius: Style.lock.fieldRadius
-            color: Colors.lock.field
+            color: "transparent"
             border.width: Style.border.width
             border.color: LockService.authenticating ? Colors.lock.busy : Colors.lock.fieldBorder
+
+            // Inside the border, the desktop's glass (LockLook.glass): the
+            // wallpaper behind the field, frosted, under the field's tint.
+            ClippingRectangle {
+                id: frost
+
+                anchors.fill: parent
+                anchors.margins: field.border.width
+                visible: LockLook.glass && wallpaper.status === Image.Ready
+                radius: field.radius - field.border.width
+                color: "transparent"
+
+                MultiEffect {
+                    x: -(column.x + field.x + frost.x)
+                    y: -(column.y + field.y + frost.y)
+                    width: background.width
+                    height: background.height
+                    source: wallpaper
+                    autoPaddingEnabled: false
+                    blurEnabled: true
+                    blurMax: Style.lock.blurMax
+                    blur: Style.lock.blurAmount
+                }
+            }
+
+            Rectangle {
+                anchors.fill: frost
+                radius: frost.radius
+                color: Colors.lock.field
+            }
 
             Icon {
                 id: fieldIcon

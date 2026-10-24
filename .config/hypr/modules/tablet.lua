@@ -5,7 +5,8 @@
 -- also hands over live with `hyprctl eval 'require("modules.tablet").use({…})'`.
 -- On top of that, until the session ends, keybinds.lua's SUPER + T holds the
 -- tablet to the focused screen and SUPER + SHIFT + T to the focused window;
--- the same keys again let go.
+-- the same keys again let go. The pad's keys are the shell's, which presses a
+-- shortcut set on one through press().
 local M = {}
 
 local state = os.getenv("XDG_STATE_HOME")
@@ -35,6 +36,21 @@ local last = nil
 -- Follows the held window as it moves and resizes, which raises no event.
 -- Made on first use, as cursor.lua's: timers belong to the running config.
 local follow = nil
+-- keybinds.lua's binds by their keys (combo()), for press(): Hyprland runs no
+-- bind for keys it is sent.
+local binds = {}
+local modifiers = {
+	SHIFT = "SHIFT",
+	CTRL = "CTRL",
+	CONTROL = "CTRL",
+	ALT = "ALT",
+	MOD1 = "ALT",
+	SUPER = "SUPER",
+	WIN = "SUPER",
+	LOGO = "SUPER",
+	MOD4 = "SUPER",
+	META = "SUPER",
+}
 
 local function notify(text)
 	hl.exec_cmd("notify-send -a Tablet -t 1500 Tablet '" .. text .. "'")
@@ -165,6 +181,56 @@ function M.apply()
 	hl.config({ input = { tablet = tablet, tablettool = tool } })
 end
 
+-- Keys as a bind spells them ("SUPER + SHIFT + M"), spelt one way whatever
+-- the case or the order: "SUPER SHIFT m"; nil for a modifier Hyprland lacks.
+local function combo(keys)
+	local parts = {}
+	for part in keys:gmatch("[^+]+") do
+		table.insert(parts, (part:gsub("^%s+", ""):gsub("%s+$", "")))
+	end
+	local key = table.remove(parts)
+	local named = {}
+	for _, part in ipairs(parts) do
+		local modifier = modifiers[part:upper()]
+		if modifier == nil then
+			return nil
+		end
+		named[modifier] = true
+	end
+	local spelt = {}
+	for _, modifier in ipairs({ "SUPER", "CTRL", "ALT", "SHIFT" }) do
+		if named[modifier] then
+			table.insert(spelt, modifier)
+		end
+	end
+	table.insert(spelt, key ~= nil and key:lower() or "")
+	return table.concat(spelt, " ")
+end
+
+-- keybinds.lua's hl.bind, which press() can then run.
+function M.bind(keys, dispatcher, options)
+	local name = combo(keys)
+	if name ~= nil and not (options ~= nil and options.release) then
+		binds[name] = dispatcher
+	end
+	return hl.bind(keys, dispatcher, options)
+end
+
+-- A pad key's shortcut ("CTRL SHIFT", "z") as if pressed on the keyboard: the
+-- bind on those keys runs, or else the focused window gets them, down and up
+-- at once, since Hyprland releases the modifiers right after the key and a
+-- key held down would repeat bare.
+function M.press(mods, key)
+	local bind = binds[combo((mods ~= "" and mods:gsub("%s+", " + ") .. " + " or "") .. key)]
+	if bind ~= nil then
+		hl.dispatch(bind)
+		return
+	end
+	for _, state in ipairs({ "down", "up" }) do
+		hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = key, state = state }))
+	end
+end
+
 -- What the Settings app kept, live, or from tablet.lua.
 function M.use(settings)
 	kept = {}
@@ -211,6 +277,12 @@ function M.holdWindow()
 	end
 	M.apply()
 end
+
+-- While the Settings app records a pad key's shortcut, every key goes to it,
+-- the binds' too. Escape leaves, as the page does, even with the shell gone.
+hl.define_submap("tablet-record", function()
+	hl.bind("Escape", hl.dsp.submap("reset"), { description = "Stop recording a pad key's shortcut" })
+end)
 
 -- The shape of what the tablet draws on changes with the screens, and with
 -- focus where it follows focus.

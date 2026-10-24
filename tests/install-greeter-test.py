@@ -8,6 +8,8 @@ etc/greetd/monitors.lua is one in the repo -- would dangle at boot and take the
 greeter's compositor config down with it. Monitor rules the Settings app kept
 are baked into the copy, applied after the config's own as in the session, and
 so are the keyboard layouts it kept, over the system's (/etc/vconsole.conf).
+The desktop's theme goes beside the greeter, which its compositor names, and
+the Lock Screen choices installed with it record which theme that was.
 
     python3 tests/install-greeter-test.py        exit 0 on success
 """
@@ -81,6 +83,16 @@ def main() -> int:
         (state / "quickshell/hyprpaper.conf").write_text(
             f"wallpaper {{\n    monitor =\n    path = {wallpaper}\n}}\n"
         )
+        # The desktop's theme: wallust's palette and the shell's Appearance.
+        cache = tmp / "cache"
+        (cache / "wallust").mkdir(parents=True)
+        palette = '{"background": "#fffbef", "foreground": "#5c6a72"}\n'
+        (cache / "wallust/quickshell.json").write_text(palette)
+        (state / "wallust").mkdir()
+        (state / "wallust/theme").write_text("Everforest-Light-Hard\nall\n")
+        (state / "quickshell/appearance.json").write_text(
+            json.dumps({"blur": True, "accent": "green", "swoosh": False})
+        )
         # As Jupiter-installer writes it for a German console keymap.
         vconsole = tmp / "vconsole.conf"
         vconsole.write_text(
@@ -92,7 +104,11 @@ def main() -> int:
             ["bash", str(SCRIPT), str(dest)],
             capture_output=True,
             text=True,
-            env=dict(os.environ, XDG_STATE_HOME=str(state)),
+            env=dict(
+                os.environ,
+                XDG_STATE_HOME=str(state),
+                XDG_CACHE_HOME=str(cache),
+            ),
             check=False,
         )
         check("script succeeds", run.returncode == 0, run.stderr.strip())
@@ -155,6 +171,29 @@ def main() -> int:
             "wallpaper copied",
             (dest / "quickshell/wallpaper.jpg").read_bytes()
             == wallpaper.read_bytes(),
+        )
+        theme = dest / "quickshell/theme"
+        check(
+            "the desktop's theme copied",
+            (theme / "palette.json").read_text() == palette
+            and (theme / "theme")
+            .read_text()
+            .startswith("Everforest-Light-Hard")
+            and json.loads((theme / "appearance.json").read_text())["blur"],
+        )
+        check(
+            "the greeter is told where the theme is",
+            f"LOCKSCREEN_THEME={theme}" in config,
+        )
+        installed = json.loads(
+            (dest / "quickshell/lockscreen.json").read_text()
+        )
+        check(
+            "the choices record the theme installed",
+            installed.get("installedTheme") == "Everforest-Light-Hard"
+            and installed.get("installedAppearance")
+            == {"blur": True, "accent": "green"},
+            str(installed),
         )
 
         # Hyprland's own parser on the staged copy: proves `require` resolves

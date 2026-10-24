@@ -21,6 +21,7 @@ ScrollPage 1.0 ScrollPage.qml
 Section 1.0 Section.qml
 SettingsApp 1.0 SettingsApp.qml
 SettingsContent 1.0 SettingsContent.qml
+ShortcutField 1.0 ShortcutField.qml
 SoundPage 1.0 SoundPage.qml
 StartupPage 1.0 StartupPage.qml
 StyleOptions 1.0 StyleOptions.qml

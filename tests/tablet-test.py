@@ -11,7 +11,10 @@ tablet.lua runs under plain Lua against a stand-in `hl`: from tablet.lua in
 the state it maps every screen, the focused one or a named one, keeps the
 tablet's used area to the shape of what it draws on (or the whole tablet
 with keepRatio off), holds to a screen or a window and lets go on the second
-press or when the window closes, and sends Hyprland nothing unchanged.
+press or when the window closes, and sends Hyprland nothing unchanged. A pad
+key's shortcut runs the bind keybinds.lua made on those keys, whatever the
+case or the order of the modifiers (a release bind is no press), and anything
+else goes to the window down and up; the recording submap's Escape leaves it.
 
     python3 tests/tablet-test.py        exit 0 on success
 """
@@ -233,6 +236,13 @@ hl = {
 	get_active_window = function() return window end,
 	get_window = function(selector) return windows[selector] end,
 	config = function(config) print("config " .. json(config.input)) end,
+	bind = function(keys, dispatcher) print("bind " .. keys .. " " .. json(dispatcher)) end,
+	define_submap = function(name, binds) print("submap " .. name) binds() end,
+	dispatch = function(dispatcher) print("dispatch " .. json(dispatcher)) end,
+	dsp = {
+		submap = function(name) return { submap = name } end,
+		send_key_state = function(key) return { send = key } end,
+	},
 }
 
 local tablet = dofile(arg[1])
@@ -261,6 +271,17 @@ print("step hold screen")
 tablet.holdScreen()
 print("step release screen")
 tablet.holdScreen()
+print("step bind")
+tablet.bind("SUPER + SHIFT + M", { logout = true }, { description = "Log out" })
+tablet.bind("SUPER + A", { menu = "release" }, { release = true })
+print("step press bound")
+tablet.press("SHIFT SUPER", "m")
+print("step press a release bind")
+tablet.press("SUPER", "a")
+print("step press unbound")
+tablet.press("CTRL", "z")
+print("step press bare")
+tablet.press("", "Escape")
 """
 
 
@@ -396,6 +417,43 @@ def module(root: pathlib.Path) -> None:
         config("release screen")["tablet"]["output"],
         "HDMI-A-1",
     )
+
+    check(
+        "recording submap: Escape leaves",
+        [line for line in steps["load"] if not line.startswith("config ")],
+        ["submap tablet-record", 'bind Escape {"submap":"reset"}'],
+    )
+    check(
+        "bind: made in Hyprland too",
+        steps["bind"],
+        [
+            'bind SUPER + SHIFT + M {"logout":true}',
+            'bind SUPER + A {"menu":"release"}',
+        ],
+    )
+    check(
+        "press: the bind on those keys runs",
+        steps["press bound"],
+        ['dispatch {"logout":true}'],
+    )
+
+    def sent(mods: str, key: str) -> list[str]:
+        return [
+            f'dispatch {{"send":{{"key":"{key}","mods":"{mods}","state":"{state}"}}}}'
+            for state in ("down", "up")
+        ]
+
+    check(
+        "press: a release bind is not run",
+        steps["press a release bind"],
+        sent("SUPER", "a"),
+    )
+    check(
+        "press: anything else goes to the window",
+        steps["press unbound"],
+        sent("CTRL", "z"),
+    )
+    check("press: a bare key", steps["press bare"], sent("", "Escape"))
 
 
 def main() -> int:

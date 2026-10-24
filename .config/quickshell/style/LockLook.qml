@@ -25,6 +25,10 @@ Singleton {
     // How dark the scrim over the background is.
     readonly property real dim: settings.dim
     readonly property bool clock: settings.clock
+    // The desktop's theme (Colors.lock): its light or dark, and where Blur is
+    // on, its glass for the password field; else light on dark, as before.
+    readonly property bool followTheme: settings.followTheme
+    readonly property bool glass: root.followTheme && Theme.blur
 
     function blurFor(engaged: bool): real {
         return root.blur === "always" || (root.blur === "typing" && engaged) ? Style.lock.blurAmount : 0;
@@ -64,6 +68,7 @@ Singleton {
             property string blur: "typing"
             property real dim: 0.45
             property bool clock: true
+            property bool followTheme: true
         }
     }
 }

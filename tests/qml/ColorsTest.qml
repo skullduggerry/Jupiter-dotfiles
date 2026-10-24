@@ -66,4 +66,23 @@ TestCase {
         verify(dark <= bright, "a bright backdrop under light text needs more");
         verify(bright <= Colors.base.glassCeiling && dark >= Colors.base.glassFloor);
     }
+
+    // The lock and login screens (the Lock Screen tab's Theme): the desktop's
+    // theme over a veil of its background, its glass with Blur on; or light
+    // on dark over the wallpaper, as the overlay is.
+    function test_lockFollowsTheTheme() {
+        usePalette("#fafafa", "#202020", {});
+        LockLook.set("followTheme", true);
+        compare(Colors.lock.text, Colors.text.base);
+        compare(Colors.lock.background, "#fafafa");
+        compare(Colors.lock.scrim, Colors.withAlpha("#fafafa", LockLook.dim));
+        compare(Colors.lock.field, Colors.base.surface);
+        compare(LockLook.glass, Theme.blur);
+        LockLook.set("followTheme", false);
+        compare(Colors.lock.text, Colors.overlay.text);
+        compare(Colors.lock.scrim, Qt.rgba(0, 0, 0, LockLook.dim));
+        verify(!LockLook.glass, "glass only where the theme is followed");
+        // LockLook writes its file once the choices settle.
+        return wait(300);
+    }
 }

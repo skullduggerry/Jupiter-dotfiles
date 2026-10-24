@@ -35,6 +35,15 @@ Singleton {
     // A string, so that only a real change of layouts reads them again.
     readonly property string layoutNames: KeyboardLayout.codes.join(",") + " " + KeyboardLayout.variants.join(",")
 
+    // What a key types on its own, by keycode, in the layout binds go by: the
+    // keysym a bind names it by ("z", "bracketleft"), "" for none.
+    function symOf(code: int): string {
+        const keys = root.layouts[root.resolveBySym ? KeyboardLayout.index : 0]?.keys ?? {};
+        const name = Object.keys(keys).find(name => keys[name].code === code);
+        const sym = name !== undefined ? keys[name].syms[0] : "";
+        return sym === "NoSymbol" || sym === "VoidSymbol" ? "" : sym;
+    }
+
     // The XKB name of the key a bind's key is on, as written in the bind (a
     // keysym's name, "slash", or code:N), "" for one no key has.
     function keyOf(key: string): string {

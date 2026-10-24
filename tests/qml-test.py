@@ -6,7 +6,10 @@ functions), offscreen and in a throwaway home with nothing of the session
 around it: no display, no D-Bus, no Hyprland, nothing on PATH. A test can
 use any singleton, and a service that reaches for the desktop fails here
 instead of acting on it. A file named Greeter*Test.qml runs the way the
-login screen does, with HOME=/nonexistent and no XDG folders.
+login screen does, with HOME=/nonexistent and no XDG folders, and
+GreeterTheme*Test.qml with the desktop's theme beside it as
+scripts/install-greeter.sh leaves it (a read-only copy of
+tests/qml/greeter-theme, named in LOCKSCREEN_THEME).
 
 A test fails on a FAIL line, and so does its file on any warning or error
 Quickshell logs, as the running shell would show them in its log, except
@@ -41,6 +44,12 @@ def environment(test: pathlib.Path, root: pathlib.Path) -> dict[str, str]:
         "DBUS_SYSTEM_BUS_ADDRESS": "unix:path=/nonexistent",
         "QML_TEST": str(test),
     }
+    if test.name.startswith("GreeterTheme"):
+        theme = root / "theme"
+        shutil.copytree(TESTS / "greeter-theme", theme)
+        for path in [*theme.iterdir(), theme]:
+            path.chmod(0o555 if path.is_dir() else 0o444)
+        return env | {"HOME": "/nonexistent", "LOCKSCREEN_THEME": str(theme)}
     if test.name.startswith("Greeter"):
         return env | {"HOME": "/nonexistent"}
     home = root / "home"

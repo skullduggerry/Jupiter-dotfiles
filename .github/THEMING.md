@@ -66,6 +66,8 @@ garbage. Macros, `{% from "palette.jinja" import … %}`, `set` and
 | GTK 3 apps, the portal's file dialogs | at once, because the theme is renamed |
 | Dark/light for Electron, browsers, GTK 4 | at once, through the portal's `color-scheme` |
 | Qt/KDE apps, GTK 4 colours, new kittys | at their next start (open Qt apps get new icons and fonts, but not colours or glass) |
+| The lock screen | at once, unless the Lock Screen tab's Theme is Dark |
+| The login screen | at Apply on the Lock Screen tab, which copies the palette, `appearance.json` and the theme's name beside it (`install-greeter.sh`) |
 
 ## Qt and KDE apps
 

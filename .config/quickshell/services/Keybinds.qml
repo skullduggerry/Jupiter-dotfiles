@@ -55,12 +55,25 @@ Singleton {
         return keys.map(Keymap.label).join(" ");
     }
 
+    // The description of the bind on a shortcut ("SUPER + r"), "" for none.
+    function describe(shortcut: string): string {
+        const parts = shortcut.split("+").map(part => part.trim().toUpperCase());
+        const key = parts.pop().toLowerCase();
+        const modifiers = root.modifiers.filter(modifier => parts.includes(modifier.name)).map(modifier => modifier.name).join(" ");
+        const row = root.rows.find(row => row.modifiers.join(" ") === modifiers && row.keys.some(rowKey => rowKey.toLowerCase() === key));
+        return row?.description ?? "";
+    }
+
     // `keys`: each bind's key from hyprctl's text output, in the same order.
+    // Binds of a submap other than the usual are left out.
     function load(binds, keys) {
         const merged = [];
         const byName = {};
         for (let index = 0; index < binds.length; index++) {
             const bind = binds[index];
+            if (bind.submap !== "")
+                continue;
+
             const description = bind.has_description ? bind.description : "";
             const key = bind.key !== "" ? bind.key : keys.length === binds.length ? keys[index] : "code:" + bind.keycode;
             const name = description + "\n" + bind.modmask + "\n" + bind.submap;

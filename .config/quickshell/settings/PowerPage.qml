@@ -58,8 +58,6 @@ Item {
         id: idle
 
         title: "WHEN IDLE"
-        // Above the note after it, which its lists open over.
-        z: 1
 
         anchors {
             top: root.battery ? batteryCard.bottom : modes.bottom
@@ -71,10 +69,8 @@ Item {
         FormCard {
             width: root.columnWidth
 
-            // The list opens over the row after it.
             FormRow {
                 label: "Lock after"
-                z: 1
 
                 ChoiceField {
                     choices: Idle.lockChoices
@@ -95,9 +91,6 @@ Item {
         }
     }
 
-    // Not in the card: after its rows, Qt 6.11 delivered nothing to a list
-    // opened below the card (.github/PROJECT_STRUCTURE.md, "Qt 6.11 can stop
-    // delivering the pointer").
     Text {
         width: root.columnWidth
         wrapMode: Text.WordWrap

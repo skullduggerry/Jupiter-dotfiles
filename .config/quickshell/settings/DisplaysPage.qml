@@ -493,8 +493,6 @@ ScrollPage {
     Section {
         visible: root.current !== null
         title: root.current !== null ? root.current.name : ""
-        // Above the sections after it, which its lists open over.
-        z: 1
 
         FormCard {
             width: root.columnWidth
@@ -512,11 +510,9 @@ ScrollPage {
                 }
             }
 
-            // Each list opens over the rows after it.
             FormRow {
                 visible: !root.selectedOff
                 label: "Resolution"
-                z: 3
 
                 ChoiceField {
                     choices: root.current !== null ? root.resolutions(root.current) : []
@@ -528,7 +524,6 @@ ScrollPage {
             FormRow {
                 visible: !root.selectedOff
                 label: "Refresh rate"
-                z: 2
 
                 ChoiceField {
                     id: rateField
@@ -549,7 +544,6 @@ ScrollPage {
             FormRow {
                 visible: !root.selectedOff
                 label: "Scale"
-                z: 1
 
                 ChoiceField {
                     id: scaleField

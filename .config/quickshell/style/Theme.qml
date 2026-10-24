@@ -14,6 +14,11 @@ Singleton {
     readonly property string home: Quickshell.env("HOME")
     readonly property string scripts: (Quickshell.env("XDG_CONFIG_HOME") || root.home + "/.config") + "/wallust"
     readonly property string stateDir: Quickshell.env("XDG_STATE_HOME") || root.home + "/.local/state"
+    // The login screen's copy of the desktop's theme, which
+    // scripts/install-greeter.sh makes beside it and its compositor names, as
+    // LockLook's LOCKSCREEN_STYLE: palette.json, appearance.json and theme,
+    // only ever read.
+    readonly property string installed: Quickshell.env("LOCKSCREEN_THEME")
     // The first line of apply.sh's record; its own default before it ran.
     readonly property string theme: applied.text().split("\n")[0] || "Oxocarbon-Dark"
     readonly property bool blur: settings.blur
@@ -212,13 +217,14 @@ Singleton {
 
     // The theme's name and its palette come from two files, written one after
     // the other, so the pair is only read once both have settled. Never with no
-    // palette: the greeter cannot read one, and must not write.
+    // palette, nor in the greeter, which must not write: it reads none of its
+    // own, or the copy it was installed with.
     Timer {
         id: rememberDebounce
 
         interval: 300
         onTriggered: {
-            if (paletteData.background === "")
+            if (paletteData.background === "" || root.installed !== "")
                 return;
 
             const light = Qt.color(paletteData.background).hslLightness > 0.5;
@@ -246,7 +252,7 @@ Singleton {
     FileView {
         id: settingsFile
 
-        path: root.stateDir + "/quickshell/appearance.json"
+        path: root.installed !== "" ? root.installed + "/appearance.json" : root.stateDir + "/quickshell/appearance.json"
         preload: true
         blockLoading: true
         printErrors: false
@@ -288,7 +294,7 @@ Singleton {
     FileView {
         id: applied
 
-        path: root.stateDir + "/wallust/theme"
+        path: root.installed !== "" ? root.installed + "/theme" : root.stateDir + "/wallust/theme"
         printErrors: false
         watchChanges: true
         onFileChanged: applied.reload()
@@ -297,7 +303,7 @@ Singleton {
     FileView {
         id: paletteFile
 
-        path: root.home + "/.cache/wallust/quickshell.json"
+        path: root.installed !== "" ? root.installed + "/palette.json" : root.home + "/.cache/wallust/quickshell.json"
         printErrors: false
         watchChanges: true
         onFileChanged: paletteFile.reload()

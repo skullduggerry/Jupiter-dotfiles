@@ -4,10 +4,14 @@ import "../icons"
 import "../panels"
 import "../style"
 import QtQuick
+import Quickshell
 
 // One choice out of a list too long for pills: the chosen label, opening onto
 // the list below it, with a search field on top when `searchable`. Choices are
 // {label, value}, with an optional muted {detail} and a {font} to draw it in.
+// The list is a popup of its own, as a menu is: drawn over the whole window
+// and past its edges, on the shell's glass (Hyprland's blur.popups), above the
+// field where there is no room below, and closed by a click anywhere else.
 Item {
     id: root
 
@@ -15,7 +19,8 @@ Item {
     property var current
     property bool searchable: false
     property int listWidth: root.width
-    property bool expanded: false
+    // The compositor closes the popup on a click outside it.
+    property alias expanded: list.visible
     readonly property var currentChoice: root.choices.find(choice => choice.value === root.current) || null
     readonly property var shown: {
         const query = search.text.trim().toLowerCase();
@@ -26,23 +31,11 @@ Item {
 
     function pick(value) {
         root.expanded = false;
-        search.text = "";
         root.picked(value);
     }
 
     implicitWidth: Style.settings.fieldWidth
     implicitHeight: Style.popup.itemHeight
-    onExpandedChanged: {
-        if (root.expanded && root.searchable)
-            search.focusInput();
-        else if (root.expanded)
-            root.forceActiveFocus();
-    }
-    // Closes the list before Escape reaches the window, which it would close.
-    Keys.onEscapePressed: event => {
-        event.accepted = root.expanded;
-        root.expanded = false;
-    }
 
     Rectangle {
         anchors.fill: parent
@@ -86,107 +79,143 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: root.expanded = !root.expanded
+            onClicked: root.expanded = true
         }
     }
 
-    // Opaque: it opens over the controls below.
-    Rectangle {
+    // Hyprland closes the list at a click in another window but passes one in
+    // this window on, so this takes it, as a menu does: the field included,
+    // and the wheel, so the page stays put under the list.
+    MouseArea {
+        parent: root.Window.contentItem
         visible: root.expanded
-        y: root.height + Style.widgets.spacing
-        width: root.listWidth
-        height: Math.min(Style.settings.listHeight, (root.searchable ? search.height + Style.widgets.spacing : 0) + choiceList.contentHeight + Style.widgets.padding * 2)
-        radius: Style.bar.radius
-        color: Colors.base.base
-        border.width: Style.border.width
-        border.color: Colors.base.border
+        anchors.fill: parent
+        z: 1
+        onPressed: root.expanded = false
+        onWheel: {}
+    }
 
-        InputField {
-            id: search
+    PopupWindow {
+        id: list
 
-            visible: root.searchable
-            height: root.searchable ? search.implicitHeight : 0
-            placeholder: "Search"
-            icon: Icons.search
-            onAccepted: {
-                if (root.shown.length > 0)
-                    root.pick(root.shown[0].value);
-            }
-
-            anchors {
-                top: parent.top
-                left: parent.left
-                right: parent.right
-                margins: Style.widgets.padding
-            }
+        // The gap below the field, or above it when the list opens upwards.
+        anchor.item: root
+        anchor.rect.y: -Style.widgets.spacing
+        anchor.rect.width: root.width
+        anchor.rect.height: root.height + Style.widgets.spacing * 2
+        anchor.edges: Edges.Bottom | Edges.Left
+        anchor.gravity: Edges.Bottom | Edges.Right
+        anchor.adjustment: PopupAdjustment.FlipY | PopupAdjustment.SlideX
+        grabFocus: true
+        implicitWidth: root.listWidth
+        implicitHeight: Math.min(Style.settings.listHeight, (root.searchable ? search.height + Style.widgets.spacing : 0) + choiceList.contentHeight + Style.widgets.padding * 2)
+        color: "transparent"
+        onVisibleChanged: {
+            search.text = "";
+            if (list.visible && root.searchable)
+                search.focusInput();
+            else if (list.visible)
+                frame.forceActiveFocus();
         }
 
-        ListView {
-            id: choiceList
+        Rectangle {
+            id: frame
 
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
-            model: root.shown
+            anchors.fill: parent
+            radius: Style.bar.radius
+            color: Colors.base.surface
+            border.width: Style.border.width
+            border.color: Colors.base.border
+            Keys.onEscapePressed: root.expanded = false
 
-            anchors {
-                top: search.bottom
-                bottom: parent.bottom
-                left: parent.left
-                right: parent.right
-                topMargin: root.searchable ? Style.widgets.spacing : 0
-                leftMargin: Style.widgets.padding
-                rightMargin: Style.widgets.padding
-                bottomMargin: Style.widgets.padding
+            InputField {
+                id: search
+
+                visible: root.searchable
+                height: root.searchable ? search.implicitHeight : 0
+                placeholder: "Search"
+                icon: Icons.search
+                Keys.onEscapePressed: root.expanded = false
+                onAccepted: {
+                    if (root.shown.length > 0)
+                        root.pick(root.shown[0].value);
+                }
+
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                    right: parent.right
+                    margins: Style.widgets.padding
+                }
             }
 
-            delegate: Rectangle {
-                id: choiceRow
+            ListView {
+                id: choiceList
 
-                required property var modelData
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                model: root.shown
 
-                width: choiceList.width
-                height: Style.popup.itemHeight
-                radius: Style.popup.rowRadius
-                color: choiceRow.modelData.value === root.current ? Colors.pill.selected : choiceArea.containsMouse ? Colors.base.hover : "transparent"
-
-                Text {
-                    text: choiceRow.modelData.label
-                    color: Colors.text.base
-                    font.family: choiceRow.modelData.font || Style.text.font
-                    font.pixelSize: Style.text.size
-                    elide: Text.ElideRight
-
-                    anchors {
-                        left: parent.left
-                        right: detail.left
-                        leftMargin: Style.widgets.padding
-                        rightMargin: Style.widgets.spacing
-                        verticalCenter: parent.verticalCenter
-                    }
+                anchors {
+                    top: search.bottom
+                    bottom: parent.bottom
+                    left: parent.left
+                    right: parent.right
+                    topMargin: root.searchable ? Style.widgets.spacing : 0
+                    leftMargin: Style.widgets.padding
+                    rightMargin: Style.widgets.padding
+                    bottomMargin: Style.widgets.padding
                 }
 
-                Text {
-                    id: detail
+                delegate: Rectangle {
+                    id: choiceRow
 
-                    text: choiceRow.modelData.detail || ""
-                    color: Colors.text.muted
-                    font.family: Style.text.font
-                    font.pixelSize: Style.text.smallSize
+                    required property var modelData
 
-                    anchors {
-                        right: parent.right
-                        rightMargin: Style.widgets.padding
-                        verticalCenter: parent.verticalCenter
+                    width: choiceList.width
+                    height: Style.popup.itemHeight
+                    radius: Style.popup.rowRadius
+                    color: choiceRow.modelData.value === root.current ? Colors.pill.selected : choiceArea.containsMouse ? Colors.base.hover : "transparent"
+
+                    Text {
+                        text: choiceRow.modelData.label
+                        color: Colors.text.base
+                        font.family: choiceRow.modelData.font || Style.text.font
+                        font.pixelSize: Style.text.size
+                        elide: Text.ElideRight
+
+                        anchors {
+                            left: parent.left
+                            right: detail.left
+                            leftMargin: Style.widgets.padding
+                            rightMargin: Style.widgets.spacing
+                            verticalCenter: parent.verticalCenter
+                        }
                     }
-                }
 
-                MouseArea {
-                    id: choiceArea
+                    Text {
+                        id: detail
 
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.pick(choiceRow.modelData.value)
+                        text: choiceRow.modelData.detail || ""
+                        color: Colors.text.muted
+                        font.family: Style.text.font
+                        font.pixelSize: Style.text.smallSize
+
+                        anchors {
+                            right: parent.right
+                            rightMargin: Style.widgets.padding
+                            verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    MouseArea {
+                        id: choiceArea
+
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.pick(choiceRow.modelData.value)
+                    }
                 }
             }
         }

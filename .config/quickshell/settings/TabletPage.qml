@@ -30,8 +30,6 @@ ScrollPage {
 
     Section {
         title: "AREA"
-        // Above the sections after it, which its list opens over.
-        z: 2
 
         FormCard {
             width: root.columnWidth
@@ -74,8 +72,6 @@ ScrollPage {
                 }
             }
 
-            // Last in the card: its list opens below it (.github/PROJECT_STRUCTURE.md,
-            // "Qt 6.11 can stop delivering the pointer").
             FormRow {
                 label: "Draws on"
 
@@ -118,7 +114,6 @@ ScrollPage {
 
     Section {
         title: "PRESSURE"
-        z: 1
 
         FormCard {
             width: root.columnWidth
@@ -205,10 +200,9 @@ ScrollPage {
                     readonly property string action: Tablet.actionOf(key.index)
                     // A shortcut that is none of the named ones.
                     readonly property bool custom: key.action.startsWith("keys:") && !Tablet.actions.some(choice => choice.value === key.action)
+                    readonly property string bound: key.custom ? Keybinds.describe(key.action.slice(5)) : ""
 
                     label: "Key " + (key.index + 1)
-                    // Each list opens over the keys after it.
-                    z: Tablet.padButtons - key.index
 
                     Column {
                         width: parent.width
@@ -217,33 +211,39 @@ ScrollPage {
                         ChoiceField {
                             choices: Tablet.actions.concat([
                                 {
-                                    label: "Shortcut…",
+                                    label: "Custom shortcut…",
                                     value: "custom"
                                 }
                             ])
                             current: key.custom ? "custom" : key.action
-                            onPicked: action => Tablet.setButton(key.index, action === "custom" ? "keys:" : action)
+                            onPicked: action => {
+                                if (action !== "custom") {
+                                    Tablet.setButton(key.index, action);
+                                    return;
+                                }
+                                if (!key.custom)
+                                    Tablet.setButton(key.index, "keys:");
+                                shortcut.start();
+                            }
                         }
 
-                        InputField {
+                        ShortcutField {
                             id: shortcut
 
-                            readonly property bool valid: Tablet.shortcut(shortcut.text) !== null
-
                             visible: key.custom
-                            width: Style.settings.fieldWidth
-                            placeholder: "CTRL + SHIFT + z"
-                            border.color: shortcut.text !== "" && !shortcut.valid ? Colors.status.error : shortcut.editing ? Colors.icon.active : Colors.base.border
-                            Component.onCompleted: shortcut.text = key.action.slice(5)
-                            onVisibleChanged: {
-                                if (shortcut.visible)
-                                    shortcut.text = key.action.slice(5);
-                            }
-                            onTextChanged: {
-                                const action = "keys:" + shortcut.text.trim();
-                                if (key.custom && shortcut.valid && action !== key.action)
-                                    Tablet.setButton(key.index, action);
-                            }
+                            keys: key.action.slice(5)
+                            onRecorded: keys => Tablet.setButton(key.index, "keys:" + keys)
+                        }
+
+                        Text {
+                            visible: key.custom && key.action !== "keys:" && !shortcut.recording
+                            width: parent.width
+                            wrapMode: Text.WordWrap
+                            text: key.bound !== "" ? "Your keybind: " + key.bound : "Sent to the focused window"
+                            textFormat: Text.PlainText
+                            color: Colors.text.muted
+                            font.family: Style.text.font
+                            font.pixelSize: Style.text.smallSize
                         }
                     }
                 }
@@ -258,7 +258,7 @@ ScrollPage {
                     return "No pad seen yet: its keys show here once the tablet is connected.";
                 if (Tablet.pad !== null && !Tablet.pad.readable)
                     return "The keys need the pad to be readable: run the installer's phase 4 again, or reconnect the tablet after it ran.";
-                return "A shortcut goes to the focused window, as Hyprland names keys: modifiers, then a key such as z, F5 or Escape. While any key is set, apps no longer see the pad's keys themselves.";
+                return "A custom shortcut works as if pressed on the keyboard: one of the desktop's keybinds does what it does there, and any other goes to the focused window. While any key is set, apps no longer see the pad's keys themselves.";
             }
             color: Tablet.pad !== null && !Tablet.pad.readable ? Colors.status.error : Colors.text.muted
             font.family: Style.text.font

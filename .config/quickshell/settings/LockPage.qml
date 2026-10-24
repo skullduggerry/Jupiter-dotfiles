@@ -8,9 +8,10 @@ import Quickshell
 import Quickshell.Io
 
 // The lock and login screens: a background each, one style for both
-// (LockLook). The lock screen follows at once; the login screen runs as
-// another user from a copy in /etc/greetd, which Apply reinstalls through
-// pkexec (scripts/install-greeter.sh) and which says what it was made from.
+// (LockLook), in the desktop's theme or dark. The lock screen follows at once;
+// the login screen runs as another user from a copy in /etc/greetd, theme
+// included, which Apply reinstalls through pkexec
+// (scripts/install-greeter.sh) and which says what it was made from.
 ScrollPage {
     id: root
 
@@ -38,7 +39,12 @@ ScrollPage {
             return null;
         }
     }
-    readonly property bool loginCurrent: root.installed !== null && root.installed.installedImage === root.loginSource && root.installed.loginBackground === LockLook.loginBackground && root.installed.blur === LockLook.blur && root.installed.dim === LockLook.dim && root.installed.clock === LockLook.clock
+    // The desktop's theme as the login screen was installed with it.
+    readonly property bool themeCurrent: {
+        const appearance = root.installed?.installedAppearance ?? {};
+        return root.installed?.installedTheme === Theme.theme && appearance.blur === Theme.blur && appearance.accent === Theme.accent && appearance.font === Theme.font && appearance.lightTint === Theme.lightTint && appearance.darkTint === Theme.darkTint;
+    }
+    readonly property bool loginCurrent: root.installed !== null && root.installed.installedImage === root.loginSource && root.installed.loginBackground === LockLook.loginBackground && root.installed.blur === LockLook.blur && root.installed.dim === LockLook.dim && root.installed.clock === LockLook.clock && root.installed.followTheme === LockLook.followTheme && (!LockLook.followTheme || root.themeCurrent)
     property string installError: ""
 
     function sourceFor(background: string, image: string, wallpaper: string): string {
@@ -209,6 +215,26 @@ ScrollPage {
 
         FormCard {
             width: root.columnWidth
+
+            // Light or dark as the desktop is, and its glass with Blur on.
+            FormRow {
+                label: "Theme"
+
+                PillGroup {
+                    choices: [
+                        {
+                            label: "The desktop's",
+                            value: true
+                        },
+                        {
+                            label: "Dark",
+                            value: false
+                        }
+                    ]
+                    current: LockLook.followTheme
+                    onPicked: value => LockLook.set("followTheme", value)
+                }
+            }
 
             FormRow {
                 label: "Blur"
