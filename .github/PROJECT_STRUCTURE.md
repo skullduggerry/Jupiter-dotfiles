@@ -13,8 +13,8 @@ Installed: Quickshell 0.3.2, Hyprland 0.56.2 (configured in Lua), Qt 6.12, Arch.
 | `.config/quickshell/` | the shell |
 | `.config/hypr/` | Hyprland: `hyprland.lua`, `modules/` (binds, monitors, startup, workspaces…), `styles/` (layer rules, blur, animations) |
 | `.config/wallust/` | theming, see THEMING.md |
-| `etc/greetd/` | the login screen, a second Quickshell config that logs in through `Quickshell.Services.Greetd` (`greeter-env.py` lists users and sessions); `scripts/install-greeter.sh` installs it as a copy, with `etc/pam.d/` |
-| `etc/udev/`, `etc/pacman.d/` | system files `scripts/install-system.sh` installs as root (Jupiter-installer's phase 4): the tablet pad's udev rule, and the pacman hook that runs `scripts/uwsm-desktop-entries.py` |
+| `etc/greetd/` | the login screen, a second Quickshell config that logs in through `Quickshell.Services.Greetd` (`greeter-env.py` lists users and sessions); `scripts/install-greeter.sh` installs it as a copy, with `etc/pam.d/`; what runs as root (`config.toml`, `etc/pam.d/`) comes from root's copy when the Settings app runs it |
+| `etc/udev/`, `etc/pacman.d/` | system files `scripts/install-system.sh` installs as root (Jupiter-installer's phase 4): the tablet pad's udev rule, the pacman hook that runs `scripts/uwsm-desktop-entries.py`, and root's copy of `install-greeter.sh` with greetd's config and the PAM stacks in `/usr/local/lib/jupiter/greeter` |
 | `scripts/` | `check.sh` and its helpers. The tests are Jupiter-testing's, next to this repo: a `dotfiles/test_*.py` per helper script, the QML tests (`dotfiles/qml/`) and the security suites (`dotfiles/security/`), which `check.sh` runs |
 | `pyproject.toml`, `.luarc.json`, `.editorconfig` | settings of the formatters and linters `check.sh` runs (no Python package) |
 
@@ -89,7 +89,9 @@ appearance and theme name), and it never writes them back.
 - A `Text` showing anything from outside the shell (apps, notifications,
   networks, devices, files, PAM) sets `textFormat: Text.PlainText`: otherwise
   Qt renders tags in it and fetches `<img>` sources. Notification bodies keep
-  `StyledText`, without `<img>`.
+  `StyledText`, through `NotificationService.withoutImages()`, which takes
+  out every `<img>`, again until none is left (taking one out can join the
+  text around it into another).
 - Apps start through `Session.app()`/`Session.entry()` and logging out is
   `Session.logout()`, as Hyprland's binds use `modules/session.lua`: under
   uwsm each app gets a scope of its own (`uwsm-app`), and logout is `uwsm stop`.
@@ -208,7 +210,12 @@ Night Light at login.
   through `Process.environment`. The app password stays in the keyring
   (`secret-tool`, keyed by server and login) and never touches QML, state
   files or argv. Only `https://` is accepted, except loopback, for the server
-  and for the URLs Login Flow v2 (`nextcloud-login.py`) answers with. One
+  and for the URLs Login Flow v2 (`nextcloud-login.py`) answers with, and a
+  redirect is followed only to https (`SecureRedirects`). The calendar
+  follows one only on the same server, and takes an href only on it
+  (`SameServer`, `resolve()`): urllib keeps Authorization on any redirect.
+  A task is marked done only at an address in that server's calendars
+  (`task_url()`). One
   object or calendar that cannot be read costs only itself. The calendar home is discovered through
   `current-user-principal`, never built from the login name.
 - `calendar-color` lives in Apple's namespace and arrives as `#rrggbbaa`. Cut
@@ -306,7 +313,9 @@ event when switching back to the previous layout).
 - Hyprland gives the pad's buttons only to the app under the pen. While a
   button is bound, `tablet.py pad` grabs the pad's event node (readable
   through `etc/udev/rules.d/70-tablet-pad.rules`) and a press runs
-  `require("modules.tablet").press(mods, key)`.
+  `require("modules.tablet").press(mods, key)`. While the session is locked
+  `Tablet.press()` does nothing: the pad goes around Hyprland, which runs no
+  bind but the media keys' then.
 - A shortcut on a pad key works as on the keyboard. Hyprland runs no bind for
   keys it is sent (`send_key_state` goes straight to the window), so
   `keybinds.lua` binds through `tablet.bind`, which keeps each bind by its keys,
@@ -363,8 +372,12 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
   the field, and a failure shows what PAM said. A finger unlocks too, through
   `pam/fingerprint.conf` beside the password, never in the password's stack
   (each attempt would wait on the reader). The login screen's look
-  only applies through `install-greeter.sh` (run through pkexec from the Lock
-  Screen tab).
+  only applies through `install-greeter.sh`. The Lock Screen tab runs root's
+  copy of it (`/usr/local/lib/jupiter/greeter`, from `install-system.sh`)
+  through pkexec with `--from` the clone, never the repo's: root takes the
+  script, greetd's `config.toml` and the PAM stacks from that copy, and reads
+  the clone and the owner's state only as the owner (`owned`, `copy`), since
+  a file in the home is whoever's runs as them.
 - Both screens are in the desktop's theme unless the Lock Screen tab's Theme
   is Dark (`LockLook.followTheme`, `Colors.lock`): its text over a veil of its
   background, at the tab's Dim, and with Blur on its glass for the password

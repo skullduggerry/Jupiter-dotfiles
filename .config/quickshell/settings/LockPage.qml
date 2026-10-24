@@ -141,16 +141,20 @@ ScrollPage {
         }
     }
 
-    // The installer's path resolved first: ~/.config/quickshell is a link,
-    // and pkexec names the program it asks about.
+    // Root's copy of the installer (scripts/install-system.sh keeps it), not
+    // the repo's: pkexec runs it as root, and a file in the home is anyone's
+    // who got to run as you. It reads the clone as you, from --from, its path
+    // resolved first, since ~/.config/quickshell is a link.
     Process {
         id: installer
 
-        command: ["sh", "-c", "exec pkexec \"$(readlink -f \"$1\")\"", "sh", Quickshell.shellDir + "/../../scripts/install-greeter.sh"]
+        command: ["sh", "-c", "[ -x \"$1\" ] || exit 3; exec pkexec \"$1\" --from \"$(readlink -f \"$2\")\"", "sh", "/usr/local/lib/jupiter/greeter/scripts/install-greeter.sh", Quickshell.shellDir + "/../.."]
         onStarted: root.installError = ""
         onExited: (exitCode, exitStatus) => {
             if (exitCode === 126)
                 root.installError = "Cancelled";
+            else if (exitCode === 3)
+                root.installError = "Run sudo scripts/install-system.sh once first";
             else if (exitCode !== 0)
                 root.installError = "Could not install the login screen";
             installedFile.reload();
