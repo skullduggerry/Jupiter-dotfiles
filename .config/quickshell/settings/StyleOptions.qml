@@ -132,8 +132,8 @@ Column {
     // would make text hard to read, and Static keeps to it. The line under the
     // slider says which, in numbers. Then whether the dropdowns fade in and
     // out, as Hyprland shows any panel, or swoosh out of the bar and back, and
-    // last how the quick menu is drawn (the pencil at its centre offers the
-    // same choice).
+    // last how the quick menu is drawn, and with Halo whether it shows labels
+    // (the pencil at its centre offers the same choices).
     Section {
         title: "PANELS"
 
@@ -295,6 +295,27 @@ Column {
                         font.family: Style.text.font
                         font.pixelSize: Style.text.smallSize
                     }
+                }
+            }
+
+            // Orbit has none: it names what is selected in its hub.
+            FormRow {
+                visible: QuickMenu.look === "halo" || (QuickMenu.look === "auto" && !Theme.blur)
+                label: "Menu labels"
+
+                PillGroup {
+                    choices: [
+                        {
+                            label: "Shown",
+                            value: true
+                        },
+                        {
+                            label: "Hidden",
+                            value: false
+                        }
+                    ]
+                    current: QuickMenu.labels
+                    onPicked: labels => QuickMenu.setLabels(labels)
                 }
             }
         }

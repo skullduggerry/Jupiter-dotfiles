@@ -137,12 +137,23 @@ FocusScope {
         return slot * root.step > 180 ? -1 : 1;
     }
 
-    // How wide the label of a slot or an item can be, its middle at `at`,
-    // inside its piece of the ring: the band from `inner` to `outer` between
-    // the angles `from` and `to`. RingItem puts the label half its badge and
-    // spacing below its middle; the label stays centred under the badge.
+    // Whether Halo's label goes above its glyph, away from the hub: on the
+    // ring's upper half; on the lower, and level with the hub, under it.
+    function labelAbove(angle: real): bool {
+        return Math.cos(angle * Math.PI / 180) > 0.01;
+    }
+
+    // Where the middle of a label is, for a slot or an item whose middle is
+    // `at`: RingItem puts it half its badge and spacing above or below.
+    function labelPoint(at: point, angle: real): point {
+        return Qt.point(at.x, at.y + (root.labelAbove(angle) ? -1 : 1) * (Style.toggles.badgeSize + Style.widgets.spacing) / 2);
+    }
+
+    // How wide a label can be, its middle at `at`, inside its piece of the
+    // ring: the band from `inner` to `outer` between the angles `from` and
+    // `to`; the label stays centred on its glyph.
     function room(at: point, inner: real, outer: real, from: real, to: real): real {
-        const y = at.y + (Style.toggles.badgeSize + Style.widgets.spacing) / 2;
+        const y = at.y;
         let half = Infinity;
         for (const side of [-1, 1]) {
             let reach = Math.sqrt(Math.max(0, outer * outer - y * y)) - side * at.x;
@@ -889,7 +900,10 @@ FocusScope {
                         y: slot.at.y - height / 2
                         opacity: slot.faded ? Style.quickMenu.dimmed : 1
                         item: slot.item
-                        room: root.room(slot.at, Style.quickMenu.centerRadius, Style.quickMenu.ringOuter, slot.angle - root.step / 2, slot.angle + root.step / 2)
+                        angle: slot.angle
+                        showLabel: QuickMenu.labels
+                        labelAbove: root.labelAbove(slot.angle)
+                        room: root.room(root.labelPoint(slot.at, slot.angle), Style.quickMenu.centerRadius, Style.quickMenu.ringOuter, slot.angle - root.step / 2, slot.angle + root.step / 2)
                         key: slot.key
                         keyShown: root.keysShown
                         selected: slot.selected
@@ -902,6 +916,7 @@ FocusScope {
                         y: slot.at.y - height / 2
                         opacity: slot.faded ? Style.quickMenu.dimmed : 1
                         item: slot.item
+                        angle: slot.angle
                         selected: root.selectedSlot === slot.index || (root.editing && root.editSlot === slot.index)
                         dashed: root.editing
                         confirming: slot.confirming
@@ -981,7 +996,10 @@ FocusScope {
                         y: arcItem.shown.y - height / 2
                         scale: 1 - (1 - Style.quickMenu.popFrom) * arcItem.travel
                         item: arcItem.item
-                        room: root.room(arcItem.at, Style.quickMenu.arcInner, Style.quickMenu.arcOuter, root.arcAngle(arcItem.index), root.arcAngle(arcItem.index) + root.span)
+                        angle: arcItem.angle
+                        showLabel: QuickMenu.labels
+                        labelAbove: root.labelAbove(arcItem.angle)
+                        room: root.room(root.labelPoint(arcItem.at, arcItem.angle), Style.quickMenu.arcInner, Style.quickMenu.arcOuter, root.arcAngle(arcItem.index), root.arcAngle(arcItem.index) + root.span)
                         key: root.arcKeys[arcItem.index] ?? ""
                         keyShown: root.keysShown
                         selected: arcItem.selected
@@ -994,6 +1012,7 @@ FocusScope {
                         y: arcItem.shown.y - height / 2
                         size: Style.quickMenu.itemButtonSize
                         item: arcItem.item
+                        angle: arcItem.angle
                         selected: arcItem.selected
                         confirming: root.confirming !== "" && root.confirming === arcItem.entry
                         key: root.arcKeys[arcItem.index] ?? ""
@@ -1017,6 +1036,7 @@ FocusScope {
 
                 sourceComponent: QuickMenuEditor {
                     side: root.editorSide
+                    orbit: root.orbit
                     items: root.items
                     slot: root.editSlot
                     onDone: {

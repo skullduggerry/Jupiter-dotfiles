@@ -35,6 +35,21 @@ TestCase {
         verify(menu !== null, component.errorString());
     }
 
+    // Along the radius from the hub: letter, glyph, label, so a label is
+    // above its glyph on the upper half and under it elsewhere.
+    function test_labelsGoAwayFromTheHub() {
+        setUp();
+        for (const angle of [0, 45, 315, -45])
+            verify(menu.labelAbove(angle), `above at ${angle}°`);
+        for (const angle of [90, 135, 180, 225, 270])
+            verify(!menu.labelAbove(angle), `under at ${angle}°`);
+        const top = menu.labelPoint(Qt.point(0, -100), 0);
+        verify(top.y < -100, "the top slot's label is further out than its middle");
+        const bottom = menu.labelPoint(Qt.point(0, 100), 180);
+        verify(bottom.y > 100, "and the bottom slot's too");
+        menu.destroy();
+    }
+
     function test_theWheelOverAListsSlotStepsItsRows() {
         setUp();
         const apps = menu.slots.indexOf("item:apps");

@@ -29,6 +29,9 @@ Singleton {
     // reads as Orbit over blur and Halo over a solid surface.
     readonly property list<string> looks: ["auto", "halo", "orbit"]
     readonly property string look: root.looks.includes(settings.look) ? settings.look : "auto"
+    // Halo's labels under or over each glyph; Orbit names only what is
+    // selected, in its hub.
+    readonly property bool labels: settings.labels
     // How large it is drawn, one of Style.quickMenu.sizes.
     readonly property real size: settings.size
     readonly property bool capsLock: settings.capsLock
@@ -88,6 +91,11 @@ Singleton {
         writeDebounce.restart();
     }
 
+    function setLabels(labels: bool) {
+        settings.labels = labels;
+        writeDebounce.restart();
+    }
+
     function setCapsLock(enabled: bool) {
         settings.capsLock = enabled;
         writeDebounce.restart();
@@ -119,6 +127,7 @@ Singleton {
             property bool closeAfterClick: false
             property bool playful: true
             property string look: "auto"
+            property bool labels: true
             property real size: 1.2
             property bool capsLock: true
         }

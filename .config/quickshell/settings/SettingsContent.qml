@@ -23,7 +23,7 @@ FocusScope {
                 {
                     name: "appearance",
                     title: "Style",
-                    keywords: "theme light dark accent colour colours color colors font blur strength tint glass solid panels dropdowns quick menu halo orbit"
+                    keywords: "theme light dark accent colour colours color colors font blur strength tint glass solid panels dropdowns quick menu halo orbit labels"
                 },
                 {
                     name: "wallpaper",

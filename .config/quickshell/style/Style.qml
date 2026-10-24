@@ -183,7 +183,7 @@ QtObject {
         readonly property int leastTextSize: 9
         // How long the apps' search caret shows, then hides.
         readonly property int caretBlink: 530
-        // Each slot's and item's letter, on its glyph's corner.
+        // Each slot's and item's letter, beside its glyph toward the hub.
         readonly property int keyCapHeight: 15
         readonly property int keyDelay: 600
         readonly property int reach: 120

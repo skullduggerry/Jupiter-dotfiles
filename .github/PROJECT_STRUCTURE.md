@@ -394,9 +394,14 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
   the other items leave of `maxItems`.
 - A label is `Colors.text.base`, never muted: over a bright wallpaper's glass
   muted text measured 2.7:1, under AA's 4.5:1. It shrinks to fit its piece
-  of the ring (`room()`).
-- The letters (`KeyHint`, on a glyph's corner) show only once the pointer
-  has rested `keyDelay` or a key is pressed, so a flick never shows them.
+  of the ring (`room()`). Halo lays each slot out along its radius from the
+  hub: letter, glyph, label, the label above the glyph on the ring's upper
+  half and under it on the lower (`labelAbove()`), so the two never meet.
+  Its labels can be hidden (`QuickMenu.labels`); Orbit has none, and names
+  the selection in its hub.
+- The letters (`KeyHint`, beside a glyph toward the hub, on Orbit's rim
+  where the line arrives) show only once the pointer has rested `keyDelay`
+  or a key is pressed, so a flick never shows them.
 - A list item (the apps, the clipboard) shows its entries in a `RingList`
   beside its slot, as a category shows its arc; the pencil's options are a
   `RingPanel` too. Both are straight boxes whose edge toward the menu is

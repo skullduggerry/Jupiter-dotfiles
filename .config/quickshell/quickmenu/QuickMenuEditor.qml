@@ -7,8 +7,8 @@ import "../style"
 import QtQuick
 
 // The pencil's panel beside the quick menu. With no slot picked, the menu's
-// own options: how many slots, its size, its look, whether a click closes it,
-// and its motion.
+// own options: how many slots, its size, its look (and Halo's labels),
+// whether a click closes it, and its motion.
 // With one picked, what that slot holds: a category, and which of its items
 // it shows, or a single shortcut, or nothing.
 RingPanel {
@@ -16,6 +16,8 @@ RingPanel {
 
     required property QuickMenuItems items
     required property int slot
+    // Drawn as Orbit, which has no labels to hide.
+    property bool orbit: false
     readonly property string held: root.slot >= 0 ? QuickMenu.slots[root.slot] ?? "" : ""
     readonly property string heldCategory: root.held.startsWith("category:") ? root.held.slice("category:".length) : ""
     readonly property var shown: root.heldCategory !== "" ? QuickMenu.categories[root.heldCategory] ?? root.items.categories[root.heldCategory].shows ?? root.items.categories[root.heldCategory].items : []
@@ -110,6 +112,23 @@ RingPanel {
                         }))
                 current: QuickMenu.look
                 onPicked: look => QuickMenu.setLook(look)
+            }
+
+            Option {
+                visible: !root.orbit
+                label: "LABELS"
+                choices: [
+                    {
+                        label: "Shown",
+                        value: true
+                    },
+                    {
+                        label: "Hidden",
+                        value: false
+                    }
+                ]
+                current: QuickMenu.labels
+                onPicked: labels => QuickMenu.setLabels(labels)
             }
 
             Option {

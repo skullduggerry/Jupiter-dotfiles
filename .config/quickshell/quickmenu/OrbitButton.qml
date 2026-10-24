@@ -6,13 +6,15 @@ import QtQuick.Shapes
 // A slot or an item as Orbit draws it (QuickMenuItems.describe()): a round
 // button with the panels' glass and border and the glyph on it, filled while
 // a toggle is on, a meter inside its rim for a level, and its letter on its
-// corner. Selected, it grows and is ringed in the accent, as a picked
-// workspace or display is outlined; it is dashed while the slots are being
-// changed, and for an empty slot.
+// rim toward the hub (`angle`, where it sits round the ring). Selected, it
+// grows and is ringed in the accent, as a picked workspace or display is
+// outlined; it is dashed while the slots are being changed, and for an
+// empty slot.
 Item {
     id: root
 
     property var item: ({})
+    property real angle: 0
     property real size: Style.quickMenu.buttonSize
     property bool selected: false
     property bool dashed: false
@@ -71,10 +73,10 @@ Item {
         color: root.dimmed ? Colors.icon.disabled : root.on ? Colors.text.inverted : Colors.icon.active
     }
 
-    // On the rim, up and to the right.
+    // On the rim toward the hub, where the line from it arrives.
     KeyHint {
-        x: root.size / 2 * (1 + Math.SQRT1_2) - width / 2
-        y: root.size / 2 * (1 - Math.SQRT1_2) - height / 2
+        x: root.size / 2 * (1 - Math.sin(root.angle * Math.PI / 180)) - width / 2
+        y: root.size / 2 * (1 + Math.cos(root.angle * Math.PI / 180)) - height / 2
         key: root.key
         shown: root.keyShown
         selected: root.selected
