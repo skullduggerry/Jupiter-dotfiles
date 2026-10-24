@@ -7,7 +7,8 @@ import QtQuick
 // The calendar dropdown's open tasks, under the day's agenda: every one not
 // done yet, whatever day is selected. Those with a due date come first, soonest
 // at the top and late ones in the error colour, then those with none, which
-// Nextcloud's Tasks app allows.
+// Nextcloud's Tasks app allows. Clicking a task's ring marks it done; only the
+// ring, since a two-finger swipe over the list clicks first.
 Item {
     id: root
 
@@ -42,6 +43,8 @@ Item {
         }
 
         Text {
+            id: title
+
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             text: "Tasks"
@@ -51,10 +54,19 @@ Item {
         }
 
         Text {
+            id: count
+
+            readonly property bool failed: CalendarService.completeProblem !== ""
+
+            anchors.left: title.right
             anchors.right: parent.right
+            anchors.leftMargin: Style.widgets.spacing
             anchors.verticalCenter: parent.verticalCenter
-            text: CalendarService.tasks.length + " open"
-            color: Colors.text.muted
+            horizontalAlignment: Text.AlignRight
+            text: count.failed ? "Not marked done: " + CalendarService.completeProblem : CalendarService.tasks.length + " open"
+            textFormat: Text.PlainText
+            elide: Text.ElideRight
+            color: count.failed ? Colors.status.error : Colors.text.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
         }
@@ -92,13 +104,25 @@ Item {
                 width: Style.calendar.taskRingSize
                 height: Style.calendar.taskRingSize
                 radius: width / 2
-                color: "transparent"
+                // Filled under the pointer: what clicking will do to it.
+                color: done.containsMouse ? ring.border.color : "transparent"
                 border.width: Style.border.width
                 border.color: taskRow.modelData.colour || Colors.calendar.event
 
                 anchors {
                     left: parent.left
                     verticalCenter: parent.verticalCenter
+                }
+
+                MouseArea {
+                    id: done
+
+                    anchors.fill: parent
+                    anchors.margins: -Style.widgets.spacing
+                    enabled: taskRow.modelData.href !== ""
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: CalendarService.complete(taskRow.modelData.href)
                 }
             }
 
@@ -108,6 +132,7 @@ Item {
                 color: Colors.text.base
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
+                font.strikeout: done.containsMouse
                 elide: Text.ElideRight
 
                 anchors {

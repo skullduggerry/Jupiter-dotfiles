@@ -12,6 +12,13 @@ Singleton {
     property var events: []
     // Every open task, dated or not, in the helper's order: due ones first.
     property var tasks: []
+    // Hrefs of tasks marked done and not yet written: hidden at once, and
+    // still hidden in a fetch that started before the write landed.
+    property var completing: []
+    property string completeHref: ""
+    // Why the last task could not be marked done; its own, since every fetch
+    // sets `message`.
+    property string completeProblem: ""
     property date lastUpdated: new Date(0)
     property date rangeStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
     property date rangeEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
@@ -35,6 +42,18 @@ Singleton {
     property string loginMessage: ""
     readonly property bool signingIn: login.running
     readonly property bool loading: status === "loading"
+    // Only what has actually been set here, so NEXTCLOUD_URL from a shell
+    // profile still works for anyone who configured it that way.
+    readonly property var helperEnvironment: {
+        const vars = {};
+        if (root.serverUrl !== "")
+            vars["NEXTCLOUD_URL"] = root.serverUrl;
+
+        if (root.user !== "")
+            vars["NEXTCLOUD_USER"] = root.user;
+
+        return vars;
+    }
     readonly property var eventsByDay: {
         const grouped = {};
         for (let index = 0; index < root.events.length; index++) {
@@ -166,7 +185,9 @@ Singleton {
                     start: new Date(event.start),
                     end: new Date(event.end)
                 }));
-        root.tasks = rawTasks.map(task => ({
+        root.tasks = rawTasks.filter(task => !root.completing.includes(task.href)).map(task => ({
+                    // "" in a cache from before tasks could be marked done.
+                    href: task.href ?? "",
                     summary: task.summary,
                     calendar: task.calendar,
                     colour: task.colour || "",
@@ -237,6 +258,45 @@ Singleton {
             root.refresh(false);
     }
 
+    // Marks one task done on the server, one write at a time; once they are
+    // all written, a fetch brings back any the server refused.
+    function complete(href: string) {
+        if (href === "" || root.completing.includes(href))
+            return;
+
+        root.completeProblem = "";
+        root.completing = root.completing.concat([href]);
+        root.tasks = root.tasks.filter(task => task.href !== href);
+        if (!completer.running)
+            root.completeNext();
+    }
+
+    function completeNext() {
+        // Pinned before running, since the command binds to it.
+        root.completeHref = root.completing[0];
+        completer.running = true;
+    }
+
+    function applyCompletion(exitCode: int, output: string, errorOutput: string) {
+        let payload = null;
+        try {
+            payload = JSON.parse(output);
+        } catch (parseError) {
+            payload = {
+                status: "error",
+                message: errorOutput.trim().split("\n").pop() || "calendar helper exited " + exitCode + " without output"
+            };
+        }
+        if (payload.status !== "ok")
+            root.completeProblem = payload.message;
+
+        root.completing = root.completing.filter(href => href !== root.completeHref);
+        if (root.completing.length > 0)
+            root.completeNext();
+        else
+            root.refresh(true);
+    }
+
     onActiveChanged: {
         // The cache draws at once, and the network is asked only when it is
         // stale; through the debounce, as the panel's range arrives just after.
@@ -272,18 +332,7 @@ Singleton {
         id: fetcher
 
         command: ["python3", Quickshell.shellDir + "/services/nextcloud-calendar.py", "--start", root.dayKey(root.fetchStart), "--end", root.dayKey(root.fetchEnd)]
-        // Only override what has actually been set here, so NEXTCLOUD_URL from
-        // a shell profile still works for anyone who configured it that way.
-        environment: {
-            const vars = {};
-            if (root.serverUrl !== "")
-                vars["NEXTCLOUD_URL"] = root.serverUrl;
-
-            if (root.user !== "")
-                vars["NEXTCLOUD_USER"] = root.user;
-
-            return vars;
-        }
+        environment: root.helperEnvironment
         onExited: (exitCode, exitStatus) => root.applyResult(exitCode, fetchOutput.text, fetchError.text)
 
         stdout: StdioCollector {
@@ -292,6 +341,22 @@ Singleton {
 
         stderr: StdioCollector {
             id: fetchError
+        }
+    }
+
+    Process {
+        id: completer
+
+        command: ["python3", Quickshell.shellDir + "/services/nextcloud-calendar.py", "--complete", root.completeHref]
+        environment: root.helperEnvironment
+        onExited: (exitCode, exitStatus) => root.applyCompletion(exitCode, completeOutput.text, completeError.text)
+
+        stdout: StdioCollector {
+            id: completeOutput
+        }
+
+        stderr: StdioCollector {
+            id: completeError
         }
     }
 

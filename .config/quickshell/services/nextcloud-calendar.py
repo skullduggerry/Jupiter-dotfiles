@@ -8,6 +8,9 @@ is why the contract is "one JSON object on stdout, always":
     {"status": "unconfigured", "message": "..."}
     {"status": "error", "message": "..."}
 
+With --complete HREF it marks that task done instead, and answers
+{"status": "ok", "message": ""} or one of the two above.
+
 The exit code is 0 for ok, 2 for unconfigured and 1 for anything else, so the
 script is also usable on its own:
 
@@ -43,9 +46,14 @@ script never has to interpret an RRULE.
 Tasks are every VTODO not yet done, in any collection that holds them: the
 Tasks app keeps its lists as VTODO-only calendars, and a calendar can hold
 both. A task need not have a due date, so they are not fetched by time range;
-the server leaves out the completed ones instead.
+the server leaves out the completed ones instead. Each carries its object's
+href, which --complete writes back to.
 
-Standard library only: the `icalendar` and `caldav` packages are not
+Marking a repeating task done finishes only its current occurrence, as
+Nextcloud Tasks does: see mark_completed().
+
+Standard library only, but for python-dateutil's rrule, which finds a repeating
+task's next occurrence: the `icalendar` and `caldav` packages are not
 dependencies of this shell, and parsing what a time-range CalDAV query
 returns needs very little of what they offer.
 """
@@ -65,9 +73,11 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ElementTree
 from collections.abc import Callable
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from typing import NamedTuple
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from dateutil.rrule import rrulestr
 
 DAV = "DAV:"
 CALDAV = "urn:ietf:params:xml:ns:caldav"
@@ -239,28 +249,49 @@ def is_secure(url: str) -> bool:
 
 
 def request(method: str, url: str, auth: str, body: str, depth: str) -> bytes:
+    data, _ = exchange(
+        method,
+        url,
+        auth,
+        body,
+        {"Content-Type": 'application/xml; charset="utf-8"', "Depth": depth},
+        f" (no calendar home for this user at {url})",
+    )
+    return data
+
+
+def exchange(
+    method: str,
+    url: str,
+    auth: str,
+    body: str | None,
+    headers: dict[str, str],
+    missing: str = "",
+) -> tuple[bytes, str]:
+    """Send one request; return the answer's body and its ETag ("" if none)."""
     http_request = urllib.request.Request(
         url,
         method=method,
-        data=body.encode(),
+        data=body.encode() if body is not None else None,
         headers={
             "Authorization": f"Basic {auth}",
-            "Content-Type": 'application/xml; charset="utf-8"',
-            "Depth": depth,
             "User-Agent": "quickshell-calendar/1",
+            **headers,
         },
     )
     try:
         with urllib.request.urlopen(
             http_request, timeout=TIMEOUT_SECONDS
         ) as response:
-            return response.read()
+            return response.read(), response.headers.get("ETag", "")
     except urllib.error.HTTPError as error:
         hint = ""
         if error.code == 401:
             hint = " (wrong user or app password)"
         elif error.code == 404:
-            hint = f" (no calendar home for this user at {url})"
+            hint = missing
+        elif error.code == 412:
+            hint = " (changed on the server meanwhile)"
         raise Failed(
             f"{method} {url}: HTTP {error.code} {error.reason}{hint}"
         ) from None
@@ -370,8 +401,11 @@ def home_path(home: str) -> str:
     return urllib.parse.urlsplit(home).path
 
 
-def query(base: str, calendar: Calendar, auth: str, body: str) -> list[str]:
-    """The iCalendar text of every object a calendar-query REPORT matches."""
+def query(
+    base: str, calendar: Calendar, auth: str, body: str
+) -> list[tuple[str, str]]:
+    """The href and iCalendar text of every object a calendar-query REPORT
+    matches."""
     url = (
         base + calendar.href
         if calendar.href.startswith("/")
@@ -385,11 +419,16 @@ def query(base: str, calendar: Calendar, auth: str, body: str) -> list[str]:
         raise Failed(
             f"REPORT {url}: malformed CalDAV response: {error}"
         ) from None
-    return [
-        data.text
-        for data in document.findall(".//c:calendar-data", NS)
-        if data.text
-    ]
+    objects = []
+    for response in document.findall("d:response", NS):
+        data = response.findtext(
+            ".//c:calendar-data", default="", namespaces=NS
+        )
+        if data:
+            objects.append(
+                (response.findtext("d:href", default="", namespaces=NS), data)
+            )
+    return objects
 
 
 def fetch_events(
@@ -400,21 +439,22 @@ def fetch_events(
     )
     return [
         event
-        for ics in query(base, calendar, auth, body)
+        for _, ics in query(base, calendar, auth, body)
         for event in parse_ics(ics, calendar.name, calendar.colour)
     ]
 
 
 def fetch_tasks(base: str, calendar: Calendar, auth: str) -> list[dict]:
+    # The object's href is what marking a task done writes back to.
     return [
-        task
-        for ics in query(base, calendar, auth, TASKS_BODY)
+        {**task, "href": href}
+        for href, ics in query(base, calendar, auth, TASKS_BODY)
         for task in parse_tasks(ics, calendar.name, calendar.colour)
     ]
 
 
 def as_caldav_utc(moment: datetime) -> str:
-    return moment.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return moment.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
 # --------------------------------------------------------------------------
@@ -492,7 +532,7 @@ def parse_datetime(
 
     naive = datetime.strptime(value.rstrip("Z"), "%Y%m%dT%H%M%S")
     if value.endswith("Z"):
-        moment = naive.replace(tzinfo=timezone.utc)
+        moment = naive.replace(tzinfo=UTC)
     elif "TZID" in parameters:
         try:
             moment = naive.replace(tzinfo=ZoneInfo(parameters["TZID"]))
@@ -667,6 +707,274 @@ def task_order(task: dict) -> tuple:
 
 
 # --------------------------------------------------------------------------
+# marking a task done
+
+# What marking done rewrites in the task; anything else the object holds, an
+# alarm, a description, a property this script has never heard of, stays.
+DONE_PROPERTIES = ("STATUS", "COMPLETED", "PERCENT-COMPLETE", "LAST-MODIFIED")
+# What a repeating task's record of one occurrence done copies from it, as
+# Nextcloud Tasks copies them.
+RECORD_PROPERTIES = (
+    "UID",
+    "SUMMARY",
+    "DESCRIPTION",
+    "LOCATION",
+    "URL",
+    "PRIORITY",
+    "CLASS",
+)
+
+
+class Task(NamedTuple):
+    """The object's main VTODO: where it begins and ends among the lines,
+    and each of its own properties' line (an alarm's are not its own)."""
+
+    start: int
+    end: int
+    lines: dict[str, str]
+
+
+def fold(line: str) -> list[str]:
+    """RFC 5545 line folding: at most 75 octets a line, never inside a
+    character."""
+    lines = []
+    current, size = "", 0
+    for character in line:
+        width = len(character.encode())
+        if size + width > 75:
+            lines.append(current)
+            current, size = " ", 1
+        current += character
+        size += width
+    lines.append(current)
+    return lines
+
+
+def main_task(lines: list[str]) -> Task:
+    """The VTODO without a RECURRENCE-ID: the task itself, not a changed or
+    finished occurrence of it."""
+    start = depth = 0
+    own: dict[str, str] | None = None
+    for index, line in enumerate(lines):
+        name, _, content = split_property(line)
+        if own is None:
+            if name == "BEGIN" and content == "VTODO":
+                start, depth, own = index, 0, {}
+        elif name == "BEGIN":
+            depth += 1
+        elif name == "END" and depth > 0:
+            depth -= 1
+        elif name == "END":
+            if "RECURRENCE-ID" not in own:
+                return Task(start, index, own)
+            own = None
+        elif depth == 0:
+            own.setdefault(name, line)
+    raise Failed("no task in this object")
+
+
+def rewritten(
+    lines: list[str],
+    task: Task,
+    drop: set[str],
+    add: list[str],
+    after: list[str],
+) -> str:
+    """`lines` with the task's own `drop` properties replaced by `add`, and
+    `after` following the task, folded and ended as RFC 5545 has it."""
+    out = lines[: task.start + 1] + add
+    depth = 0
+    for line in lines[task.start + 1 : task.end]:
+        name = split_property(line)[0]
+        if name == "BEGIN":
+            depth += 1
+        elif name == "END":
+            depth -= 1
+        elif depth == 0 and name in drop:
+            continue
+        out.append(line)
+    out += [lines[task.end], *after, *lines[task.end + 1 :]]
+    return "".join(folded + "\r\n" for line in out for folded in fold(line))
+
+
+def with_value(line: str, value: str) -> str:
+    """A property line with its value replaced, its parameters kept."""
+    content = split_property(line)[2]
+    return line[: len(line) - len(content)] + value
+
+
+def wall_time(line: str) -> tuple[datetime, bool]:
+    """A DUE or DTSTART as the clock shows it in its own time zone, and
+    whether it is a whole day; repeating goes by that clock, across a change
+    to summer time too."""
+    _, parameters, value = split_property(line)
+    if parameters.get("VALUE") == "DATE" or (
+        len(value) == 8 and "T" not in value
+    ):
+        return datetime.combine(date.fromisoformat(value), time()), True
+    return datetime.strptime(value.rstrip("Z"), "%Y%m%dT%H%M%S"), False
+
+
+def written_like(line: str, moment: datetime) -> str:
+    """`line` moved to `moment`, written in the same form: a date, UTC, or a
+    time in its zone."""
+    _, _, value = split_property(line)
+    if wall_time(line)[1]:
+        return with_value(line, moment.strftime("%Y%m%d"))
+    utc = "Z" if value.endswith("Z") else ""
+    return with_value(line, moment.strftime("%Y%m%dT%H%M%S") + utc)
+
+
+def rule_end(until: str, anchor: str) -> datetime:
+    """A rule's UNTIL on the clock its occurrences are counted on."""
+    if len(until) == 8:
+        # A date includes the whole day.
+        return datetime.combine(date.fromisoformat(until), time.max)
+    moment = datetime.strptime(until.rstrip("Z"), "%Y%m%dT%H%M%S")
+    _, parameters, value = split_property(anchor)
+    if not until.endswith("Z") or value.endswith("Z"):
+        return moment
+    try:
+        zone = ZoneInfo(parameters["TZID"]) if "TZID" in parameters else None
+    except (ZoneInfoNotFoundError, ValueError):
+        zone = None
+    return moment.replace(tzinfo=UTC).astimezone(zone).replace(tzinfo=None)
+
+
+def next_occurrence(rule: str, anchor: str) -> datetime | None:
+    """The occurrence after the one `anchor` (the task's DUE, or its DTSTART
+    without one) is on, as Nextcloud Tasks finds it: counted on from that
+    one, and none past the rule's end. COUNT is the caller's, since moving the
+    task on starts the count again."""
+    instance, _ = wall_time(anchor)
+    parts = dict(
+        part.split("=", 1) for part in rule.upper().split(";") if "=" in part
+    )
+    until = parts.pop("UNTIL", None)
+    parts.pop("COUNT", None)
+    recurrence = rrulestr(
+        ";".join(f"{key}={value}" for key, value in parts.items()),
+        dtstart=instance,
+    )
+    following = recurrence.after(instance)
+    # The next one on the same day is still this day's.
+    if following is not None and following.date() == instance.date():
+        following = recurrence.after(following)
+    if following is None or (
+        until is not None and following > rule_end(until, anchor)
+    ):
+        return None
+    return following
+
+
+def mark_completed(ics: str, stamp: datetime) -> str:
+    """`ics` with its task done as of `stamp`, as Nextcloud Tasks marks one.
+
+    A repeating task with a date has only its current occurrence done: a
+    record of that one, and the task moved on to the next (DUE and DTSTART
+    alike, the time between them kept), until its rule runs out.
+    """
+    lines = [line for line in unfold(ics) if line]
+    task = main_task(lines)
+    utc = as_caldav_utc(stamp)
+    done = [
+        "STATUS:COMPLETED",
+        "PERCENT-COMPLETE:100",
+        f"COMPLETED:{utc}",
+        f"LAST-MODIFIED:{utc}",
+    ]
+    own = task.lines
+    anchor = own.get("DUE") or own.get("DTSTART")
+    if "RRULE" not in own or anchor is None:
+        return rewritten(lines, task, set(DONE_PROPERTIES), done, [])
+
+    # The record goes in this same object, as Thunderbird writes it: Nextcloud
+    # Tasks PUTs it as an object of its own, which Nextcloud's server refuses
+    # (no-uid-conflict) for sharing the task's UID.
+    record = [
+        "BEGIN:VTODO",
+        *(own[name] for name in RECORD_PROPERTIES if name in own),
+        "RECURRENCE-ID" + anchor[len(split_property(anchor)[0]) :],
+        *(own[name] for name in ("DUE", "DTSTART") if name in own),
+        *done,
+        f"DTSTAMP:{utc}",
+        "END:VTODO",
+    ]
+
+    rule = split_property(own["RRULE"])[2]
+    count = next(
+        (
+            int(part[6:])
+            for part in rule.upper().split(";")
+            if part.startswith("COUNT=") and part[6:].isdigit()
+        ),
+        None,
+    )
+    following = (
+        next_occurrence(rule, anchor) if count is None or count > 1 else None
+    )
+    if following is None:
+        return rewritten(lines, task, set(DONE_PROPERTIES), done, record)
+
+    moved = [written_like(anchor, following), f"LAST-MODIFIED:{utc}"]
+    drop = set(DONE_PROPERTIES) | {split_property(anchor)[0]}
+    if "DUE" in own and "DTSTART" in own:
+        lead = wall_time(own["DUE"])[0] - wall_time(own["DTSTART"])[0]
+        moved.append(written_like(own["DTSTART"], following - lead))
+        drop.add("DTSTART")
+    if count is not None:
+        # The count is of what is left from the task's own date on.
+        moved.append(
+            with_value(
+                own["RRULE"],
+                ";".join(
+                    f"COUNT={count - 1}"
+                    if part.upper().startswith("COUNT=")
+                    else part
+                    for part in rule.split(";")
+                ),
+            )
+        )
+        drop.add("RRULE")
+    return rewritten(lines, task, drop, moved, record)
+
+
+def complete(href: str) -> None:
+    """Mark the task stored at `href` done on the server."""
+    base, user, password = read_config()
+    auth = base64.b64encode(f"{user}:{password}".encode()).decode()
+
+    # Only a path into the calendars, on the server the password is for: the
+    # href comes back through the shell, not straight from the server.
+    if (
+        not href.startswith("/")
+        or href.startswith("//")
+        or "/remote.php/dav/calendars/" not in href
+        or "/../" in href
+        or not href.endswith(".ics")
+    ):
+        raise Failed(f"not a task's address: {href}")
+    url = base + href
+
+    data, etag = exchange("GET", url, auth, None, {}, " (already gone)")
+    try:
+        ics = data.decode()
+    except UnicodeDecodeError:
+        raise Failed(f"GET {url}: not iCalendar text") from None
+    # If-Match: written over only the version just read, never over one
+    # another client changed in between.
+    exchange(
+        "PUT",
+        url,
+        auth,
+        mark_completed(ics, datetime.now(UTC)),
+        {"Content-Type": "text/calendar; charset=utf-8"}
+        | ({"If-Match": etag} if etag else {}),
+        " (already gone)",
+    )
+
+
+# --------------------------------------------------------------------------
 
 
 def local_midnight(day: date) -> datetime:
@@ -752,9 +1060,14 @@ def main() -> int:
         default=today.replace(day=1) + timedelta(days=62),
         help="day to fetch up to, exclusive (default: 62 days on)",
     )
+    parser.add_argument(
+        "--complete",
+        metavar="HREF",
+        help="mark the task at HREF (a task's href) done instead of fetching",
+    )
     arguments = parser.parse_args()
 
-    if arguments.end <= arguments.start:
+    if arguments.complete is None and arguments.end <= arguments.start:
         print(
             json.dumps(
                 {"status": "error", "message": "--end must be after --start"}
@@ -764,7 +1077,17 @@ def main() -> int:
         return 1
 
     try:
-        events, tasks, warning = collect(arguments.start, arguments.end)
+        if arguments.complete is not None:
+            complete(arguments.complete)
+            result: dict = {"status": "ok", "message": ""}
+        else:
+            events, tasks, warning = collect(arguments.start, arguments.end)
+            result = {
+                "status": "ok",
+                "events": events,
+                "tasks": tasks,
+                "message": warning,
+            }
     except Unconfigured as error:
         print(
             json.dumps({"status": "unconfigured", "message": str(error)}),
@@ -788,17 +1111,7 @@ def main() -> int:
         )
         return 1
 
-    print(
-        json.dumps(
-            {
-                "status": "ok",
-                "events": events,
-                "tasks": tasks,
-                "message": warning,
-            }
-        ),
-        flush=True,
-    )
+    print(json.dumps(result), flush=True)
     return 0
 
 

@@ -213,7 +213,18 @@ Night Light at login.
 - `calendar-color` lives in Apple's namespace and arrives as `#rrggbbaa`. Cut
   it to `#rrggbb`, because QML reads eight hex digits as ARGB. Nested
   components (`VALARM`) are skipped. Tasks are the open VTODOs (`COMPLETED`
-  not defined), read-only.
+  not defined).
+- A task's ring marks it done (`complete()` → `--complete HREF`): the task
+  hides at once, the writes run one at a time, and a fetch after the last one
+  brings back any that failed (`completeProblem` says why). The helper GETs
+  the object and PUTs it back with `If-Match`, so another client's change is
+  never written over; it takes only a path under `/remote.php/dav/calendars/`.
+- A repeating task with a date is done as Nextcloud Tasks does it: a record of
+  that occurrence done (`RECURRENCE-ID`), and the task moved on to the next one
+  (python-dateutil's `rrule`, counted from the current one, `COUNT` lowered),
+  or done for good when its rule runs out. The record goes in the task's own
+  object, as Thunderbird writes it: Nextcloud Tasks PUTs it as an object of its
+  own, which the server refuses for sharing the UID (`no-uid-conflict`, 409).
 
 **Wallpaper** (`WallpaperService`, hyprpaper 0.8.4 over `hyprctl hyprpaper`):
 - The library is `~/Wallpapers`, and its subfolders are the category tabs. A
