@@ -29,7 +29,7 @@ RingList {
         clipboard: history
     }
 
-    delegate: Item {
+    delegate: Rectangle {
         id: entry
 
         required property string modelData
@@ -37,26 +37,18 @@ RingList {
 
         width: root.view.width
         height: Style.popup.itemHeight
+        radius: Style.popup.rowRadius
+        color: entry.index === root.current ? Colors.base.hover : "transparent"
 
-        // Clicks only on the row itself: the list's box reaches over the
-        // ring, and its mask keeps only the list's own presses off it.
-        Rectangle {
-            x: root.place(entry.y - root.view.contentY, entry.height)
-            width: root.rowWidth
-            height: entry.height
-            radius: Style.popup.rowRadius
-            color: entry.index === root.current ? Colors.base.hover : "transparent"
+        MouseArea {
+            anchors.fill: parent
+            onClicked: root.pick(entry.index)
+        }
 
-            MouseArea {
-                anchors.fill: parent
-                onClicked: root.pick(entry.index)
-            }
-
-            ClipboardEntry {
-                anchors.fill: parent
-                clipboard: history
-                line: entry.modelData
-            }
+        ClipboardEntry {
+            anchors.fill: parent
+            clipboard: history
+            line: entry.modelData
         }
     }
 
@@ -70,7 +62,6 @@ RingList {
         id: empty
 
         visible: root.count === 0
-        x: root.place(empty.y, empty.height)
         y: (root.view.height - empty.height) / 2
         width: root.rowWidth
         horizontalAlignment: Text.AlignHCenter

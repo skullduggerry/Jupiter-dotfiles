@@ -373,6 +373,13 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
 - Caps Lock is `kb_options = caps:none` plus a `code:66` bind. The Keyboard
   page's choice goes to `quickmenu.lua` and live through
   `hyprctl eval 'require("modules.quickmenu").useCapsLock(…)'`.
+- Two looks on the same places (`QuickMenu.look`, picked in Settings →
+  Appearance → Style or the pencil's LOOK): Halo draws the ring as one disc
+  and the arc as a band hugging it, Orbit a round button per slot and item
+  on a track, with a line from the hub to the selection. Auto is Orbit over
+  blur and Halo over Solid; `QuickMenuContent`
+  resolves it (`orbit`), because `services/` cannot read `Theme`. Hit
+  testing, keys and motion are shared, so only what is drawn differs.
 - Selection goes by direction from the centre. Once the pointer has been in
   a category's arc, another slot takes over only after `switchDelay`; while
   a list's panel is out, from the start.
@@ -386,14 +393,18 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
   this machine lacks (no microphone, no adapter). Paired devices fill what
   the other items leave of `maxItems`.
 - A label is `Colors.text.base`, never muted: over a bright wallpaper's glass
-  muted text measured 2.7:1, under AA's 4.5:1. Where a label would run under
-  its key's cap, it shrinks short of it (`RingItem.clearance`).
-- A list item (the apps, the clipboard) shows its entries in a `RingList` out
-  from its slot, as a category shows its arc; the pencil's options are a
-  `RingPanel` too. The panel's body box overlaps the ring, so anything there
-  that takes input is masked (`bodyMask`) or sits inside a row: a
-  `containmentMask` on a `Flickable` does not keep its children's MouseAreas
-  from taking clicks.
+  muted text measured 2.7:1, under AA's 4.5:1. It shrinks to fit its piece
+  of the ring (`room()`).
+- The letters (`KeyHint`, on a glyph's corner) show only once the pointer
+  has rested `keyDelay` or a key is pressed, so a flick never shows them.
+- A list item (the apps, the clipboard) shows its entries in a `RingList`
+  beside its slot, as a category shows its arc; the pencil's options are a
+  `RingPanel` too. Both are straight boxes whose edge toward the menu is
+  where the arc starts (`arcInner`), so they never reach over the ring.
+- The wheel over a list's slot goes into its list and along its rows
+  (`scrollList()`), the pointer left where it is: the row stays picked while
+  the pointer stays on that slot (`wheelSlot`), and letting the key go uses
+  it. Over the list itself, the wheel scrolls it as any list.
 - The apps' list is the launcher, over `services/Apps`, which leaves out an
   entry whose program is gone: Quickshell ignores `TryExec`, and an app's own
   copy of its entry can outlive the package. SUPER+R (`launcherToggle`) opens the menu
@@ -453,6 +464,10 @@ Each of these has already caused a bug.
   `PwNodeAudio.volume` are 0.0–1.0.
 - Hot reload needs a content change (`touch` does nothing). If files are
   replaced underneath (a checkout), the watches can go stale.
+- A new inline component (a `Colors` or `Style` group) in a file the running
+  shell has loaded fails every reload after it (`X is not a type`) until
+  Quickshell restarts; a fresh start loads it fine. New properties in an
+  existing group reload.
 
 **QML and Qt 6.11**
 - A function whose result a binding reads, and which has typed parameters,

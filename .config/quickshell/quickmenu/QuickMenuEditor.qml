@@ -7,8 +7,8 @@ import "../style"
 import QtQuick
 
 // The pencil's panel beside the quick menu. With no slot picked, the menu's
-// own options: how many slots, its size, whether a click closes it, and its
-// motion.
+// own options: how many slots, its size, its look, whether a click closes it,
+// and its motion.
 // With one picked, what that slot holds: a category, and which of its items
 // it shows, or a single shortcut, or nothing.
 RingPanel {
@@ -41,7 +41,7 @@ RingPanel {
         QuickMenu.setItems(root.heldCategory, root.items.categories[root.heldCategory].items.filter(candidate => shown.includes(candidate)));
     }
 
-    // Two to a row, each row on the curve.
+    // Two to a row.
     function pairs(entries: list<string>): var {
         const rows = [];
         for (let at = 0; at < entries.length; at += 2)
@@ -72,7 +72,6 @@ RingPanel {
 
         anchors.fill: parent
         clip: true
-        containmentMask: root.bodyMask
         contentHeight: root.contentHeight
         flickableDirection: Flickable.VerticalFlick
         boundsBehavior: Flickable.StopAtBounds
@@ -101,6 +100,16 @@ RingPanel {
                         }))
                 current: QuickMenu.size
                 onPicked: size => QuickMenu.setSize(size)
+            }
+
+            Option {
+                label: "LOOK"
+                choices: QuickMenu.looks.map(look => ({
+                            label: look.charAt(0).toUpperCase() + look.slice(1),
+                            value: look
+                        }))
+                current: QuickMenu.look
+                onPicked: look => QuickMenu.setLook(look)
             }
 
             Option {
@@ -138,7 +147,6 @@ RingPanel {
             Row {
                 id: buttons
 
-                x: root.place(buttons.y - scroller.contentY, buttons.height)
                 height: Style.popup.itemHeight
                 spacing: Style.bar.padding
 
@@ -186,7 +194,6 @@ RingPanel {
                     readonly property bool ticked: root.shown.includes(shownRow.modelData)
                     readonly property bool blocked: !shownRow.ticked && root.shown.length >= Style.quickMenu.maxItems
 
-                    x: root.place(shownRow.y - scroller.contentY, shownRow.height)
                     width: root.rowWidth
                     height: Style.popup.itemHeight
 
@@ -233,7 +240,6 @@ RingPanel {
     component Option: PillGroup {
         id: option
 
-        x: root.place(option.y - scroller.contentY, option.height)
         width: root.rowWidth
         compact: true
     }
@@ -241,7 +247,6 @@ RingPanel {
     component Heading: Text {
         id: heading
 
-        x: root.place(heading.y - scroller.contentY, heading.height)
         width: root.rowWidth
         topPadding: Style.widgets.spacing
         bottomPadding: Style.widgets.spacing
@@ -256,8 +261,6 @@ RingPanel {
         id: pair
 
         required property list<string> modelData
-
-        x: root.place(pair.y - scroller.contentY, pair.height)
 
         Repeater {
             model: pair.modelData

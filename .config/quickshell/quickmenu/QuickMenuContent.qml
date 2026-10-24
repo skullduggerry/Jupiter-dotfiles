@@ -1,19 +1,20 @@
 pragma ComponentBehavior: Bound
 
-import "../icons"
 import "../services"
 import "../style"
 import QtQuick
 import QtQuick.Shapes
 
-// The quick menu over its window: a centre disc (Settings and the pencil, or
-// what is selected), a ring of slots and, past a category's slot, an arc of
-// its items, the tree out along the radius; past a list's slot (the apps',
-// the clipboard's), a RingList of its entries instead. The pointer selects
-// by its direction from the centre, up to `reach` past the arc, and on a
-// panel by where it is; letters, the arrows, 1 to 8 and Enter do the same
-// from the keyboard, and once the apps' list is entered, letters type into
-// it.
+// The quick menu over its window: a hub (Settings and the pencil, or what is
+// selected), a ring of slots and, past a category's slot, an arc of its
+// items, the tree out along the radius; past a list's slot (the apps', the
+// clipboard's), a RingList of its entries instead. Drawn in one of two looks
+// on the same places: Halo, one disc with the arc a band hugging it, or
+// Orbit, a round button per slot and item on a track (QuickMenu.look). The
+// pointer selects by its direction from the centre, up to `reach` past the
+// arc, and on a panel by where it is; letters, the arrows, 1 to 8 and Enter
+// do the same from the keyboard, and once the apps' list is entered, letters
+// type into it.
 FocusScope {
     id: root
 
@@ -55,7 +56,16 @@ FocusScope {
     // An item that asks again first, until confirmTimeout.
     property string confirming: ""
     property real wheelTravel: 0
+    // A list's slot the wheel went into the list from: its row stays picked
+    // while the pointer stays on the slot.
+    property int wheelSlot: -1
+    // The letters, shown once the pointer has rested or a key is pressed:
+    // a flick that already knows where it goes never needs them.
+    property bool keysShown: false
     readonly property bool playful: QuickMenu.playful
+    // Auto: round buttons over blur, where the wallpaper shows between them,
+    // and the one disc over a solid surface.
+    readonly property bool orbit: QuickMenu.look === "orbit" || (QuickMenu.look === "auto" && Theme.blur)
     readonly property list<string> slots: QuickMenu.slots
     readonly property int count: root.slots.length
     readonly property real step: 360 / Math.max(1, root.count)
@@ -84,21 +94,24 @@ FocusScope {
         return "";
     }
     readonly property var selectedItem: root.items.describe(root.selectedEntry)
-    readonly property real selectedAngle: {
+    // The slot the selection is at or out from: Orbit's line from the hub
+    // runs to it.
+    readonly property int selectedSlot: {
         switch (root.selectedArea) {
         case "ring":
-            return root.selectedIndex * root.step;
+            return root.selectedIndex;
         case "arc":
-            return root.arcAngle(root.selectedIndex) + root.span / 2;
         case "panel":
-            return root.listOut ? root.arcSlot * root.step : -1;
+            return root.arcSlot;
         }
         return -1;
     }
-    // Where a slot or an item sits: the middle of its band past its letter,
-    // which is keyInset out from the band's inner edge.
-    readonly property real slotRadius: (Style.quickMenu.ringInner + Style.quickMenu.keyInset + Style.quickMenu.keyCapHeight / 2 + Style.quickMenu.ringOuter) / 2
-    readonly property real itemRadius: (Style.quickMenu.arcInner + Style.quickMenu.keyInset + Style.quickMenu.keyCapHeight / 2 + Style.quickMenu.arcOuter) / 2
+    // Where a slot or an item sits: the middle of its band.
+    readonly property real slotRadius: (Style.quickMenu.centerRadius + Style.quickMenu.ringOuter) / 2
+    readonly property real itemRadius: (Style.quickMenu.arcInner + Style.quickMenu.arcOuter) / 2
+    // The slot whose category is out, while the pointer is among its items:
+    // the rest fade back.
+    readonly property bool focusedOnArc: root.arcSlot >= 0 && root.arcEntered
     readonly property real extent: Style.quickMenu.arcOuter
     // At the size picked, smaller on a screen too small for it.
     readonly property real zoom: Math.min(QuickMenu.size, (Math.min(root.width, root.height) / 2 - Style.quickMenu.margin) / root.extent)
@@ -245,6 +258,8 @@ FocusScope {
 
     function move(x: real, y: real) {
         root.pointer = Qt.point(x, y);
+        if (!root.keysShown)
+            keyDelay.restart();
         if (!root.armed) {
             // The launcher's pointer may be anywhere, even resting over the
             // menu: it takes over once it moves there, not when it is
@@ -257,6 +272,9 @@ FocusScope {
             root.armed = true;
         }
         const target = root.hit(x, y);
+        if (root.wheelSlot >= 0 && target.area === "ring" && target.index === root.wheelSlot)
+            return;
+        root.wheelSlot = -1;
         if (target.area !== root.selectedArea || target.index !== root.selectedIndex)
             root.select(target.area, target.index, false);
     }
@@ -477,8 +495,28 @@ FocusScope {
             return;
 
         root.wheelTravel -= steps * Style.quickMenu.wheelStep;
-        if (!root.editing)
-            root.adjust(steps);
+        if (!root.editing && !root.adjust(steps))
+            root.scrollList(-steps);
+    }
+
+    // The wheel over a list's slot (the apps', the clipboard's): into the
+    // list on its first row, then along its rows, with the pointer left
+    // where it is. Letting the key go uses the row, as if pointed at.
+    function scrollList(rows: int) {
+        const slot = root.selectedArea === "ring" ? root.selectedIndex : root.wheelSlot;
+        if (slot < 0 || root.items.kindOf(root.slots[slot] ?? "") !== "list")
+            return;
+
+        if (root.selectedArea === "panel" && root.arcSlot === slot) {
+            root.stepRow(rows);
+            return;
+        }
+        switcher.stop();
+        root.wheelSlot = slot;
+        root.arcSlot = slot;
+        root.arcEntered = true;
+        root.select("panel", 0, true);
+        root.list?.show(0);
     }
 
     focus: true
@@ -491,6 +529,7 @@ FocusScope {
     }
     Keys.onPressed: event => {
         const how = root.holding ? "held" : "key";
+        root.keysShown = true;
         if (root.typing && root.type(event)) {
             event.accepted = true;
             return;
@@ -564,6 +603,14 @@ FocusScope {
     }
 
     Timer {
+        id: keyDelay
+
+        interval: Style.quickMenu.keyDelay
+        running: true
+        onTriggered: root.keysShown = true
+    }
+
+    Timer {
         id: confirmation
 
         interval: Style.popup.confirmTimeout
@@ -629,6 +676,163 @@ FocusScope {
                 easing.type: Easing.OutCubic
             }
 
+            // Halo's disc, which springs in as a whole, its slots after it.
+            Rectangle {
+                id: disc
+
+                property real reveal: root.playful ? 0 : 1
+
+                visible: !root.orbit
+                x: -Style.quickMenu.ringOuter
+                y: -Style.quickMenu.ringOuter
+                width: Style.quickMenu.ringOuter * 2
+                height: Style.quickMenu.ringOuter * 2
+                radius: Style.quickMenu.ringOuter
+                color: Colors.base.surface
+                border.width: Style.border.width
+                border.color: Colors.base.border
+                scale: Style.quickMenu.popFrom + (1 - Style.quickMenu.popFrom) * disc.reveal
+                opacity: Math.min(1, disc.reveal * 2)
+
+                NumberAnimation on reveal {
+                    running: root.playful
+                    to: 1
+                    duration: Style.quickMenu.spring
+                    easing.type: Easing.OutBack
+                    easing.overshoot: Style.quickMenu.overshoot
+                }
+            }
+
+            // Orbit's track for the slots.
+            Shape {
+                visible: root.orbit
+                preferredRendererType: Shape.CurveRenderer
+
+                ShapePath {
+                    fillColor: "transparent"
+                    strokeColor: Colors.icon.track
+                    strokeWidth: Style.border.width
+
+                    PathAngleArc {
+                        radiusX: root.slotRadius
+                        radiusY: root.slotRadius
+                        startAngle: 0
+                        sweepAngle: 360
+                    }
+                }
+            }
+
+            // Under a category's items: Halo's band, Orbit's track. Each
+            // category's comes anew.
+            Item {
+                id: arcBack
+
+                property real reveal: 0
+
+                function pop() {
+                    arcBack.reveal = 0;
+                    arcAppear.restart();
+                }
+
+                visible: root.arcItems.length > 0
+                opacity: arcBack.reveal
+                transformOrigin: Item.TopLeft
+                scale: Style.quickMenu.calmFrom + (1 - Style.quickMenu.calmFrom) * Math.min(1, arcBack.reveal)
+
+                Connections {
+                    function onArcSlotChanged() {
+                        arcBack.pop();
+                    }
+
+                    target: root
+                }
+
+                NumberAnimation {
+                    id: arcAppear
+
+                    target: arcBack
+                    property: "reveal"
+                    to: 1
+                    duration: root.playful ? Style.quickMenu.spring : Style.animation.normal
+                    easing.type: Easing.OutCubic
+                }
+
+                RingSector {
+                    visible: !root.orbit
+                    inner: Style.quickMenu.arcInner
+                    outer: Style.quickMenu.arcOuter
+                    from: root.arcStart
+                    to: root.arcStart + root.span * root.arcItems.length
+                    corner: Style.bar.radius
+                    fillColor: Colors.base.surface
+                    strokeColor: Colors.base.border
+                }
+
+                Shape {
+                    visible: root.orbit
+                    preferredRendererType: Shape.CurveRenderer
+
+                    ShapePath {
+                        fillColor: "transparent"
+                        strokeColor: Colors.icon.track
+                        strokeWidth: Style.border.width
+
+                        PathAngleArc {
+                            radiusX: root.itemRadius
+                            radiusY: root.itemRadius
+                            startAngle: root.arcStart - 90
+                            sweepAngle: root.span * root.arcItems.length
+                        }
+                    }
+                }
+            }
+
+            // Orbit's line from the hub to the selected slot's button, and on
+            // from there to the item selected in its arc.
+            Shape {
+                id: connector
+
+                readonly property real angle: root.selectedSlot * root.step
+                readonly property point hubEdge: root.polar(Style.quickMenu.centerRadius, connector.angle)
+                readonly property point slotEdge: root.polar(root.slotRadius - Style.quickMenu.buttonSize * Style.quickMenu.selectedScale / 2, connector.angle)
+                readonly property point slotAt: root.polar(root.slotRadius, connector.angle)
+                readonly property point itemAt: root.polar(root.itemRadius, root.arcAngle(root.selectedIndex) + root.span / 2)
+                readonly property real length: Math.max(1, Math.hypot(connector.itemAt.x - connector.slotAt.x, connector.itemAt.y - connector.slotAt.y))
+                readonly property real leave: Style.quickMenu.buttonSize * Style.quickMenu.selectedScale / 2 / connector.length
+                readonly property real arrive: 1 - Style.quickMenu.itemButtonSize * Style.quickMenu.selectedScale / 2 / connector.length
+
+                visible: root.orbit && !root.editing && root.selectedSlot >= 0
+                preferredRendererType: Shape.CurveRenderer
+
+                ShapePath {
+                    fillColor: "transparent"
+                    strokeColor: Colors.accent.primary
+                    strokeWidth: Style.quickMenu.connectorWidth
+                    capStyle: ShapePath.RoundCap
+                    startX: connector.hubEdge.x
+                    startY: connector.hubEdge.y
+
+                    PathLine {
+                        x: connector.slotEdge.x
+                        y: connector.slotEdge.y
+                    }
+                }
+
+                ShapePath {
+                    fillColor: "transparent"
+                    strokeColor: root.selectedArea === "arc" ? Colors.accent.primary : "transparent"
+                    strokeWidth: Style.quickMenu.connectorWidth
+                    capStyle: ShapePath.RoundCap
+                    startX: connector.slotAt.x + (connector.itemAt.x - connector.slotAt.x) * connector.leave
+                    startY: connector.slotAt.y + (connector.itemAt.y - connector.slotAt.y) * connector.leave
+
+                    PathLine {
+                        x: connector.slotAt.x + (connector.itemAt.x - connector.slotAt.x) * connector.arrive
+                        y: connector.slotAt.y + (connector.itemAt.y - connector.slotAt.y) * connector.arrive
+                    }
+                }
+            }
+
             Repeater {
                 model: root.count
 
@@ -637,9 +841,14 @@ FocusScope {
 
                     required property int index
                     readonly property string entry: root.slots[slot.index] ?? ""
+                    readonly property var item: root.items.describe(slot.entry)
                     readonly property real angle: slot.index * root.step
                     readonly property bool selected: (root.selectedArea === "ring" && root.selectedIndex === slot.index) || (root.editing && root.editSlot === slot.index)
+                    readonly property bool raised: root.arcSlot === slot.index
                     readonly property point at: root.polar(root.slotRadius, slot.angle)
+                    readonly property string key: root.editing ? "" : root.ringKeys[slot.index] ?? ""
+                    readonly property bool confirming: root.confirming !== "" && root.confirming === slot.entry && root.selectedArea === "ring"
+                    readonly property bool faded: root.focusedOnArc && !slot.raised && !slot.selected
                     property real reveal: root.playful ? 0 : 1
 
                     transformOrigin: Item.TopLeft
@@ -662,25 +871,42 @@ FocusScope {
                     }
 
                     RingSector {
-                        inner: Style.quickMenu.ringInner
-                        outer: Style.quickMenu.ringOuter
+                        visible: !root.orbit
+                        inner: Style.quickMenu.centerRadius + Style.quickMenu.inset
+                        outer: Style.quickMenu.ringOuter - Style.quickMenu.inset
                         from: slot.angle - root.step / 2
                         to: slot.angle + root.step / 2
-                        selected: slot.selected
-                        raised: root.arcSlot === slot.index
-                        dashed: root.editing
-                        empty: slot.entry === ""
+                        edge: Style.quickMenu.inset
+                        corner: Style.popup.rowRadius
+                        fillColor: slot.selected ? Colors.pill.selected : slot.raised ? Colors.base.hover : "transparent"
+                        strokeColor: root.editing || slot.item.kind === "empty" ? Colors.base.border : "transparent"
+                        dashed: true
                     }
 
                     RingItem {
+                        visible: !root.orbit
                         x: slot.at.x - width / 2
                         y: slot.at.y - height / 2
-                        item: root.items.describe(slot.entry)
-                        room: root.room(slot.at, Style.quickMenu.ringInner, Style.quickMenu.ringOuter, slot.angle - root.step / 2, slot.angle + root.step / 2)
-                        key: root.editing ? "" : root.ringKeys[slot.index] ?? ""
-                        keyAt: root.polar(Style.quickMenu.ringInner + Style.quickMenu.keyInset - root.slotRadius, slot.angle)
+                        opacity: slot.faded ? Style.quickMenu.dimmed : 1
+                        item: slot.item
+                        room: root.room(slot.at, Style.quickMenu.centerRadius, Style.quickMenu.ringOuter, slot.angle - root.step / 2, slot.angle + root.step / 2)
+                        key: slot.key
+                        keyShown: root.keysShown
                         selected: slot.selected
-                        confirming: root.confirming !== "" && root.confirming === slot.entry && root.selectedArea === "ring"
+                        confirming: slot.confirming
+                    }
+
+                    OrbitButton {
+                        visible: root.orbit
+                        x: slot.at.x - width / 2
+                        y: slot.at.y - height / 2
+                        opacity: slot.faded ? Style.quickMenu.dimmed : 1
+                        item: slot.item
+                        selected: root.selectedSlot === slot.index || (root.editing && root.editSlot === slot.index)
+                        dashed: root.editing
+                        confirming: slot.confirming
+                        key: slot.key
+                        keyShown: root.keysShown
                     }
                 }
             }
@@ -693,11 +919,14 @@ FocusScope {
 
                     required property int index
                     readonly property string entry: root.arcItems[arcItem.index] ?? ""
+                    readonly property var item: root.items.describe(arcItem.entry)
                     readonly property real angle: root.arcAngle(arcItem.index) + root.span / 2
+                    readonly property bool selected: root.selectedArea === "arc" && root.selectedIndex === arcItem.index
                     readonly property point at: root.polar(root.itemRadius, arcItem.angle)
                     // Out of its category's slot, where playful.
                     readonly property point from: root.polar(root.slotRadius, root.arcSlot * root.step)
                     readonly property real travel: root.playful ? 1 - arcItem.reveal : 0
+                    readonly property point shown: Qt.point(arcItem.at.x + (arcItem.from.x - arcItem.at.x) * arcItem.travel, arcItem.at.y + (arcItem.from.y - arcItem.at.y) * arcItem.travel)
                     property real reveal: 0
 
                     function pop() {
@@ -734,25 +963,41 @@ FocusScope {
                     }
 
                     RingSector {
+                        visible: !root.orbit
                         transformOrigin: Item.TopLeft
                         scale: 1 - (1 - Style.quickMenu.calmFrom) * arcItem.travel * 3
-                        inner: Style.quickMenu.arcInner
-                        outer: Style.quickMenu.arcOuter
+                        inner: Style.quickMenu.arcInner + Style.quickMenu.inset
+                        outer: Style.quickMenu.arcOuter - Style.quickMenu.inset
                         from: root.arcAngle(arcItem.index)
                         to: root.arcAngle(arcItem.index) + root.span
-                        selected: root.selectedArea === "arc" && root.selectedIndex === arcItem.index
+                        edge: Style.quickMenu.inset
+                        corner: Style.popup.rowRadius
+                        fillColor: arcItem.selected ? Colors.pill.selected : "transparent"
                     }
 
                     RingItem {
-                        x: arcItem.at.x + (arcItem.from.x - arcItem.at.x) * arcItem.travel - width / 2
-                        y: arcItem.at.y + (arcItem.from.y - arcItem.at.y) * arcItem.travel - height / 2
+                        visible: !root.orbit
+                        x: arcItem.shown.x - width / 2
+                        y: arcItem.shown.y - height / 2
                         scale: 1 - (1 - Style.quickMenu.popFrom) * arcItem.travel
-                        item: root.items.describe(arcItem.entry)
+                        item: arcItem.item
                         room: root.room(arcItem.at, Style.quickMenu.arcInner, Style.quickMenu.arcOuter, root.arcAngle(arcItem.index), root.arcAngle(arcItem.index) + root.span)
                         key: root.arcKeys[arcItem.index] ?? ""
-                        keyAt: root.polar(Style.quickMenu.arcInner + Style.quickMenu.keyInset - root.itemRadius, arcItem.angle)
-                        selected: root.selectedArea === "arc" && root.selectedIndex === arcItem.index
+                        keyShown: root.keysShown
+                        selected: arcItem.selected
                         confirming: root.confirming !== "" && root.confirming === arcItem.entry
+                    }
+
+                    OrbitButton {
+                        visible: root.orbit
+                        x: arcItem.shown.x - width / 2
+                        y: arcItem.shown.y - height / 2
+                        size: Style.quickMenu.itemButtonSize
+                        item: arcItem.item
+                        selected: arcItem.selected
+                        confirming: root.confirming !== "" && root.confirming === arcItem.entry
+                        key: root.arcKeys[arcItem.index] ?? ""
+                        keyShown: root.keysShown
                     }
                 }
             }
@@ -785,19 +1030,20 @@ FocusScope {
                 }
             }
 
-            // The centre: Settings and the pencil, what is selected, or Done.
-            Item {
-                id: centre
+            RingHub {
+                id: hub
 
-                readonly property bool halves: !root.editing && (root.selectedArea === "" || root.selectedArea === "settings" || root.selectedArea === "edit")
-                readonly property real radius: Style.quickMenu.centerRadius
-                readonly property real half: Style.quickMenu.gap / 2
-                readonly property string disc: `M 0,${-centre.radius} A ${centre.radius} ${centre.radius} 0 1 1 0,${centre.radius} A ${centre.radius} ${centre.radius} 0 1 1 0,${-centre.radius} Z`
-                readonly property string leftHalf: `M ${-centre.half},${-centre.radius} A ${centre.radius} ${centre.radius} 0 0 0 ${-centre.half},${centre.radius} Z`
-                readonly property string rightHalf: `M ${centre.half},${-centre.radius} A ${centre.radius} ${centre.radius} 0 0 1 ${centre.half},${centre.radius} Z`
                 property real reveal: root.playful ? 0 : 1
 
-                scale: Style.quickMenu.popFrom + (1 - Style.quickMenu.popFrom) * centre.reveal
+                scale: Style.quickMenu.popFrom + (1 - Style.quickMenu.popFrom) * hub.reveal
+                framed: root.orbit
+                halves: !root.editing && ["", "settings", "edit"].includes(root.selectedArea)
+                editing: root.editing
+                lit: ["settings", "edit", "done"].includes(root.selectedArea) ? root.selectedArea : ""
+                title: root.selectedItem.label ?? ""
+                // Asked again: what to do, in red where it ends something.
+                detail: root.confirming !== "" && root.confirming === root.selectedEntry ? "Again to confirm" : root.selectedItem.detail ?? ""
+                danger: root.confirming !== "" && root.selectedItem.danger === true
 
                 NumberAnimation on reveal {
                     running: root.playful
@@ -805,107 +1051,6 @@ FocusScope {
                     duration: Style.quickMenu.spring
                     easing.type: Easing.OutBack
                     easing.overshoot: Style.quickMenu.overshoot
-                }
-
-                Shape {
-                    preferredRendererType: Shape.CurveRenderer
-
-                    ShapePath {
-                        fillColor: Colors.base.surface
-                        strokeColor: Colors.base.border
-                        strokeWidth: Style.border.width
-
-                        PathSvg {
-                            path: centre.halves ? centre.leftHalf + " " + centre.rightHalf : centre.disc
-                        }
-                    }
-
-                    ShapePath {
-                        fillColor: root.selectedArea === "settings" || root.selectedArea === "edit" || root.selectedArea === "done" ? Colors.pill.selected : "transparent"
-                        strokeColor: "transparent"
-
-                        PathSvg {
-                            path: root.selectedArea === "settings" ? centre.leftHalf : root.selectedArea === "edit" ? centre.rightHalf : centre.disc
-                        }
-                    }
-                }
-
-                Row {
-                    visible: centre.halves
-                    anchors.centerIn: parent
-                    spacing: Style.bar.padding
-
-                    Icon {
-                        text: Icons.settings
-                        font.pixelSize: Style.widgets.iconSize
-                        color: root.selectedArea === "settings" ? Colors.icon.active : Colors.text.muted
-                    }
-
-                    Icon {
-                        text: Icons.pencil
-                        font.pixelSize: Style.widgets.iconSize
-                        color: root.selectedArea === "edit" ? Colors.icon.active : Colors.text.muted
-                    }
-                }
-
-                FontMetrics {
-                    id: small
-
-                    font.family: Style.text.font
-                    font.pixelSize: Style.text.smallSize
-                }
-
-                // Only the state of what is selected, whose name is on it: two
-                // lines at most, as wide as two lines can be and stay clear of
-                // the direction mark, a word too long for that a little smaller.
-                Column {
-                    visible: !centre.halves
-                    anchors.centerIn: parent
-                    width: 2 * Math.sqrt(Math.pow(centre.radius - Style.widgets.padding, 2) - Math.pow(small.height, 2))
-                    spacing: Style.widgets.spacing / 2
-
-                    Icon {
-                        visible: root.editing
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: Icons.check
-                        font.pixelSize: Style.widgets.iconSize
-                    }
-
-                    Text {
-                        width: parent.width
-                        height: small.height * (root.editing ? 1 : 2)
-                        text: root.editing ? "Done" : root.confirming !== "" && root.confirming === root.selectedEntry ? "Again to confirm" : root.selectedItem.detail ?? ""
-                        color: root.confirming !== "" && root.selectedItem.danger === true ? Colors.power.danger : Colors.text.base
-                        font.family: Style.text.font
-                        font.pixelSize: Style.text.smallSize
-                        fontSizeMode: Text.Fit
-                        minimumPixelSize: Style.quickMenu.leastTextSize
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        wrapMode: Text.WordWrap
-                        maximumLineCount: 2
-                        elide: Text.ElideRight
-                    }
-                }
-            }
-
-            // Which way the selection is, on the centre's rim.
-            Shape {
-                visible: root.selectedAngle >= 0 && !root.editing
-                preferredRendererType: Shape.CurveRenderer
-
-                ShapePath {
-                    fillColor: "transparent"
-                    strokeColor: Colors.icon.active
-                    strokeWidth: Style.usage.ringWidth * 2
-                    capStyle: ShapePath.RoundCap
-
-                    PathAngleArc {
-                        radiusX: Style.quickMenu.centerRadius - Style.widgets.spacing
-                        radiusY: Style.quickMenu.centerRadius - Style.widgets.spacing
-                        startAngle: root.selectedAngle - 90 - Style.quickMenu.directionSpan
-                        sweepAngle: Style.quickMenu.directionSpan * 2
-                    }
                 }
             }
         }

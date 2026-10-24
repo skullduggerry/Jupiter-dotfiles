@@ -135,47 +135,59 @@ QtObject {
     }
     readonly property MediaStyle media: MediaStyle {}
 
-    // Caps Lock's quick menu (quickmenu/): a centre disc, a ring of slots
-    // and, past a category's slot, an arc of its items (at most `maxItems`,
-    // each `itemSpan` degrees, `fewItemSpan` for up to `fewItems`), `gap`
-    // apart. A slot is picked by direction alone, up to `reach` past the
-    // arc. A press shorter than `tapTime` that moves less than `tapSlop`
-    // keeps the menu open; one shifted off the pointer to fit waits for
-    // `armSlop` of movement. Once the pointer has been among a category's
-    // items, crossing another slot switches only after `switchDelay`. A
-    // panel beside it (quickmenu/RingPanel: a list's, the pencil's) is
-    // `panelWidth` wide and reaches `panelSpan` degrees round either way of
-    // level.
+    // Caps Lock's quick menu (quickmenu/): a hub of `centerRadius`, a ring
+    // of slots out to `ringOuter` and, past a category's slot, an arc of its
+    // items from `arcInner` to `arcOuter` (at most `maxItems`, each
+    // `itemSpan` degrees, `fewItemSpan` for up to `fewItems`), in one of two
+    // looks (QuickMenu.look). Halo draws the ring as one disc and the arc as
+    // a band hugging it, the selection a tint `inset` inside them, `gap`
+    // between neighbours. Orbit draws a round button of `buttonSize` per
+    // slot (`itemButtonSize` per item) on a track, the selection scaled by
+    // `selectedScale` and joined to the hub by a line; what is not chosen
+    // while a category is out fades to `dimmed`. A slot is picked by
+    // direction alone, up to `reach` past the arc. A press shorter than
+    // `tapTime` that moves less than `tapSlop` keeps the menu open; one
+    // shifted off the pointer to fit waits for `armSlop` of movement. Once
+    // the pointer has been among a category's items, crossing another slot
+    // switches only after `switchDelay`. The letters show once the pointer
+    // has rested `keyDelay`, or a key is pressed. A panel beside it
+    // (quickmenu/RingPanel: a list's, the pencil's) is `panelWidth` wide and
+    // up to `panelHeight` tall.
     // Playful motion springs each slot from `popFrom` of its size, `stagger`
     // after the one before, over `spring`; calm fades in from `calmFrom`.
     // All of it is drawn at one of `sizes` (QuickMenu.size), less where the
     // screen is too small.
     component QuickMenuStyle: QtObject {
         readonly property list<real> sizes: [0.8, 1, 1.2, 1.4, 1.6]
-        readonly property int centerRadius: 44
-        readonly property int ringInner: 52
-        readonly property int ringOuter: 140
-        readonly property int arcInner: 148
-        readonly property int arcOuter: 236
+        readonly property int centerRadius: 56
+        readonly property int ringOuter: 144
+        readonly property int arcInner: 152
+        readonly property int arcOuter: 232
         readonly property int gap: 3
+        // The tint's corners are the panels' less this, so the two curves
+        // run parallel (Style.popup.rowRadius inside Style.bar.radius).
+        readonly property int inset: 5
+        readonly property int buttonSize: 50
+        readonly property int itemButtonSize: 44
+        readonly property real selectedScale: 1.12
+        readonly property real dimmed: 0.4
+        readonly property int connectorWidth: 2
         readonly property int maxItems: 5
         readonly property int itemSpan: 34
         readonly property int fewItemSpan: 40
         readonly property int fewItems: 3
         readonly property int panelWidth: 280
-        readonly property int panelSpan: 62
+        readonly property int panelHeight: 320
         readonly property int slotWidth: 84
         // The least the text in the centre shrinks to, for a long word.
         readonly property int leastTextSize: 9
         // How long the apps' search caret shows, then hides.
         readonly property int caretBlink: 530
-        // Each slot's and item's letter, `keyInset` out from its band's
-        // inner edge, on the item's radius.
+        // Each slot's and item's letter, on its glyph's corner.
         readonly property int keyCapHeight: 15
-        readonly property int keyInset: 13
+        readonly property int keyDelay: 600
         readonly property int reach: 120
         readonly property int margin: 12
-        readonly property int directionSpan: 16
         readonly property int tapTime: 260
         readonly property int tapSlop: 10
         readonly property int armSlop: 6

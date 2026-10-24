@@ -1,4 +1,5 @@
 import "../panels"
+import "../services"
 import "../style"
 import QtQuick
 
@@ -129,8 +130,10 @@ Column {
     // the glass is the theme's background: the slider sets the least, for dark
     // and for light themes apart; Adaptive raises it where the wallpaper behind
     // would make text hard to read, and Static keeps to it. The line under the
-    // slider says which, in numbers. Last, whether the dropdowns fade in and
-    // out, as Hyprland shows any panel, or swoosh out of the bar and back.
+    // slider says which, in numbers. Then whether the dropdowns fade in and
+    // out, as Hyprland shows any panel, or swoosh out of the bar and back, and
+    // last how the quick menu is drawn (the pencil at its centre offers the
+    // same choice).
     Section {
         title: "PANELS"
 
@@ -257,6 +260,41 @@ Column {
                     ]
                     current: Theme.swoosh
                     onPicked: swoosh => Theme.setSwoosh(swoosh)
+                }
+            }
+
+            FormRow {
+                label: "Quick menu"
+
+                Column {
+                    width: parent.width
+                    spacing: Style.bar.spacing
+
+                    PillGroup {
+                        choices: QuickMenu.looks.map(look => ({
+                                    label: look.charAt(0).toUpperCase() + look.slice(1),
+                                    value: look
+                                }))
+                        current: QuickMenu.look
+                        onPicked: look => QuickMenu.setLook(look)
+                    }
+
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: {
+                            switch (QuickMenu.look) {
+                            case "halo":
+                                return "One disc, its items in a band beside it.";
+                            case "orbit":
+                                return "A round button for each item, on a ring.";
+                            }
+                            return `Orbit over Blur, Halo over Solid: ${Theme.blur ? "Orbit" : "Halo"} now.`;
+                        }
+                        color: Colors.text.muted
+                        font.family: Style.text.font
+                        font.pixelSize: Style.text.smallSize
+                    }
                 }
             }
         }
