@@ -42,7 +42,7 @@ Everything runs from the repo root.
 | `scripts/pasted-glyphs.py` | Lists QML files with a pasted private-use (icon) character; icons are written as `\u{...}` escapes, which no tool can silently delete. |
 | `scripts/kvantum-template.py` | Rebuilds the Kvantum theme's SVG template from the KvMojave theme that comes with Kvantum, so Qt apps follow light themes too, with line chevrons for its arrows. Run it again if a Kvantum update changes KvMojave. |
 
-The tests are a repo of their own, Jupiter-testing, cloned next to this one (or wherever `JUPITER_TESTING` points). They run every helper script against stand-in commands in a temporary home and the QML logic inside Quickshell, and their security suites check the lock screen against stand-in PAM stacks, the login screen against a stand-in greetd and its installer as root, where the Nextcloud app password may go, and that text from outside is shown as text. `check.sh` runs this repo's share of them; its README says how to run one on its own.
+The tests are a repo of their own, [Jupiter-testing](https://codeberg.org/skullduggery/Jupiter-testing), cloned next to this one (or wherever `JUPITER_TESTING` points). They run every helper script against stand-in commands in a temporary home and the QML logic inside Quickshell, and their security suites check the lock screen against stand-in PAM stacks, the login screen against a stand-in greetd and its installer as root, where the Nextcloud app password may go, and that text from outside is shown as text. `check.sh` runs this repo's share of them; its README says how to run one on its own.
 
 ## Login screen
 
