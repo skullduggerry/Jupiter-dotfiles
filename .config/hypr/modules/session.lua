@@ -36,6 +36,23 @@ function M.app(command, slice)
 	return "uwsm-app" .. (slice and " -s " .. slice or "") .. " -- " .. command
 end
 
+-- Several `{ command, slice }` entries as one shell line, each started as
+-- M.app() starts it. At login the runtime dir is new, and uwsm-app, finding
+-- its daemon's pipes missing, starts the daemon and looks for them once a
+-- second: everything here came up a second late. Made first, the pipes send
+-- uwsm-app down its other path, whose write waits until the daemon reads, and
+-- the daemon keeps pipes it finds. The names are uwsm-app's (uwsm 0.27).
+function M.apps(entries)
+	local line = {}
+	if uwsm then
+		line[1] = 'mkfifo "$XDG_RUNTIME_DIR/uwsm-app-daemon-in" "$XDG_RUNTIME_DIR/uwsm-app-daemon-out" 2>/dev/null;'
+	end
+	for _, entry in ipairs(entries) do
+		line[#line + 1] = M.app(entry.command, entry.slice) .. " &"
+	end
+	return table.concat(line, " ")
+end
+
 -- Under uwsm, `uwsm stop` takes the session down in order; the wiki warns
 -- against Hyprland's exit there. The shell's power and quick menus call this.
 function M.logout()

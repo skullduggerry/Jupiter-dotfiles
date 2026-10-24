@@ -3,8 +3,7 @@
 local session = require("modules.session")
 local startup = require("modules.startup")
 
+-- One line, so the pipes M.apps() makes exist before any of them starts.
 hl.on("hyprland.start", function()
-	for _, entry in ipairs(startup) do
-		hl.exec_cmd(session.app(entry.command, entry.slice))
-	end
+	hl.exec_cmd(session.apps(startup))
 end)
