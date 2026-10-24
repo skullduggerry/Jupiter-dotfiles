@@ -45,7 +45,7 @@ Settings → Appearance → Themes, or by hand:
 
 **Test with `-s`.** Without it, wallust writes escape sequences into every
 open terminal. A template that fails to render is only a warning, and wallust
-still exits 0, so `tests/wallust-templates-test.py` fails on any warning. To
+still exits 0, so Jupiter-testing's `dotfiles/test_wallust_templates.py` fails on any warning. To
 try a template in isolation:
 `wallust -d /tmp/wtest -q -s cs <scheme> -f pywal`.
 `wallust theme X --preview` *applies* the theme when combined with `-q`.

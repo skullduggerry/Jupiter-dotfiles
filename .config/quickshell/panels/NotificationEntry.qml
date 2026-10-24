@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import "../icons"
+import "../services"
 import "../style"
 import QtQuick
 import Quickshell
@@ -111,9 +112,8 @@ Item {
         Text {
             width: parent.width
             visible: root.modelData.body !== ""
-            // Basic markup, as the server advertises, but no image: an <img>
-            // would be fetched from wherever it points.
-            text: root.modelData.body.replace(/<img\b[^>]*>/gi, "")
+            // Basic markup, as the server advertises, but no image.
+            text: NotificationService.withoutImages(root.modelData.body)
             color: Colors.text.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize

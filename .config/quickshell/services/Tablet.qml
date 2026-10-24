@@ -157,6 +157,11 @@ Singleton {
     }
 
     function press(index: int, down: bool) {
+        // The pad's shortcuts go around Hyprland, which runs no bind but the
+        // media keys' while the session is locked: none is pressed then.
+        if (LockService.locked)
+            return;
+
         const action = root.actionOf(index);
         if (action === "quickmenu") {
             root.evalLua(`require("modules.quickmenu").${down ? "press" : "release"}()`);

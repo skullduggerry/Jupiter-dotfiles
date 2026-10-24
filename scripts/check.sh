@@ -8,9 +8,10 @@
 # Formatters: qmlformat (the official QML conventions), ruff, shfmt and
 # stylua, set up in pyproject.toml and .editorconfig. Linters: qmllint,
 # ruff, mypy, shellcheck and lua-language-server (.luarc.json, which knows
-# Hyprland's hl API). Tests: tests/*-test.py, the QML ones included
-# (tests/qml-test.py), under coverage: every helper script has to be run by
-# one. See "Validating" in .github/PROJECT_STRUCTURE.md.
+# Hyprland's hl API). Tests: Jupiter-testing's, next to this repo or at
+# JUPITER_TESTING, whose scripts/test.sh runs this repo's suites under
+# coverage: every helper script has to be run by one. See "Validating" in
+# .github/PROJECT_STRUCTURE.md.
 set -uo pipefail
 
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd) || exit 2
@@ -35,7 +36,7 @@ done
 # Each tool, and the package it comes in.
 declare -A packages=(
     ["/usr/lib/qt6/bin/qmlformat"]=qt6-declarative ["qs"]=quickshell ["Hyprland"]=hyprland
-    ["ruff"]=ruff ["mypy"]=mypy ["coverage"]=python-coverage ["shellcheck"]=shellcheck
+    ["ruff"]=ruff ["mypy"]=mypy ["shellcheck"]=shellcheck
     ["shfmt"]=shfmt ["luac"]=lua ["stylua"]=stylua ["lua-language-server"]=lua-language-server
     ["zsh"]=zsh
 )
@@ -48,9 +49,6 @@ if ((${#missing[@]})); then
     echo "    sudo pacman -S --needed $(printf '%s\n' "${missing[@]}" | sort -u | xargs)" >&2
     exit 2
 fi
-
-# Run by this script itself rather than by a test.
-tooling=(scripts/check.sh scripts/install-hooks.sh scripts/pasted-glyphs.py scripts/quickshell-types.py)
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -280,47 +278,20 @@ for config in .config/hypr/hyprland.lua etc/greetd/hyprland.lua; do
     fi
 done
 
-section "tests"
-# Every Python process the tests start measures itself (coverage's .pth file
-# reads COVERAGE_PROCESS_START), and every bash script notes that it ran
-# (BASH_ENV, with builtins only: a test's PATH may hold nothing else).
-mkdir "$tmp/coverage"
-cat >"$tmp/ran.bash" <<'EOF'
-[[ -z ${CHECK_RAN-} ]] || { [[ $0 == /* ]] && printf '%s\n' "$0" || printf '%s\n' "$PWD/$0"; } >>"$CHECK_RAN"
-EOF
-for t in tests/*-test.py; do
-    if REPO=$repo COVERAGE_PROCESS_START=$repo/pyproject.toml COVERAGE_FILE=$tmp/coverage/data \
-        BASH_ENV=$tmp/ran.bash CHECK_RAN=$tmp/ran python3 "$t" >"$tmp/out" 2>&1; then
-        ok "$(basename "$t")"
-    else
-        tail -25 "$tmp/out" >"$tmp/tail" && mv "$tmp/tail" "$tmp/out"
-        failed "$(basename "$t")"
-    fi
-done
-
-section "coverage"
-# A helper no test runs is a feature nothing checks: give it a test.
-export COVERAGE_FILE=$tmp/coverage/data
-coverage combine --quiet --rcfile=pyproject.toml "$tmp/coverage" 2>/dev/null
-coverage json --quiet --rcfile=pyproject.toml --fail-under=0 -o "$tmp/coverage.json" 2>/dev/null ||
-    echo '{"files": {}}' >"$tmp/coverage.json"
-touch "$tmp/ran"
-mapfile -t helpers < <(git ls-files --cached --others --exclude-standard -- '*.py' '*.sh' ':!tests/' |
-    grep -vxF -f <(printf '%s\n' "${tooling[@]}"))
-python3 - "$tmp/coverage.json" "$tmp/ran" "$repo" "${helpers[@]}" >"$tmp/out" <<'EOF' || failed "not run by any test"
-import json, os, sys
-measured = json.load(open(sys.argv[1]))["files"]
-ran = {os.path.realpath(name) for name, data in measured.items() if data["executed_lines"]}
-ran.update(os.path.realpath(line) for line in open(sys.argv[2]).read().splitlines())
-untested = [helper for helper in sys.argv[4:] if os.path.realpath(os.path.join(sys.argv[3], helper)) not in ran]
-print("\n".join(untested))
-sys.exit(1 if untested else 0)
-EOF
-omit=$(printf '*/%s,' "${tooling[@]}")
-if coverage report --rcfile=pyproject.toml --omit="${omit%,}" >"$tmp/out" 2>&1; then
-    passed "every helper runs in a test; python lines: $(grep '^TOTAL' "$tmp/out" | awk '{print $NF}')"
+section "tests (Jupiter-testing)"
+# A repo of their own, which reads this one where it is: the helpers against
+# stand-in commands, the QML in Quickshell, the lock and login screens
+# against stand-in PAM and greetd, under coverage, and every helper run by a
+# test. It names any tool it needs that is missing.
+testing=$(realpath -m "${JUPITER_TESTING:-$repo/../Jupiter-testing}")
+if [[ ! -x $testing/scripts/test.sh ]]; then
+    fail "no Jupiter-testing at $testing: clone it next to this repo, or set JUPITER_TESTING"
+elif JUPITER_DOTFILES=$repo "$testing/scripts/test.sh" dotfiles >"$tmp/out" 2>&1; then
+    passed "$(grep -c '^  ok' "$tmp/out") checks, $(grep -o 'python lines: [0-9]*%' "$tmp/out")"
 else
-    failed "python line coverage under pyproject.toml's fail_under"
+    grep -A12 '^  FAIL' "$tmp/out" >"$tmp/fails" || tail -20 "$tmp/out" >"$tmp/fails"
+    mv "$tmp/fails" "$tmp/out"
+    failed "Jupiter-testing's scripts/test.sh dotfiles"
 fi
 
 echo

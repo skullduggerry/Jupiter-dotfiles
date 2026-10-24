@@ -194,6 +194,7 @@ WlSessionLockSurface {
 
     Text {
         text: Quickshell.env("USER")
+        textFormat: Text.PlainText
         color: Colors.lock.muted
         font.family: Style.text.font
         font.pixelSize: Style.text.smallSize

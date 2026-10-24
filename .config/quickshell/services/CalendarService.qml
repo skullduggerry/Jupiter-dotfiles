@@ -82,8 +82,9 @@ Singleton {
             return "Server address is needed";
 
         // Same rule the helper enforces: https, or plain http only where it
-        // cannot leave the machine.
-        if (!/^https:\/\//.test(address) && !/^http:\/\/(localhost|127\.0\.0\.1)([:\/]|$)/.test(address))
+        // cannot leave the machine; a port, but no user before the host
+        // (http://localhost:x@example.org is example.org).
+        if (!/^https:\/\//.test(address) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(address))
             return "Needs an https:// address — the app password is sent as HTTP Basic auth";
 
         return "";

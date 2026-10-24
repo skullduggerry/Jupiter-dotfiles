@@ -97,7 +97,8 @@ TIMEOUT_SECONDS = 15
 # principal is discovered; calendar-home-set would be a second extra request
 # for a path this server always spells the same way.
 DAV_ROOT = "/remote.php/dav/"
-CALENDAR_HOME = "/remote.php/dav/calendars/{user}/"
+CALENDARS = "/remote.php/dav/calendars/"
+CALENDAR_HOME = CALENDARS + "{user}/"
 
 PRINCIPAL_BODY = """<?xml version="1.0" encoding="utf-8"?>
 <d:propfind xmlns:d="DAV:">
@@ -248,6 +249,44 @@ def is_secure(url: str) -> bool:
     )
 
 
+def origin(url: str) -> tuple[str, str, int | None]:
+    """Scheme, host and port: what the app password is for."""
+    parts = urllib.parse.urlsplit(url)
+    default = {"http": 80, "https": 443}.get(parts.scheme)
+    return parts.scheme, parts.hostname or "", parts.port or default
+
+
+def resolve(base: str, href: str) -> str:
+    """An href the server answered with, as a URL on that server: the app
+    password goes with every request, so an href naming another server is
+    refused. A path is the server's own (a subpath install's hrefs start
+    with its path), not one under base."""
+    url = urllib.parse.urljoin(base + "/", href)
+    if origin(url) != origin(base):
+        raise Failed(f"{href}: not on {base}")
+    return url
+
+
+class SameServer(urllib.request.HTTPRedirectHandler):
+    """Follows a redirect only on the server it came from: urllib keeps the
+    Authorization header on any redirect it follows, to another host or to
+    plain http alike."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if origin(newurl) != origin(req.full_url):
+            raise urllib.error.HTTPError(
+                req.full_url,
+                code,
+                f"redirected to another server, {newurl}",
+                headers,
+                fp,
+            )
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+OPENER = urllib.request.build_opener(SameServer)
+
+
 def request(method: str, url: str, auth: str, body: str, depth: str) -> bytes:
     data, _ = exchange(
         method,
@@ -280,9 +319,7 @@ def exchange(
         },
     )
     try:
-        with urllib.request.urlopen(
-            http_request, timeout=TIMEOUT_SECONDS
-        ) as response:
+        with OPENER.open(http_request, timeout=TIMEOUT_SECONDS) as response:
             return response.read(), response.headers.get("ETag", "")
     except urllib.error.HTTPError as error:
         hint = ""
@@ -309,12 +346,14 @@ def principal_id(document: ElementTree.Element) -> str:
     """The last path segment of current-user-principal, still URL-encoded.
 
     `<d:current-user-principal><d:href>/remote.php/dav/principals/users/a1b2/`
-    means the account's id is `a1b2`, whatever name was used to log in.
+    means the account's id is `a1b2`, whatever name was used to log in. One
+    that would step out of the calendars (`..`) is no id.
     """
     href = document.findtext(
         ".//d:current-user-principal/d:href", default="", namespaces=NS
     )
-    return href.strip().rstrip("/").rsplit("/", 1)[-1] if href.strip() else ""
+    found = href.strip().rstrip("/").rsplit("/", 1)[-1] if href.strip() else ""
+    return "" if urllib.parse.unquote(found) in (".", "..") else found
 
 
 def calendar_home(base: str, user: str, auth: str) -> str:
@@ -406,11 +445,7 @@ def query(
 ) -> list[tuple[str, str]]:
     """The href and iCalendar text of every object a calendar-query REPORT
     matches."""
-    url = (
-        base + calendar.href
-        if calendar.href.startswith("/")
-        else calendar.href
-    )
+    url = resolve(base, calendar.href)
     try:
         document = ElementTree.fromstring(
             request("REPORT", url, auth, body, "1")
@@ -939,22 +974,36 @@ def mark_completed(ics: str, stamp: datetime) -> str:
     return rewritten(lines, task, drop, moved, record)
 
 
+def task_url(base: str, href: str) -> str:
+    """Where the task at `href` is: an object in a calendar on the server the
+    password is for, and nowhere else. The href comes back through the
+    shell, not straight from the server, so it is checked as it would be
+    read, its escapes undone."""
+    parts = urllib.parse.urlsplit(href)
+    path = urllib.parse.unquote(parts.path)
+    calendars = urllib.parse.urlsplit(base).path.rstrip("/") + CALENDARS
+    segments = path.split("/")
+    if (
+        parts.scheme
+        or parts.netloc
+        or parts.query
+        or parts.fragment
+        or not path.startswith(calendars)
+        or "." in segments
+        or ".." in segments
+        or "\\" in path
+        or not path.endswith(".ics")
+    ):
+        raise Failed(f"not a task's address: {href}")
+    return resolve(base, href)
+
+
 def complete(href: str) -> None:
     """Mark the task stored at `href` done on the server."""
     base, user, password = read_config()
     auth = base64.b64encode(f"{user}:{password}".encode()).decode()
 
-    # Only a path into the calendars, on the server the password is for: the
-    # href comes back through the shell, not straight from the server.
-    if (
-        not href.startswith("/")
-        or href.startswith("//")
-        or "/remote.php/dav/calendars/" not in href
-        or "/../" in href
-        or not href.endswith(".ics")
-    ):
-        raise Failed(f"not a task's address: {href}")
-    url = base + href
+    url = task_url(base, href)
 
     data, etag = exchange("GET", url, auth, None, {}, " (already gone)")
     try:

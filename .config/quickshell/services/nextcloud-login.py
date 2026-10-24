@@ -68,6 +68,25 @@ def is_secure(url: str) -> bool:
     )
 
 
+class SecureRedirects(urllib.request.HTTPRedirectHandler):
+    """Follows a redirect only to where is_secure() would let it start: the
+    poll's answer carries the app password."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not is_secure(newurl):
+            raise urllib.error.HTTPError(
+                req.full_url,
+                code,
+                f"redirected to {newurl}, which is not https://",
+                headers,
+                fp,
+            )
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+OPENER = urllib.request.build_opener(SecureRedirects)
+
+
 def post(url: str, fields: dict | None = None) -> tuple[int, bytes]:
     data = urllib.parse.urlencode(fields).encode() if fields else b""
     request = urllib.request.Request(
@@ -77,9 +96,7 @@ def post(url: str, fields: dict | None = None) -> tuple[int, bytes]:
         headers={"User-Agent": DEVICE_NAME},
     )
     try:
-        with urllib.request.urlopen(
-            request, timeout=TIMEOUT_SECONDS
-        ) as response:
+        with OPENER.open(request, timeout=TIMEOUT_SECONDS) as response:
             return response.status, response.read()
     except urllib.error.HTTPError as error:
         return error.code, error.read()

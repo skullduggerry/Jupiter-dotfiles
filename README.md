@@ -34,33 +34,14 @@ Everything runs from the repo root.
 
 | Script | What it does |
 |---|---|
-| `scripts/check.sh` | The project's validation: formatting (QML, Python, shell, Lua), the linters for each (qmllint, ruff and mypy, shellcheck, lua-language-server against Hyprland's API), qmldir entries, popup blur names, icon glyphs, JSON and TOML, both Hyprland configs, and the tests below, which have to run every helper script. `--fix` formats first, `--staged` only looks at staged files. It names the packages of any tool that is missing. |
+| `scripts/check.sh` | The project's validation: formatting (QML, Python, shell, Lua), the linters for each (qmllint, ruff and mypy, shellcheck, lua-language-server against Hyprland's API), qmldir entries, popup blur names, icon glyphs, JSON and TOML, both Hyprland configs, and the tests (Jupiter-testing, below), which have to run every helper script. `--fix` formats first, `--staged` only looks at staged files. It names the packages of any tool that is missing. |
 | `scripts/install-hooks.sh` | Run once per clone; afterwards a commit formats and checks the staged files, and a push runs the full `check.sh`. |
 | `scripts/install-greeter.sh` | Copies the login screen, the shell's colours, the monitor layout (with the changes kept in Settings) and the current wallpaper into `/etc/greetd`, plus its PAM files (run with `sudo`, and again after changing any of those). |
 | `scripts/quickshell-types.py` | Writes a copy of Quickshell's type information with its packaging mistakes fixed, which `check.sh` lints against so Quickshell types get checked too. |
 | `scripts/pasted-glyphs.py` | Lists QML files with a pasted private-use (icon) character; icons are written as `\u{...}` escapes, which no tool can silently delete. |
 | `scripts/kvantum-template.py` | Rebuilds the Kvantum theme's SVG template from the KvMojave theme that comes with Kvantum, so Qt apps follow light themes too, with line chevrons for its arrows. Run it again if a Kvantum update changes KvMojave. |
 
-| Test | What it checks |
-|---|---|
-| `tests/apply-test.py` | Applying a theme with `apply.sh`: to everything or the shell alone, again as it was last time, from a saved scheme or from an image. |
-| `tests/app-tint-test.py` | The apps' glass: `app-tint.sh` writing the shell's tint for kitty, into Kvantum's SVG and the GTK stylesheets, and naming the GTK theme anew so running GTK 3 apps load it again. |
-| `tests/autostart-test.py` | The Settings app's About → Startup tab: which autostart apps start under Hyprland, as systemd decides, and switching one off and on again leaving nothing behind. |
-| `tests/displays-test.py` | The Settings app's Displays page: the monitor rules it applies and keeps, and `monitors.lua` applying the kept ones after its own. |
-| `tests/hypridle-restart-test.py` | Restarting hypridle on a new config stops only this session's, never another one's. |
-| `tests/greeter-env-test.py` | The login screen's list of users and sessions, each session with the command greetd starts. |
-| `tests/kvantum-template-test.py` | The Kvantum template is what `kvantum-template.py` makes of the installed KvMojave, so a Kvantum update that changed it shows. |
-| `tests/install-greeter-test.py` | Runs `install-greeter.sh` into a temporary folder and checks the result stands on its own: no symlinks, the session's monitor layout, a compositor config Hyprland accepts. |
-| `tests/nextcloud-principal-test.py` | The calendar finding your Nextcloud user id however it is spelled, and refusing to send the password over plain http. |
-| `tests/nextcloud-tasks-test.py` | The calendar's open tasks, dated or not, from task lists and calendars alike, in the order the dropdown lists them, against a stand-in Nextcloud. |
-| `tests/palettes-test.py` | The Settings app's theme list: saved schemes first, every palette complete, and a theme wallust cannot render left out. |
-| `tests/qml-test.py` | The QML tests in `tests/qml/`, run inside Quickshell offscreen with nothing of the session around them: colours, the greeter's `style/`, idle times, keybind rows, calendar addresses, unlocking with a finger, the launcher leaving out removed apps. |
-| `tests/screen-record-test.py` | Screen Record's file in `Videos/Recordings`, and the recording ending with the shell. |
-| `tests/shelf-test.py` | The shelf: pasting text, images and copied files without overwriting, refusing a password manager's copy, notes named after their first line, copying back. |
-| `tests/wallpaper-import-test.py` | Adding a wallpaper: copied into the library, the same image once, another one under a taken name numbered. |
-| `tests/wallust-templates-test.py` | Every colour template renders for a dark and a light theme (the GTK ones read by GTK's own parsers too), and updating `kdeglobals` keeps what KDE apps wrote there. |
-
-`check.sh` runs the tests; each also runs alone with `python3 tests/<name>.py`.
+The tests are a repo of their own, Jupiter-testing, cloned next to this one (or wherever `JUPITER_TESTING` points). They run every helper script against stand-in commands in a temporary home, the QML logic inside Quickshell, and the lock and login screens against stand-in PAM stacks and a stand-in greetd. `check.sh` runs this repo's share of them; its README says how to run one on its own.
 
 ## Login screen
 

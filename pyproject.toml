@@ -17,14 +17,3 @@ disallow_incomplete_defs = true
 strict_equality = true
 warn_redundant_casts = true
 warn_unused_ignores = true
-
-# check.sh runs the tests with COVERAGE_PROCESS_START pointing here, which
-# measures the helpers they run as well as those they import.
-[tool.coverage.run]
-parallel = true
-source = ["${REPO-.}/.config", "${REPO-.}/etc", "${REPO-.}/scripts"]
-
-[tool.coverage.report]
-# The share of the helpers' lines the tests run; raise it as tests are added.
-fail_under = 85
-skip_empty = true

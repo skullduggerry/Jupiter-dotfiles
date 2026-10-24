@@ -53,8 +53,11 @@ or 2.
 
 - `scripts/check.sh` passes (`--fix` formats first). Fix every failure you
   introduced, and name any that were already there.
-- New behaviour has a test: a helper script a `tests/<name>-test.py`, QML
-  logic a `tests/qml/<Name>Test.qml` ("Where things go").
+- New behaviour has a test, in Jupiter-testing (next to this repo, with
+  conventions of its own in its `.github/`): a helper script a
+  `dotfiles/test_<name>.py`, QML logic a `dotfiles/qml/<Name>Test.qml`, and
+  anything about logging in, locking, the Nextcloud account or text from
+  outside under `dotfiles/security/` ("Where things go").
 - You have read the whole diff and checked the running shell's log after the
   reload (see "Validating" in PROJECT_STRUCTURE.md). Some failures only show
   up in the log.

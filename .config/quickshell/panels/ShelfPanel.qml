@@ -80,6 +80,7 @@ PanelFrame {
             width: parent.width
             visible: root.statusText !== ""
             text: root.statusText
+            textFormat: Text.PlainText
             color: Shelf.error !== "" ? Colors.status.error : Colors.text.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize

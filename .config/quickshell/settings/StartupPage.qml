@@ -151,6 +151,7 @@ ScrollPage {
                             Text {
                                 width: parent.width
                                 text: entry.modelData.name
+                                textFormat: Text.PlainText
                                 color: Colors.text.base
                                 font.family: Style.text.font
                                 font.pixelSize: Style.text.size
@@ -160,6 +161,7 @@ ScrollPage {
                             Text {
                                 width: parent.width
                                 text: entry.modelData.about
+                                textFormat: Text.PlainText
                                 color: Colors.text.muted
                                 font.family: Style.text.font
                                 font.pixelSize: Style.text.smallSize
@@ -172,6 +174,7 @@ ScrollPage {
 
                             width: Math.min(implicitWidth, entry.width * Style.settings.detailShare)
                             text: entry.modelData.command
+                            textFormat: Text.PlainText
                             color: Colors.text.muted
                             font.family: Style.text.font
                             font.pixelSize: Style.text.smallSize
@@ -190,6 +193,7 @@ ScrollPage {
                     visible: root.session.length === 0
                     width: parent.width
                     text: root.sessionError !== "" ? root.sessionError : "Reading Hyprland's config…"
+                    textFormat: Text.PlainText
                     color: root.sessionError !== "" ? Colors.status.error : Colors.text.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.smallSize

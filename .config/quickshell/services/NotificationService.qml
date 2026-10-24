@@ -23,6 +23,19 @@ Singleton {
     // SUPER+N, for the bar's bell (NotificationWidget) to open its centre.
     signal toggleRequested
 
+    // A body's markup without its images: an <img> would be fetched from
+    // wherever it points. Again until none is left, since taking one out can
+    // join the text around it into another ("<im<img>g src=…>").
+    function withoutImages(body: string): string {
+        let text = body;
+        let previous = "";
+        while (text !== previous) {
+            previous = text;
+            text = text.replace(/<img\b[^>]*>?/gi, "");
+        }
+        return text;
+    }
+
     function hidePopup(id: int) {
         root.popupIds = root.popupIds.filter(candidate => candidate !== id);
     }

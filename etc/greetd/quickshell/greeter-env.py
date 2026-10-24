@@ -26,13 +26,9 @@ import sys
 PASSWD = "/etc/passwd"
 SESSION_DIRS = ("/usr/share/wayland-sessions", "/usr/share/xsessions")
 
-NOLOGIN_SHELLS = (
-    "/usr/bin/nologin",
-    "/sbin/nologin",
-    "/usr/sbin/nologin",
-    "/bin/false",
-    "/usr/bin/false",
-)
+# By name, wherever they are: /bin/nologin is /usr/bin/nologin on Arch, and
+# a service account's shell can be any of their paths.
+NOLOGIN_SHELLS = ("nologin", "false")
 
 
 def list_users(path: str = PASSWD) -> list[dict]:
@@ -46,7 +42,7 @@ def list_users(path: str = PASSWD) -> list[dict]:
             name, _, uid, _, gecos, _, shell = fields[:7]
             if not uid.isdigit() or not 1000 <= int(uid) < 65534:
                 continue
-            if shell in NOLOGIN_SHELLS:
+            if os.path.basename(shell) in NOLOGIN_SHELLS:
                 continue
             users.append(
                 {"name": name, "display": gecos.split(",")[0] or name}

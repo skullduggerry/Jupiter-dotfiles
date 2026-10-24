@@ -15,7 +15,7 @@ Installed: Quickshell 0.3.2, Hyprland 0.56.2 (configured in Lua), Qt 6.12, Arch.
 | `.config/wallust/` | theming, see THEMING.md |
 | `etc/greetd/` | the login screen, a second Quickshell config that logs in through `Quickshell.Services.Greetd` (`greeter-env.py` lists users and sessions); `scripts/install-greeter.sh` installs it as a copy, with `etc/pam.d/` |
 | `etc/udev/`, `etc/pacman.d/` | system files `scripts/install-system.sh` installs as root (Jupiter-installer's phase 4): the tablet pad's udev rule, and the pacman hook that runs `scripts/uwsm-desktop-entries.py` |
-| `scripts/`, `tests/` | `check.sh` and its helpers; a `*-test.py` per helper script, and the QML tests (`tests/qml/`), which `check.sh` runs |
+| `scripts/` | `check.sh` and its helpers. The tests are Jupiter-testing's, next to this repo: a `dotfiles/test_*.py` per helper script, the QML tests (`dotfiles/qml/`) and the security suites (`dotfiles/security/`), which `check.sh` runs |
 | `pyproject.toml`, `.luarc.json`, `.editorconfig` | settings of the formatters and linters `check.sh` runs (no Python package) |
 
 Package dependencies belong in Jupiter-installer's `packages/core.txt` and
@@ -120,8 +120,9 @@ appearance and theme name), and it never writes them back.
 | Something that must run from login | a service with an `active` flag, bound from something that is always built (as `SettingsApp.qml` binds `WallpaperService.active`) |
 | A surface in the top right | publish its area with `PopupAreas.set()` so toasts move below it |
 | A new `-popup` that is not a dropdown | the `qs-not-dropdowns` layer rule in `.config/hypr/styles/layout.lua` |
-| A helper script (`*.py`, `*.sh`) | a `tests/<name>-test.py` that runs it against stand-in commands in a temporary home; `check.sh` fails on a helper no test runs |
-| QML logic: a formula, a parser, a state change | a `tests/qml/<Name>Test.qml`: a `TestCase` whose `test_*` functions use the singleton (`tests/qml-test.py` says how they run) |
+| A helper script (`*.py`, `*.sh`) | a Jupiter-testing `dotfiles/test_<name>.py` that runs it against stand-in commands in a temporary home; `check.sh` fails on a helper no test runs |
+| QML logic: a formula, a parser, a state change | a Jupiter-testing `dotfiles/qml/<Name>Test.qml`: a `TestCase` whose `test_*` functions use the singleton (its `harness/qml.py` says how they run) |
+| Anything that logs in, locks, holds a secret or shows text from outside | a test in Jupiter-testing's `dotfiles/security/`, which also checks the sources for what a running test cannot show (only PAM's success unlocks, a `Text` on such a surface sets its format) |
 
 A widget that needs its monitor declares `required property ShellScreen screen`,
 which is passed down from `Bar.qml` through `BarContent`/`SmallBarContent`.
@@ -514,15 +515,21 @@ Each of these has already caused a bug.
 scripts/check.sh            # formatting, whitespace, qmllint (0 warnings), qmldirs,
                             # -popup names, glyphs, ruff + mypy, luac +
                             # lua-language-server, shellcheck, json/toml, both
-                            # Hyprland configs, tests/ under coverage
+                            # Hyprland configs, and the tests (Jupiter-testing's
+                            # scripts/test.sh dotfiles) under coverage
 scripts/check.sh --fix      # format and apply the safe lint fixes first
 scripts/install-hooks.sh    # once per clone: pre-commit formats, pre-push checks
-python3 tests/qml-test.py ColorsTest   # one QML test file; any *-test.py runs alone
+# in ../Jupiter-testing:
+python3 -m harness.qml dotfiles/qml/ColorsTest.qml     # one QML test file
+python3 -m unittest dotfiles.test_shelf                # one suite
+scripts/test.sh --security                             # the security suites
 ```
 
-`check.sh` names the packages of any tool it is missing. Every helper script
-has to be run by a test: Python is measured with coverage (`fail_under` in
-`pyproject.toml` is the floor) and each bash script a test starts is noted.
+`check.sh` names the packages of any tool it is missing, and fails without
+Jupiter-testing next to this repo (or at `JUPITER_TESTING`). Every helper
+script has to be run by a test: Python is measured with coverage (the floor
+is in Jupiter-testing's `scripts/test.sh`) and each bash script a test starts
+is noted.
 lua-language-server reads Hyprland's stubs (`.luarc.json`); where they are
 narrower than Hyprland, a `---@diagnostic` comment says so. The QML tests run
 in Quickshell, offscreen and with no session around them: a service that
