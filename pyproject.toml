@@ -1,4 +1,5 @@
-# The settings of the Python tools scripts/check.sh runs; the repo is no package.
+# The settings of the Python tools Jupiter-testing's checks run, which editors
+# read too; the repo is no package.
 
 [tool.ruff]
 line-length = 79

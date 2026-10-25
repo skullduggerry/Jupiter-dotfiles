@@ -51,8 +51,9 @@ or 2.
 
 ## Done means
 
-- `scripts/check.sh` passes (`--fix` formats first). Fix every failure you
-  introduced, and name any that were already there.
+- `./check.sh` passes (it hands over to Jupiter-testing's; `--fix` formats
+  first).
+  Fix every failure you introduced, and name any that were already there.
 - New behaviour has a test, in Jupiter-testing (next to this repo, with
   conventions of its own in its `.github/`): a helper script a
   `dotfiles/test_<name>.py`, QML logic a `dotfiles/qml/<Name>Test.qml`, and

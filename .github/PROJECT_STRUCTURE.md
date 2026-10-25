@@ -15,11 +15,11 @@ Installed: Quickshell 0.3.2, Hyprland 0.56.2 (configured in Lua), Qt 6.12, Arch.
 | `.config/wallust/` | theming, see THEMING.md |
 | `etc/greetd/` | the login screen, a second Quickshell config that logs in through `Quickshell.Services.Greetd` (`greeter-env.py` lists users and sessions); `scripts/install-greeter.sh` installs it as a copy, with `etc/pam.d/`; what runs as root (`config.toml`, `etc/pam.d/`) comes from root's copy when the Settings app runs it |
 | `etc/udev/`, `etc/pacman.d/` | system files `scripts/install-system.sh` installs as root (Jupiter-installer's phase 4): the tablet pad's udev rule, the pacman hook that runs `scripts/uwsm-desktop-entries.py`, and root's copy of `install-greeter.sh` with greetd's config and the PAM stacks in `/usr/local/lib/jupiter/greeter` |
-| `scripts/` | `check.sh` and its helpers. The tests are Jupiter-testing's, next to this repo: a `dotfiles/test_*.py` per helper script, the QML tests (`dotfiles/qml/`) and the security suites (`dotfiles/security/`), which `check.sh` runs |
-| `pyproject.toml`, `.luarc.json`, `.editorconfig` | settings of the formatters and linters `check.sh` runs (no Python package) |
+| `scripts/` | what installs the system files and the login screen, and generators (`kvantum-template.py`). The checks are Jupiter-testing's, next to this repo: its `scripts/lint.sh` lints this repo, and its suites test it (a `dotfiles/test_*.py` per helper script, the QML tests in `dotfiles/qml/`, the security suites in `dotfiles/security/`) |
+| `pyproject.toml`, `.luarc.json`, `.editorconfig` | settings of the formatters and linters Jupiter-testing runs, which editors read too (no Python package) |
 
 Package dependencies belong in Jupiter-installer's `packages/core.txt` and
-`aur.txt`, not here; the tools `check.sh` runs are in its `pacman.txt`.
+`aur.txt`, not here; the tools the checks run are in its `pacman.txt`.
 
 ## The shell
 
@@ -61,9 +61,9 @@ appearance and theme name), and it never writes them back.
 ## Conventions
 
 - Format with Qt 6's `qmlformat`, and Python, shell and Lua with ruff, shfmt
-  and stylua (`scripts/check.sh --fix`; the pre-commit hook formats staged
+  and stylua (`./check.sh --fix`; the pre-commit hook formats staged
   files). `/usr/bin/qmlformat` and `qmllint` are the Qt 5
-  versions and mangle Qt 6 syntax, so `check.sh` puts `/usr/lib/qt6/bin` first
+  versions and mangle Qt 6 syntax, so the checks put `/usr/lib/qt6/bin` first
   on PATH. Members stay in the order they were written. Don't use
   `--normalize`.
 - Every folder's `qmldir` names each of its types (`singleton Time 1.0 Time.qml`).
@@ -122,7 +122,7 @@ appearance and theme name), and it never writes them back.
 | Something that must run from login | a service with an `active` flag, bound from something that is always built (as `SettingsApp.qml` binds `WallpaperService.active`) |
 | A surface in the top right | publish its area with `PopupAreas.set()` so toasts move below it |
 | A new `-popup` that is not a dropdown | the `qs-not-dropdowns` layer rule in `.config/hypr/styles/layout.lua` |
-| A helper script (`*.py`, `*.sh`) | a Jupiter-testing `dotfiles/test_<name>.py` that runs it against stand-in commands in a temporary home; `check.sh` fails on a helper no test runs |
+| A helper script (`*.py`, `*.sh`) | a Jupiter-testing `dotfiles/test_<name>.py` that runs it against stand-in commands in a temporary home; the checks fail on a helper no test runs |
 | QML logic: a formula, a parser, a state change | a Jupiter-testing `dotfiles/qml/<Name>Test.qml`: a `TestCase` whose `test_*` functions use the singleton (its `harness/qml.py` says how they run) |
 | Anything that logs in, locks, holds a secret or shows text from outside | a test in Jupiter-testing's `dotfiles/security/`, which also checks the sources for what a running test cannot show (only PAM's success unlocks, a `Text` on such a surface sets its format) |
 
@@ -520,29 +520,30 @@ Each of these has already caused a bug.
   optimistically, and hold off polling while the write settles
   (`Brightness.request()`).
 - Private-use glyphs get lost in transit. That is why glyphs are escapes, and
-  `scripts/pasted-glyphs.py` fails on a pasted one.
+  Jupiter-testing's `scripts/pasted-glyphs.py` fails on a pasted one.
 
 ## Validating
 
 ```bash
-scripts/check.sh            # formatting, whitespace, qmllint (0 warnings), qmldirs,
+./check.sh                  # formatting, whitespace, qmllint (0 warnings), qmldirs,
                             # -popup names, glyphs, ruff + mypy, luac +
                             # lua-language-server, shellcheck, json/toml, both
-                            # Hyprland configs, and the tests (Jupiter-testing's
-                            # scripts/test.sh dotfiles) under coverage
-scripts/check.sh --fix      # format and apply the safe lint fixes first
-scripts/install-hooks.sh    # once per clone: pre-commit formats, pre-push checks
+                            # Hyprland configs, then the tests
+./check.sh --fix            # format and apply the safe lint fixes first
+./check.sh lint             # the linters alone; `test` the tests alone
+./check.sh test --security  # the security suites
+../Jupiter-testing/scripts/install-hooks.sh   # once: pre-commit formats, pre-push checks
 # in ../Jupiter-testing:
 python3 -m harness.qml dotfiles/qml/ColorsTest.qml     # one QML test file
 python3 -m unittest dotfiles.test_shelf                # one suite
-scripts/test.sh --security                             # the security suites
 ```
 
-`check.sh` names the packages of any tool it is missing, and fails without
-Jupiter-testing next to this repo (or at `JUPITER_TESTING`). Every helper
-script has to be run by a test: Python is measured with coverage (the floor
-is in Jupiter-testing's `scripts/test.sh`) and each bash script a test starts
-is noted.
+`check.sh` hands over to Jupiter-testing's (`scripts/lint.sh`, then its
+suites), next to this repo or at `JUPITER_TESTING`, and clones it there if
+it is missing. It and names the packages of any tool that is. Every helper script has
+to be run by a test: Python is measured with coverage (the floor is in
+Jupiter-testing's `scripts/test.sh`) and each bash script a test starts is
+noted.
 lua-language-server reads Hyprland's stubs (`.luarc.json`); where they are
 narrower than Hyprland, a `---@diagnostic` comment says so. The QML tests run
 in Quickshell, offscreen and with no session around them: a service that
@@ -550,8 +551,8 @@ reaches for one fails there, and `ignoreWarning()` lets an expected warning
 through.
 
 qmllint runs on absolute paths against a corrected copy of Quickshell's type
-information (`scripts/quickshell-types.py`). It does not check writes inside
-handlers, or anything reached through `var`, so the log has the last word:
+information (Jupiter-testing's `scripts/quickshell-types.py`). It does not
+check writes inside handlers, or anything reached through `var`, so the log has the last word:
 
 ```bash
 qs log -r '*.debug=true;*.info=true' -- /run/user/$UID/quickshell/by-id/<id>/log.qslog
