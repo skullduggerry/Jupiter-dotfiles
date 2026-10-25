@@ -15,7 +15,11 @@ Singleton {
     // field is for the password itself.
     property string prompt: ""
     property bool promptVisible: false
-    readonly property bool answering: pam.active && pam.responseRequired && root.answered
+    // A question after the password, in the field and waiting for its
+    // answer. pam.responseRequired stays true after an answer until PAM
+    // speaks again, so it cannot say this: while the password was checked
+    // the lock looked idle, and a second Enter answered it again.
+    property bool answering: false
     readonly property bool authenticating: pam.active && !root.answering
     readonly property string pamConfig: "login"
     // Whether this attempt's password went out, so a later question waits
@@ -50,6 +54,7 @@ Singleton {
             const answer = root.password;
             root.password = "";
             root.prompt = "";
+            root.answering = false;
             pam.respond(answer);
             return;
         }
@@ -128,12 +133,14 @@ Singleton {
             root.password = "";
             root.prompt = pam.message;
             root.promptVisible = pam.responseVisible;
+            root.answering = true;
         }
         onCompleted: result => {
             root.password = "";
             root.prompt = "";
             root.promptVisible = false;
             root.answered = false;
+            root.answering = false;
             if (result === PamResult.Success) {
                 root.errorText = "";
                 root.locked = false;
@@ -146,6 +153,7 @@ Singleton {
             root.prompt = "";
             root.promptVisible = false;
             root.answered = false;
+            root.answering = false;
             root.errorText = "PAM: " + PamError.toString(error);
         }
     }
