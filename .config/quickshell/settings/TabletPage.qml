@@ -118,58 +118,18 @@ ScrollPage {
         FormCard {
             width: root.columnWidth
 
-            FormRow {
+            LevelRow {
                 label: "Starts at"
-
-                Row {
-                    width: parent.width
-                    height: Style.popup.itemHeight
-                    spacing: Style.widgets.spacing
-
-                    PanelSlider {
-                        width: parent.width - Style.settings.labelWidth - Style.widgets.spacing
-                        anchors.verticalCenter: parent.verticalCenter
-                        value: Tablet.pressureMin / Tablet.startsAtMost
-                        onMoved: position => Tablet.setPressure(Math.round(position * Tablet.startsAtMost * 100) / 100, Tablet.pressureMax)
-                    }
-
-                    Text {
-                        width: Style.settings.labelWidth
-                        anchors.verticalCenter: parent.verticalCenter
-                        horizontalAlignment: Text.AlignRight
-                        text: root.percent(Tablet.pressureMin)
-                        color: Colors.text.muted
-                        font.family: Style.text.font
-                        font.pixelSize: Style.text.smallSize
-                    }
-                }
+                position: Tablet.pressureMin / Tablet.startsAtMost
+                reading: root.percent(Tablet.pressureMin)
+                onMoved: position => Tablet.setPressure(Math.round(position * Tablet.startsAtMost * 100) / 100, Tablet.pressureMax)
             }
 
-            FormRow {
+            LevelRow {
                 label: "Full at"
-
-                Row {
-                    width: parent.width
-                    height: Style.popup.itemHeight
-                    spacing: Style.widgets.spacing
-
-                    PanelSlider {
-                        width: parent.width - Style.settings.labelWidth - Style.widgets.spacing
-                        anchors.verticalCenter: parent.verticalCenter
-                        value: (Tablet.pressureMax - Tablet.fullAtLeast) / (1 - Tablet.fullAtLeast)
-                        onMoved: position => Tablet.setPressure(Tablet.pressureMin, Math.round((Tablet.fullAtLeast + position * (1 - Tablet.fullAtLeast)) * 100) / 100)
-                    }
-
-                    Text {
-                        width: Style.settings.labelWidth
-                        anchors.verticalCenter: parent.verticalCenter
-                        horizontalAlignment: Text.AlignRight
-                        text: root.percent(Tablet.pressureMax)
-                        color: Colors.text.muted
-                        font.family: Style.text.font
-                        font.pixelSize: Style.text.smallSize
-                    }
-                }
+                position: (Tablet.pressureMax - Tablet.fullAtLeast) / (1 - Tablet.fullAtLeast)
+                reading: root.percent(Tablet.pressureMax)
+                onMoved: position => Tablet.setPressure(Tablet.pressureMin, Math.round((Tablet.fullAtLeast + position * (1 - Tablet.fullAtLeast)) * 100) / 100)
             }
         }
 

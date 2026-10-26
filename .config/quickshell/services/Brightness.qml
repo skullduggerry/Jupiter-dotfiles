@@ -20,7 +20,12 @@ Singleton {
     readonly property int settleInterval: 250
     readonly property int writeInterval: 50
     property int pending: -1
+    // Looks for the backlight, from login (the bar, the quick menu).
     property bool active: false
+    // What shows the level, each counting itself: sysfs cannot be watched,
+    // so it is read every `interval` only while there is one, and before a
+    // key changes it.
+    property int viewers: 0
 
     function readLevel() {
         levelFile.reload();
@@ -63,6 +68,8 @@ Singleton {
     }
 
     function adjust(percent: int) {
+        if (root.available && !settling.running)
+            root.readLevel();
         root.request(Math.round(root.fraction * 100) + percent);
     }
 
@@ -75,11 +82,13 @@ Singleton {
             probe.running = true;
     }
 
+    // Also once the backlight is found, for its maximum, which `available`
+    // needs whether or not anything shows the level.
     Timer {
         interval: root.interval
         repeat: true
         triggeredOnStart: true
-        running: root.active && root.device !== ""
+        running: root.device !== "" && (root.viewers > 0 || root.maximum === 0)
         onTriggered: {
             if (root.maximum === 0)
                 root.readMaximum();

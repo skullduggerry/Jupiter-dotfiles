@@ -6,6 +6,7 @@ QuickMenuClipboard 1.0 QuickMenuClipboard.qml
 QuickMenuContent 1.0 QuickMenuContent.qml
 QuickMenuEditor 1.0 QuickMenuEditor.qml
 QuickMenuItems 1.0 QuickMenuItems.qml
+QuickMenuNotifications 1.0 QuickMenuNotifications.qml
 RingHub 1.0 RingHub.qml
 RingItem 1.0 RingItem.qml
 RingList 1.0 RingList.qml

@@ -8,7 +8,7 @@ import QtQuick.Shapes
 // The quick menu over its window: a hub (Settings and the pencil, or what is
 // selected), a ring of slots and, past a category's slot, an arc of its
 // items, the tree out along the radius; past a list's slot (the apps', the
-// clipboard's), a RingList of its entries instead. Drawn in one of two looks
+// clipboard's, the notifications'), a RingList of its entries instead. Drawn in one of two looks
 // on the same places: Halo, one disc with the arc a band hugging it, or
 // Orbit, a round button per slot and item on a track (QuickMenu.look). The
 // pointer selects by its direction from the centre, up to `reach` past the
@@ -510,7 +510,7 @@ FocusScope {
             root.scrollList(-steps);
     }
 
-    // The wheel over a list's slot (the apps', the clipboard's): into the
+    // The wheel over a list's slot (the apps', the clipboard's…): into the
     // list on its first row, then along its rows, with the pointer left
     // where it is. Letting the key go uses the row, as if pointed at.
     function scrollList(rows: int) {
@@ -531,7 +531,10 @@ FocusScope {
     }
 
     focus: true
+    // The Display category and its Brightness show the level.
+    Component.onDestruction: Brightness.viewers -= 1
     Component.onCompleted: {
+        Brightness.viewers += 1;
         root.openedAt = Date.now();
         root.pinned = !root.holding;
         root.armed = !root.launcher && Math.hypot(root.origin.x - root.center.x, root.origin.y - root.center.y) < Style.quickMenu.centerRadius * root.zoom;
@@ -1026,7 +1029,16 @@ FocusScope {
                 id: listPanel
 
                 active: root.listOut
-                sourceComponent: root.slots[root.arcSlot] === "item:apps" ? appsList : clipboardList
+                sourceComponent: {
+                    switch (root.slots[root.arcSlot]) {
+                    case "item:apps":
+                        return appsList;
+                    case "item:notifications":
+                        return notificationsList;
+                    default:
+                        return clipboardList;
+                    }
+                }
             }
 
             Loader {
@@ -1097,6 +1109,18 @@ FocusScope {
             level: -Style.quickMenu.arcInner * Math.cos(root.arcSlot * root.step * Math.PI / 180)
             current: root.selectedArea === "panel" ? root.selectedIndex : -1
             // A copied entry is to be pasted: the menu goes.
+            onPicked: root.closeRequested()
+        }
+    }
+
+    Component {
+        id: notificationsList
+
+        QuickMenuNotifications {
+            side: root.sideOf(root.arcSlot)
+            level: -Style.quickMenu.arcInner * Math.cos(root.arcSlot * root.step * Math.PI / 180)
+            current: root.selectedArea === "panel" ? root.selectedIndex : -1
+            // Its app or the centre takes over: the menu goes.
             onPicked: root.closeRequested()
         }
     }

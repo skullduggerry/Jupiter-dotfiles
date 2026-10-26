@@ -18,7 +18,7 @@ import Quickshell.Services.UPower
 // toggle (on or off), level (scroll or the arrows change it), cycle (each use
 // switches to the next choice), action, open (another surface), and list
 // (its entries in a panel beside its slot, as a category's items are in an
-// arc, so a slot of its own: the apps, the clipboard).
+// arc, so a slot of its own: the apps, the clipboard, the notifications).
 Scope {
     id: root
 
@@ -408,12 +408,14 @@ Scope {
                 icon: () => Icons.layoutGrid,
                 use: () => root.shortcut("overview")
             },
+            // Its entries are QuickMenuNotifications', with Clear and Do Not
+            // Disturb.
             notifications: {
                 label: "Notifications",
                 keys: "N",
-                kind: "open",
-                icon: () => Icons.bell,
-                use: () => NotificationService.toggleRequested()
+                kind: "list",
+                icon: () => NotificationService.doNotDisturb ? Icons.bellOff : NotificationService.count > 0 ? Icons.bellDot : Icons.bell,
+                detail: () => [NotificationService.count === 0 ? "None" : NotificationService.count === 1 ? "1 notification" : NotificationService.count + " notifications", NotificationService.doNotDisturb ? "Do Not Disturb" : ""].filter(part => part !== "").join(" · ")
             },
             calendar: {
                 label: "Calendar",

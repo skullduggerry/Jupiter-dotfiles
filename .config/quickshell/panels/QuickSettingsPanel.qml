@@ -236,7 +236,9 @@ Item {
     Component {
         id: brightnessPage
 
-        BrightnessPanel {}
+        BrightnessPanel {
+            active: root.active && pages.currentIndex === root.pageBrightness
+        }
     }
 
     Component {

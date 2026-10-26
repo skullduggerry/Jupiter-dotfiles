@@ -11,6 +11,7 @@ FormCard 1.0 FormCard.qml
 FormRow 1.0 FormRow.qml
 KeybindsPage 1.0 KeybindsPage.qml
 KeyboardPage 1.0 KeyboardPage.qml
+LevelRow 1.0 LevelRow.qml
 LockPage 1.0 LockPage.qml
 LockPreview 1.0 LockPreview.qml
 MousePage 1.0 MousePage.qml

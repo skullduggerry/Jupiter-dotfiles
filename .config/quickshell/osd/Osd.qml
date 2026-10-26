@@ -113,6 +113,8 @@ Scope {
     Component {
         id: brightnessPanel
 
-        BrightnessPanel {}
+        BrightnessPanel {
+            active: true
+        }
     }
 }

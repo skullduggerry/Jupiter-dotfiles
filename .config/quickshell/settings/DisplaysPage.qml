@@ -795,6 +795,7 @@ ScrollPage {
             id: brightness
 
             anchors.fill: parent
+            active: true
         }
     }
 }

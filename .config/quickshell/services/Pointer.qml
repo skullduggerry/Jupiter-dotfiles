@@ -21,7 +21,7 @@ Singleton {
     // The Settings app's bounds for scrolling, as many times less as more.
     readonly property real scrollLeast: 0.25
     readonly property real scrollMost: 4
-    // The touchpads last seen, so they keep their speed while away.
+    // Every touchpad seen, so one keeps its speed while away.
     readonly property list<string> touchpads: settings.touchpads
 
     function refresh() {
@@ -65,11 +65,13 @@ Singleton {
         return `{ mouseSpeed = ${settings.mouseSpeed.toFixed(2)}, mouseScroll = ${settings.mouseScroll.toFixed(2)}, touchpadSpeed = ${settings.touchpadSpeed.toFixed(2)}, touchpadScroll = ${settings.touchpadScroll.toFixed(2)}, touchpads = { ${touchpads} } }`;
     }
 
+    // Added to the ones kept, never in their place: a touchpad unplugged
+    // while the page opens is still given its speed when it is back.
     function load(mice) {
-        const found = mice.map(mouse => mouse.name).filter(name => root.isTouchpad(name));
-        if (found.join(",") === settings.touchpads.join(","))
+        const found = mice.map(mouse => mouse.name).filter(name => root.isTouchpad(name) && !settings.touchpads.includes(name));
+        if (found.length === 0)
             return;
-        settings.touchpads = found;
+        settings.touchpads = Array.from(settings.touchpads).concat(found);
         root.changed();
     }
 

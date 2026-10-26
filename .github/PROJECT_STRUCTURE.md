@@ -224,7 +224,9 @@ Night Light at login.
   not defined).
 - A task's ring marks it done (`complete()` → `--complete HREF`): the task
   hides at once, the writes run one at a time, and a fetch after the last one
-  brings back any that failed (`completeProblem` says why). The helper GETs
+  brings back any that failed (`completeProblem` says why). A fetch that was
+  out during a write may predate it, so it hides that task too
+  (`fetchHides`), and the fetch queued behind it still goes out. The helper GETs
   the object and PUTs it back with `If-Match`, so another client's change is
   never written over; it takes only a path under `/remote.php/dav/calendars/`.
 - A repeating task with a date is done as Nextcloud Tasks does it: a record of
@@ -368,6 +370,10 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
 - Usage: the detailed reads run only while `SystemUsage.viewers > 0`. The
   temperature sensor is found by driver name, because hwmon numbers change
   between boots.
+- Brightness: sysfs cannot be watched, so the level is polled only while
+  `Brightness.viewers > 0` (a shown `BrightnessPanel`, the bar's drawer out,
+  the quick menu open), and read again before a key changes it. The
+  maximum is read once the backlight is found, as `available` needs it.
 - The apps' calculator (`quickmenu/QuickMenuApps`): only arithmetic-looking
   input, or input after `=`, goes to `qalc -t`. Set the command where the
   process starts, not through a binding. `.config/qalculate/qalc.cfg` is in
@@ -438,8 +444,8 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
 - The letters (`KeyHint`, beside a glyph toward the hub, on Orbit's rim
   where the line arrives) show only once the pointer has rested `keyDelay`
   or a key is pressed, so a flick never shows them.
-- A list item (the apps, the clipboard) shows its entries in a `RingList`
-  beside its slot, as a category shows its arc; the pencil's options are a
+- A list item (the apps, the clipboard, the notifications) shows its
+  entries in a `RingList` beside its slot, as a category shows its arc; the pencil's options are a
   `RingPanel` too. Both are straight boxes whose edge toward the menu is
   where the arc starts (`arcInner`), so they never reach over the ring.
 - The wheel over a list's slot goes into its list and along its rows

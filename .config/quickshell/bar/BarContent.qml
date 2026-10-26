@@ -94,6 +94,7 @@ Rectangle {
 
         BrightnessWidget {
             pager: quickPager
+            shown: root.expanded
         }
 
         BluetoothWidget {

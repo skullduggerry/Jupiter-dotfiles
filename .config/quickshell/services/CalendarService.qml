@@ -12,9 +12,11 @@ Singleton {
     property var events: []
     // Every open task, dated or not, in the helper's order: due ones first.
     property var tasks: []
-    // Hrefs of tasks marked done and not yet written: hidden at once, and
-    // still hidden in a fetch that started before the write landed.
+    // Hrefs of tasks marked done and not yet written: hidden at once.
     property var completing: []
+    // Hrefs in `completing` at any time while the running fetch was out,
+    // which its answer may still list as open: hidden from that answer too.
+    property var fetchHides: []
     property string completeHref: ""
     // Why the last task could not be marked done; its own, since every fetch
     // sets `message`.
@@ -27,6 +29,9 @@ Singleton {
     property int viewers: 0
     readonly property bool active: root.viewers > 0
     property bool refetchWanted: false
+    // Whether the fetch waiting for the running one goes out even when the
+    // range is covered, as one after a task's write must.
+    property bool refetchForced: false
     property bool syncWanted: false
     // A fetch takes seconds, so it covers this much more than the visible
     // range on each side, and paging around stays off the network.
@@ -162,9 +167,12 @@ Singleton {
 
         if (fetcher.running) {
             root.refetchWanted = true;
+            root.refetchForced = root.refetchForced || force;
             return;
         }
         root.refetchWanted = false;
+        root.refetchForced = false;
+        root.fetchHides = root.completing.slice();
         root.status = "loading";
         // Pinned before running, since the command binds to it, and snapped to
         // whole months, which keeps the coverage predictable.
@@ -186,7 +194,7 @@ Singleton {
                     start: new Date(event.start),
                     end: new Date(event.end)
                 }));
-        root.tasks = rawTasks.filter(task => !root.completing.includes(task.href)).map(task => ({
+        root.tasks = rawTasks.filter(task => !root.completing.includes(task.href) && !root.fetchHides.includes(task.href)).map(task => ({
                     // "" in a cache from before tasks could be marked done.
                     href: task.href ?? "",
                     summary: task.summary,
@@ -256,7 +264,7 @@ Singleton {
             root.coveredStart = new Date(0);
         }
         if (root.refetchWanted)
-            root.refresh(false);
+            root.refresh(root.refetchForced);
     }
 
     // Marks one task done on the server, one write at a time; once they are
@@ -267,6 +275,8 @@ Singleton {
 
         root.completeProblem = "";
         root.completing = root.completing.concat([href]);
+        if (fetcher.running)
+            root.fetchHides = root.fetchHides.concat([href]);
         root.tasks = root.tasks.filter(task => task.href !== href);
         if (!completer.running)
             root.completeNext();

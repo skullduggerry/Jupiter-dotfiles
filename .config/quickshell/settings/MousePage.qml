@@ -1,4 +1,3 @@
-import "../panels"
 import "../services"
 import "../style"
 import QtQuick
@@ -9,39 +8,6 @@ import QtQuick
 // too.
 ScrollPage {
     id: root
-
-    // A slider and what it is set to, as the Tablet page's pressure rows.
-    component LevelRow: FormRow {
-        id: row
-
-        property real position: 0
-        property string reading: ""
-
-        signal moved(real position)
-
-        Row {
-            width: parent.width
-            height: Style.popup.itemHeight
-            spacing: Style.widgets.spacing
-
-            PanelSlider {
-                width: parent.width - Style.settings.labelWidth - Style.widgets.spacing
-                anchors.verticalCenter: parent.verticalCenter
-                value: row.position
-                onMoved: position => row.moved(position)
-            }
-
-            Text {
-                width: Style.settings.labelWidth
-                anchors.verticalCenter: parent.verticalCenter
-                horizontalAlignment: Text.AlignRight
-                text: row.reading
-                color: Colors.text.muted
-                font.family: Style.text.font
-                font.pixelSize: Style.text.smallSize
-            }
-        }
-    }
 
     // In steps of 0.05, as libinput's -1 to 1.
     function speedAt(position: real): real {
