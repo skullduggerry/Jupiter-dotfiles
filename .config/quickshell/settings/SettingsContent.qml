@@ -85,7 +85,7 @@ FocusScope {
         },
         {
             name: "keyboard",
-            title: "Keyboard",
+            title: "Keyboard & Mouse",
             icon: Icons.keyboard,
             tabs: [
                 {
@@ -97,6 +97,11 @@ FocusScope {
                     name: "keybinds",
                     title: "Keybinds",
                     keywords: "keyboard shortcuts keys hotkeys binds"
+                },
+                {
+                    name: "mouse",
+                    title: "Mouse & Touchpad",
+                    keywords: "mouse touchpad trackpad pointer cursor speed sensitivity acceleration scroll scrolling wheel"
                 }
             ]
         },
@@ -376,6 +381,8 @@ FocusScope {
                     return keyboardPage;
                 case "keybinds":
                     return keybindsPage;
+                case "mouse":
+                    return mousePage;
                 case "tablet":
                     return tabletPage;
                 case "startup":
@@ -451,6 +458,12 @@ FocusScope {
         id: keybindsPage
 
         KeybindsPage {}
+    }
+
+    Component {
+        id: mousePage
+
+        MousePage {}
     }
 
     Component {

@@ -14,6 +14,7 @@ singleton LockService 1.0 LockService.qml
 singleton Media 1.0 Media.qml
 singleton NotificationService 1.0 NotificationService.qml
 singleton OsdState 1.0 OsdState.qml
+singleton Pointer 1.0 Pointer.qml
 singleton PopupAreas 1.0 PopupAreas.qml
 singleton PowerButton 1.0 PowerButton.qml
 singleton QuickMenu 1.0 QuickMenu.qml

@@ -1,6 +1,7 @@
 require("modules.env")
 require("modules.keybinds")
 require("modules.monitors")
+require("modules.pointer")
 require("modules.session")
 require("modules.start")
 require("modules.vars")

@@ -13,6 +13,7 @@ KeybindsPage 1.0 KeybindsPage.qml
 KeyboardPage 1.0 KeyboardPage.qml
 LockPage 1.0 LockPage.qml
 LockPreview 1.0 LockPreview.qml
+MousePage 1.0 MousePage.qml
 NetworkPage 1.0 NetworkPage.qml
 NotificationsPage 1.0 NotificationsPage.qml
 PanelCard 1.0 PanelCard.qml

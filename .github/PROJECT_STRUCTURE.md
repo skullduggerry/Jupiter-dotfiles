@@ -298,6 +298,17 @@ it is open and on which page, and any page or tab name opens its place
 `hyprctl switchxkblayout all <i>` and read back afterwards (Hyprland sends no
 event when switching back to the previous layout).
 
+**Mouse and touchpad** (`Pointer`, `modules/pointer.lua`, Settings →
+Keyboard & Mouse → Mouse & Touchpad): kept in `pointer.lua`, which
+`hyprland.lua` loads at start, and applied live as
+`require("modules.pointer").use({…})`. The mouse's speed is
+`input.sensitivity` and scrolling `input.scroll_factor` and
+`input.touchpad.scroll_factor`. Hyprland has no sensitivity for every
+touchpad, so each touchpad gets its own through `hl.device`, by the name
+`hyprctl devices -j` lists it under (a pointer named `touchpad` or
+`trackpad`, spelt as Hyprland spells names, since it goes into Lua). The page
+finds them when it opens, and keeps them so they keep their speed while away.
+
 **Tablet** (`Tablet`, `modules/tablet.lua`, Settings → Tablet):
 - Hyprland applies it through `input.tablet`/`input.tablettool`, never
   `hl.device`, so no device name is kept. The page's choices reach Lua as
@@ -585,5 +596,5 @@ the three-finger swipe is an `hl.gesture` that calls `dropdown openAt`.
 
 State files (`$XDG_STATE_HOME/quickshell/`): `appearance.json`,
 `monitors.{json,lua}`, `keyboard.lua`, `quickmenu.lua`, `blur.lua`, `dropdowns.lua`,
-`tablet.lua`, `hypridle.conf`, `hyprpaper.conf`, `tint.conf`, `lockscreen.json`, and the
+`tablet.lua`, `pointer.lua`, `hypridle.conf`, `hyprpaper.conf`, `tint.conf`, `lockscreen.json`, and the
 `statePath()` JSON files of individual services.
