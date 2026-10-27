@@ -147,16 +147,17 @@ Scope {
 
                 switch (window.zone) {
                 case DropdownState.zoneWorkspaces:
-                    return Style.bar.edgeGap;
+                    return WindowGaps.left;
                 case DropdownState.zoneQuickSettings:
-                    return window.width - surface.width - Style.bar.edgeGap;
+                    return window.width - surface.width - WindowGaps.right;
                 default:
                     return (window.width - surface.width) / 2;
                 }
             }
-            // A small bar floating over this screen's windows reserves no
-            // strip, so the dropdown clears it by itself.
-            y: Style.popup.topMargin + (BarLayout.floats(window.screen) ? Style.bar.floatingClearance : 0)
+            // Level with the windows' top. A small bar floating over this
+            // screen's windows reserves no strip, so the dropdown clears its
+            // frame, which starts on the windows' top edge, by itself.
+            y: WindowGaps.top + (BarLayout.floats(window.screen) ? WindowGaps.top - Style.border.width + Style.bar.depth : 0)
             width: Style.dropdown.width
             height: Math.max(Style.dropdown.minHeight, Math.min(Style.dropdown.maxHeight, Math.floor(content.implicitHeight)))
             focus: true

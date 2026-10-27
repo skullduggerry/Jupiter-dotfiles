@@ -9,11 +9,15 @@ Item {
 
     required property ClipboardHistory clipboard
     required property string line
+    // Its text's colour, which a host may fade.
+    property color color: Colors.text.base
 
     Text {
         text: root.clipboard.label(root.line)
         textFormat: Text.PlainText
-        color: Colors.text.base
+        color: root.color
+        // Explicit, so that a mirrored host turns it round.
+        horizontalAlignment: Text.AlignLeft
         font.family: Style.text.font
         font.pixelSize: Style.text.smallSize
         elide: Text.ElideRight

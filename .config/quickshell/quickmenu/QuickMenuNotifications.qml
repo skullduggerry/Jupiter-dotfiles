@@ -33,6 +33,7 @@ RingList {
     }
 
     title: "Notifications"
+    emptyText: NotificationService.doNotDisturb ? "Do not disturb" : "No notifications"
     model: NotificationService.list
     trailing: [
         TextButton {
@@ -49,26 +50,19 @@ RingList {
         }
     ]
 
-    delegate: Rectangle {
+    delegate: RingRow {
         id: entry
 
         required property Notification modelData
-        required property int index
 
-        width: root.view.width
-        height: Style.popup.itemHeight
-        radius: Style.popup.rowRadius
-        color: entry.index === root.current ? Colors.base.hover : "transparent"
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: root.pick(entry.index)
-        }
+        list: root
 
         Text {
             text: entry.modelData.summary !== "" ? entry.modelData.summary : entry.modelData.appName
             textFormat: Text.PlainText
-            color: Colors.text.base
+            color: entry.tint(Colors.text.base)
+            // Explicit, so that the left's mirroring keeps it at the hub.
+            horizontalAlignment: Text.AlignLeft
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
             elide: Text.ElideRight
@@ -89,7 +83,7 @@ RingList {
             width: Math.min(implicitWidth, entry.width / 3)
             text: entry.modelData.appName
             textFormat: Text.PlainText
-            color: entry.modelData.urgency === NotificationUrgency.Critical ? Colors.notification.urgent : Colors.text.muted
+            color: entry.modelData.urgency === NotificationUrgency.Critical ? Colors.notification.urgent : entry.tint(Colors.text.muted)
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
             elide: Text.ElideRight
@@ -114,18 +108,5 @@ RingList {
                 verticalCenter: parent.verticalCenter
             }
         }
-    }
-
-    Text {
-        id: empty
-
-        visible: root.count === 0
-        y: (root.view.height - empty.height) / 2
-        width: root.rowWidth
-        horizontalAlignment: Text.AlignHCenter
-        text: NotificationService.doNotDisturb ? "Do not disturb" : "No notifications"
-        color: Colors.text.muted
-        font.family: Style.text.font
-        font.pixelSize: Style.text.size
     }
 }

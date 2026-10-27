@@ -28,4 +28,5 @@ singleton Tablet 1.0 Tablet.qml
 singleton Time 1.0 Time.qml
 singleton Volume 1.0 Volume.qml
 singleton WallpaperService 1.0 WallpaperService.qml
+singleton WindowGaps 1.0 WindowGaps.qml
 singleton WorkspaceBlocks 1.0 WorkspaceBlocks.qml

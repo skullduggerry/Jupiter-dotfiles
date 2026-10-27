@@ -68,6 +68,7 @@ RingList {
     }
 
     searchable: true
+    emptyText: "No matching apps"
     Component.onCompleted: Apps.check()
     model: root.entries
     onExpressionChanged: root.calculate()
@@ -125,30 +126,20 @@ RingList {
         }
     ]
 
-    delegate: Rectangle {
+    // By name alone: a description would crowd the spokes.
+    delegate: RingRow {
         id: row
 
         // null for the answer's row.
         required property DesktopEntry modelData
-        required property int index
 
-        width: root.view.width
-        height: Style.popup.itemHeight
-        radius: Style.popup.rowRadius
-        color: row.index === root.current ? Colors.base.hover : "transparent"
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: root.pick(row.index)
-        }
+        list: root
 
         Text {
-            id: name
-
             width: Math.min(implicitWidth, parent.width - Style.widgets.padding * 2)
             text: row.modelData !== null ? row.modelData.name : "= " + root.answer
             textFormat: Text.PlainText
-            color: Colors.text.base
+            color: row.tint(Colors.text.base)
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
             elide: Text.ElideRight
@@ -156,24 +147,6 @@ RingList {
             anchors {
                 left: parent.left
                 leftMargin: Style.widgets.padding
-                verticalCenter: parent.verticalCenter
-            }
-        }
-
-        Text {
-            text: row.modelData?.comment ?? ""
-            textFormat: Text.PlainText
-            color: Colors.text.muted
-            font.family: Style.text.font
-            font.pixelSize: Style.text.smallSize
-            horizontalAlignment: Text.AlignRight
-            elide: Text.ElideRight
-
-            anchors {
-                left: name.right
-                right: parent.right
-                leftMargin: Style.bar.spacing
-                rightMargin: Style.widgets.padding
                 verticalCenter: parent.verticalCenter
             }
         }
@@ -199,18 +172,5 @@ RingList {
                 root.answer = root.expression === "" || flat(answer) === flat(root.expression) ? "" : answer;
             }
         }
-    }
-
-    Text {
-        id: empty
-
-        visible: root.count === 0
-        y: (root.view.height - empty.height) / 2
-        width: root.rowWidth
-        horizontalAlignment: Text.AlignHCenter
-        text: "No matching apps"
-        color: Colors.text.muted
-        font.family: Style.text.font
-        font.pixelSize: Style.text.size
     }
 }

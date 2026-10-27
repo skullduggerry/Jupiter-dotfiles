@@ -10,5 +10,6 @@ QuickMenuNotifications 1.0 QuickMenuNotifications.qml
 RingHub 1.0 RingHub.qml
 RingItem 1.0 RingItem.qml
 RingList 1.0 RingList.qml
+RingRow 1.0 RingRow.qml
 RingPanel 1.0 RingPanel.qml
 RingSector 1.0 RingSector.qml

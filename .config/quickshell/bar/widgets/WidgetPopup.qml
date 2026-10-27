@@ -16,7 +16,8 @@ PanelWindow {
     property string namespaceSuffix: "widget-popup"
     property int popupWidth: Style.popup.width
     property int popupHeight: Style.popup.maxHeight
-    property int contentTopMargin: Style.popup.topMargin
+    // As far below the bar as the windows are.
+    property int contentTopMargin: WindowGaps.top
     property Item anchorItem: null
     property int keyboardFocus: WlrKeyboardFocus.OnDemand
     property real anchorCenterX: 0
@@ -47,7 +48,7 @@ PanelWindow {
             return;
 
         const rect = root.anchorItem.QsWindow.itemRect(root.anchorItem);
-        root.anchorCenterX = Style.bar.sideGap + rect.x + rect.width / 2;
+        root.anchorCenterX = WindowGaps.left - Style.border.width + rect.x + rect.width / 2;
     }
 
     visible: frame.shown
@@ -114,17 +115,18 @@ PanelWindow {
         id: contentArea
 
         // A small bar floating over this screen's windows reserves no strip,
-        // and is a pill at its centre, which everything opens under.
-        y: root.contentTopMargin + (BarLayout.floats(root.screen) ? Style.bar.floatingClearance : 0)
+        // and is a pill at its centre, which everything opens under: below
+        // its frame, which starts on the windows' top edge.
+        y: root.contentTopMargin + (BarLayout.floats(root.screen) ? WindowGaps.top - Style.border.width + Style.bar.depth : 0)
         x: {
             if (root.screen !== BarLayout.main)
                 return (root.width - root.popupWidth) / 2;
 
             if (root.anchorItem === null)
-                return root.width - root.popupWidth - Style.bar.edgeGap;
+                return root.width - root.popupWidth - WindowGaps.right;
 
             const centred = root.anchorCenterX - root.popupWidth / 2;
-            return Math.max(Style.bar.edgeGap, Math.min(root.width - root.popupWidth - Style.bar.edgeGap, centred));
+            return Math.max(WindowGaps.left, Math.min(root.width - root.popupWidth - WindowGaps.right, centred));
         }
         width: root.popupWidth
         height: root.popupHeight

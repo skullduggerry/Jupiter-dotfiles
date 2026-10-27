@@ -45,7 +45,7 @@ Scope {
             WlrLayershell.namespace: "quickshell:bar"
             implicitWidth: content.implicitWidth + Style.border.width * 2
             implicitHeight: Style.bar.height
-            exclusiveZone: BarLayout.floats(bar.modelData) ? 0 : Style.bar.height + Style.bar.bottomGap
+            exclusiveZone: BarLayout.floats(bar.modelData) ? 0 : Style.bar.depth
             color: Colors.base.panel
 
             anchors {
@@ -54,10 +54,11 @@ Scope {
                 right: bar.full
             }
 
+            // Floating over the windows, its frame is on their top edge.
             margins {
-                top: BarLayout.floats(bar.modelData) ? Style.bar.floatingGap : Style.bar.topGap
-                left: Style.bar.sideGap
-                right: Style.bar.sideGap
+                top: WindowGaps.top - Style.border.width
+                left: WindowGaps.left - Style.border.width
+                right: WindowGaps.right - Style.border.width
             }
 
             Loader {

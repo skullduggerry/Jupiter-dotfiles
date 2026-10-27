@@ -32,6 +32,17 @@ QtObject {
     readonly property real readableContrast: 4.5
     readonly property real glassKeeps: 0.9
     readonly property real glassStep: 0.02
+    // The least share of the text colour faded text keeps (faded()): where
+    // it still reads at readableContrast over the surface, over blur over
+    // the backdrop's least readable part too; no fading at all where full
+    // text only just does.
+    readonly property real fadeFloor: {
+        const behind = Theme.blur && root.backdrop.a > 0 ? root.mix(root.backdrop, root.palette.background, root.base.opacity) : root.palette.background;
+        for (let share = 0.3; share < 1; share += root.glassStep)
+            if (root.contrast(root.mix(root.palette.background, root.palette.foreground, share), behind) >= root.readableContrast)
+                return share;
+        return 1;
+    }
     // The tint the Settings app offers: more than Hyprland's ignore_alpha for
     // the shell's layers (0.2, .config/hypr/styles/layout.lua), below which a
     // surface is not blurred at all, and short of Solid.
@@ -265,6 +276,12 @@ QtObject {
         default:
             return root.palette.blue;
         }
+    }
+
+    // Text toward its surface by `amount` (0 to 1), as the quick menu's wheel
+    // fades its rows away from the middle: at most down to fadeFloor.
+    function faded(full: color, amount: real): color {
+        return root.mix(root.palette.background, full, 1 - (1 - root.fadeFloor) * Math.max(0, Math.min(1, amount)));
     }
 
     function slot(value: string, fallback: color): color {

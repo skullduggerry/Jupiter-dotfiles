@@ -115,15 +115,17 @@ FocusScope {
     readonly property real extent: Style.quickMenu.arcOuter
     // At the size picked, smaller on a screen too small for it.
     readonly property real zoom: Math.min(QuickMenu.size, (Math.min(root.width, root.height) / 2 - Style.quickMenu.margin) / root.extent)
-    // How far across from the centre a panel beside the ring reaches.
+    // How far across from the centre the pencil's panel and a list's wheel
+    // reach.
     readonly property real panelReach: (Style.quickMenu.arcInner + Style.quickMenu.panelWidth) * root.zoom + Style.quickMenu.margin
+    readonly property real listReach: (Style.quickMenu.arcInner + Style.quickMenu.fanWidth) * root.zoom + Style.quickMenu.margin
     readonly property point center: {
         const room = root.extent * root.zoom + Style.quickMenu.margin;
-        const x = root.origin.x - (root.launcher && root.appsSlot >= 0 ? root.sideOf(root.appsSlot) * (Style.quickMenu.arcInner + Style.quickMenu.panelWidth - root.extent) / 2 * root.zoom : 0);
-        // A list's panel goes out on its slot's side, which needs room for it.
+        const x = root.origin.x - (root.launcher && root.appsSlot >= 0 ? root.sideOf(root.appsSlot) * (Style.quickMenu.arcInner + Style.quickMenu.fanWidth - root.extent) / 2 * root.zoom : 0);
+        // A list goes out on its slot's side, which needs room for it.
         const sides = root.slots.map((entry, slot) => root.items.kindOf(entry) === "list" ? root.sideOf(slot) : 0);
-        const left = sides.includes(-1) ? Math.max(room, root.panelReach) : room;
-        const right = sides.includes(1) ? Math.max(room, root.panelReach) : room;
+        const left = sides.includes(-1) ? Math.max(room, root.listReach) : room;
+        const right = sides.includes(1) ? Math.max(room, root.listReach) : room;
         return Qt.point(root.width < left + right ? root.width / 2 : Math.max(left, Math.min(root.width - right, x)), root.height < room * 2 ? root.height / 2 : Math.max(room, Math.min(root.height - room, root.origin.y)));
     }
     // The pencil's panel: right of the menu where it fits, else left.
@@ -190,9 +192,9 @@ FocusScope {
     function hit(x: real, y: real): var {
         const dx = (x - root.center.x) / root.zoom;
         const dy = (y - root.center.y) / root.zoom;
-        // A panel out beside the menu first: it reaches past everything else.
-        const panel = (root.list ?? editorPanel.item) as RingPanel;
-        if (panel?.covers(dx, dy))
+        // A list or the pencil's panel out beside the menu first: it
+        // reaches past everything else.
+        if (root.list?.covers(dx, dy) || (editorPanel.item as RingPanel)?.covers(dx, dy))
             return {
                 area: "panel",
                 index: root.list?.rowAt(dx, dy) ?? -1
@@ -512,8 +514,20 @@ FocusScope {
 
     // The wheel over a list's slot (the apps', the clipboard's…): into the
     // list on its first row, then along its rows, with the pointer left
-    // where it is. Letting the key go uses the row, as if pointed at.
+    // where it is. Letting the key go uses the row, as if pointed at. Over
+    // the list, it turns the list, and the pointer picks what comes under it;
+    // a row the keys picked, the pointer elsewhere, it steps as they do.
     function scrollList(rows: int) {
+        if (root.selectedArea === "panel" && root.wheelSlot < 0 && root.list !== null) {
+            if (root.hit(root.pointer.x, root.pointer.y).area !== "panel") {
+                root.stepRow(rows);
+                return;
+            }
+            root.list.turn(rows);
+            const target = root.hit(root.pointer.x, root.pointer.y);
+            root.select(target.area, target.index, false);
+            return;
+        }
         const slot = root.selectedArea === "ring" ? root.selectedIndex : root.wheelSlot;
         if (slot < 0 || root.items.kindOf(root.slots[slot] ?? "") !== "list")
             return;

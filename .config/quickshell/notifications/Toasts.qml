@@ -52,7 +52,7 @@ Scope {
 
         // The toasts' column, and how far down a popup open across it reaches:
         // the toasts move below it rather than lie over it (PopupAreas).
-        readonly property real columnRight: window.screen !== null ? window.screen.width - Style.bar.edgeGap : 0
+        readonly property real columnRight: window.screen !== null ? window.screen.width - WindowGaps.right : 0
         readonly property real coveredTo: PopupAreas.bottomOver(window.screen !== null ? window.screen.name : "", window.columnRight - window.implicitWidth, window.columnRight)
 
         visible: toastScope.shown.length > 0
@@ -78,8 +78,8 @@ Scope {
         }
 
         margins {
-            top: Math.max(Style.popup.topMargin, window.coveredTo + Style.bar.spacing)
-            right: Style.bar.edgeGap
+            top: Math.max(WindowGaps.top, window.coveredTo + Style.bar.spacing)
+            right: WindowGaps.right
         }
 
         NumberAnimation {

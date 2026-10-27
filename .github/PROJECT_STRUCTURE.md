@@ -177,9 +177,15 @@ and every other screen gets the small pill. Each screen keeps one
 `PanelWindow`, and a `Loader` swaps its content, because Caffeine's
 `IdleInhibitor` only counts on a surface that was mapped before it was enabled.
 The inhibitor binds to `bar.caffeine`, not to `QuickToggles` directly (that
-was a binding loop). A small bar may float over windows (`exclusiveZone: 0`),
-and then `Dropdown`/`WidgetPopup` add `Style.bar.floatingClearance`
-themselves. On a small bar's screen, popups open centred under the pill
+was a binding loop). The bar lines up on the windows: its frame's edges are
+where Hyprland's `general:gaps_out` puts their outer edges
+(`services/WindowGaps`, read with hyprctl at start and on `configreloaded`),
+and it reserves a strip down to its frame's bottom (`Style.bar.depth`), so the
+windows start that gap below it. Dropdowns, widget popups, the OSD and the
+toasts open that gap under the strip, level with the windows' tops, and their
+edges on the windows' sides. A small bar may float over windows
+(`exclusiveZone: 0`), its frame on their top edge, and then `Dropdown`/
+`WidgetPopup` clear its frame themselves. On a small bar's screen, popups open centred under the pill
 (`screen !== BarLayout.main`). The drawer is anchored between two rows rather
 than placed in a `Row`, because a `Row` jumps by its spacing at width 0. Its
 `clip` stops hidden widgets from taking clicks.
@@ -445,13 +451,22 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
   where the line arrives) show only once the pointer has rested `keyDelay`
   or a key is pressed, so a flick never shows them.
 - A list item (the apps, the clipboard, the notifications) shows its
-  entries in a `RingList` beside its slot, as a category shows its arc; the pencil's options are a
-  `RingPanel` too. Both are straight boxes whose edge toward the menu is
-  where the arc starts (`arcInner`), so they never reach over the ring.
+  entries in a `RingList` beside its slot, as a category shows its arc: a
+  wheel from where the arc starts (`arcInner`), its header and rows spokes
+  (`RingRow`) that read out from the hub, mirrored on the left. Its middle
+  row is level with the slot, tilted toward it only as far as keeps the fan
+  in the menu's height, since steeper text stops reading. Toward its ends a
+  row shrinks and fades, but only down to `Colors.fadeFloor`, where text
+  still reads at AA over the surface (and over blur, over the backdrop).
+  Its `ListView` only lays the rows out: the menu takes the pointer and the
+  wheel (`hit()`, `rowAt()`), so rows have no `MouseArea`. The pencil's
+  options are a `RingPanel`, a straight box from `arcInner`.
 - The wheel over a list's slot goes into its list and along its rows
   (`scrollList()`), the pointer left where it is: the row stays picked while
   the pointer stays on that slot (`wheelSlot`), and letting the key go uses
-  it. Over the list itself, the wheel scrolls it as any list.
+  it. Over the list itself, the wheel turns it a row a notch, and the
+  pointer picks what comes under it; the keys keep the picked row near the
+  middle (`show()`).
 - The apps' list is the launcher, over `services/Apps`, which leaves out an
   entry whose program is gone: Quickshell ignores `TryExec`, and an app's own
   copy of its entry can outlive the package. SUPER+R (`launcherToggle`) opens the menu
@@ -486,8 +501,8 @@ Each of these has already caused a bug.
 - `OnDemand` alone gives no focus to an overlay opened from the bar. Use a
   `HyprlandFocusGrab` with a `FocusScope` around the content.
 - A full-screen overlay's y=0 is already below the bar's exclusive zone.
-  `Style.bar.sideGap` is where the bar's window starts, and `edgeGap` is where
-  its frame appears to start; line popups up on `edgeGap`.
+  The bar's window starts a border short of `WindowGaps`, as it draws its
+  frame one border inside; line popups up on `WindowGaps` itself.
 - `Hyprland.dispatch()` and `hyprctl dispatch` take Lua
   (`hl.dsp.exit()`), not hyprlang dispatchers.
 - Saving several Hyprland modules at once races the autoreload. Run

@@ -74,8 +74,8 @@ Scope {
         Rectangle {
             id: panel
 
-            x: window.width - panel.width - Style.bar.edgeGap
-            y: Style.popup.topMargin
+            x: window.width - panel.width - WindowGaps.right
+            y: WindowGaps.top
             width: Style.dropdown.width
             // Not by `content.item`: the Loader sets it before its implicit
             // height, which then changed under this binding's own write (a

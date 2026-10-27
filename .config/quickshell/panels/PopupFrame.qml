@@ -1,3 +1,4 @@
+import "../services"
 import "../style"
 import QtQuick
 
@@ -31,7 +32,7 @@ Rectangle {
         },
         // From the bar's edge, across the gap under it.
         Translate {
-            y: -Style.popup.topMargin * (1 - root.reveal)
+            y: -WindowGaps.top * (1 - root.reveal)
         }
     ]
 

@@ -10,20 +10,12 @@ QtObject {
         id: barMetrics
 
         readonly property int height: 35
-        readonly property int sideGap: 14
-        // The bar draws its frame one border inside the window it is given, so
-        // anything floating below it lines up on this, not on sideGap.
-        readonly property int edgeGap: barMetrics.sideGap + metrics.border.width
-        readonly property int topGap: 8
-        readonly property int bottomGap: -2
-        // Where windows start: Hyprland's general:gaps_out, which
-        // .config/hypr/styles/layout.lua sets. A small bar floating over them
-        // puts its frame on their top edge.
-        readonly property int windowGap: 16
-        readonly property int floatingGap: barMetrics.windowGap - metrics.border.width
-        // How far down a small bar floating over windows reaches, which what
-        // opens under it there has to clear by itself.
-        readonly property int floatingClearance: barMetrics.floatingGap + barMetrics.height + barMetrics.bottomGap
+        // The bar lines up on the windows (services/WindowGaps): it draws its
+        // frame one border inside its window, which starts a border short of
+        // the gaps, so the frame's edges are the windows' outer edges. Below
+        // its window's top it keeps a strip `depth` deep, to the frame's
+        // bottom, and Hyprland puts the windows the same gap below that.
+        readonly property int depth: barMetrics.height - metrics.border.width
         readonly property int radius: 10
         readonly property int padding: 12
         readonly property int spacing: 8
@@ -71,8 +63,6 @@ QtObject {
         readonly property int maxHeight: 280
         readonly property int itemHeight: 28
         readonly property int dismissDelay: 180
-        readonly property int gap: 16
-        readonly property int topMargin: popupMetrics.gap
         readonly property int rowIconWidth: 16
         readonly property int rowRadius: 5
         // How long a click that wants confirming (Forget) waits for the second.
@@ -150,9 +140,13 @@ QtObject {
     // shifted off the pointer to fit waits for `armSlop` of movement. Once
     // the pointer has been among a category's items, crossing another slot
     // switches only after `switchDelay`. The letters show once the pointer
-    // has rested `keyDelay`, or a key is pressed. A panel beside it
-    // (quickmenu/RingPanel: a list's, the pencil's) is `panelWidth` wide and
-    // up to `panelHeight` tall.
+    // has rested `keyDelay`, or a key is pressed. The pencil's panel beside
+    // it (quickmenu/RingPanel) is `panelWidth` wide and up to `panelHeight`
+    // tall. A list (quickmenu/RingList) is a wheel out from `arcInner`,
+    // `fanWidth` deep, its rows spokes `fanStep` degrees apart, up to
+    // `fanSpan` degrees either way of its middle; toward its ends they shrink
+    // by up to `fanShrink` and fade (Colors.faded()), and the picked one is a
+    // pill `fanRowHeight` high.
     // Playful motion springs each slot from `popFrom` of its size, `stagger`
     // after the one before, over `spring`; calm fades in from `calmFrom`.
     // All of it is drawn at one of `sizes` (QuickMenu.size), less where the
@@ -178,6 +172,11 @@ QtObject {
         readonly property int fewItems: 3
         readonly property int panelWidth: 280
         readonly property int panelHeight: 320
+        readonly property int fanWidth: 200
+        readonly property real fanStep: 6.7
+        readonly property int fanSpan: 26
+        readonly property real fanShrink: 0.16
+        readonly property int fanRowHeight: 22
         readonly property int slotWidth: 84
         // The least the text in the centre shrinks to, for a long word.
         readonly property int leastTextSize: 9

@@ -24,31 +24,24 @@ RingList {
     }
 
     title: "Clipboard"
+    emptyText: history.emptyText
     model: history.entries
     trailing: ClipboardControls {
         clipboard: history
     }
 
-    delegate: Rectangle {
+    delegate: RingRow {
         id: entry
 
         required property string modelData
-        required property int index
 
-        width: root.view.width
-        height: Style.popup.itemHeight
-        radius: Style.popup.rowRadius
-        color: entry.index === root.current ? Colors.base.hover : "transparent"
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: root.pick(entry.index)
-        }
+        list: root
 
         ClipboardEntry {
             anchors.fill: parent
             clipboard: history
             line: entry.modelData
+            color: entry.tint(Colors.text.base)
         }
     }
 
@@ -56,18 +49,5 @@ RingList {
         id: history
 
         active: true
-    }
-
-    Text {
-        id: empty
-
-        visible: root.count === 0
-        y: (root.view.height - empty.height) / 2
-        width: root.rowWidth
-        horizontalAlignment: Text.AlignHCenter
-        text: history.emptyText
-        color: Colors.text.muted
-        font.family: Style.text.font
-        font.pixelSize: Style.text.size
     }
 }
