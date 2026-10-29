@@ -18,7 +18,7 @@ hl.config({
 			enabled = true,
 			size = 6,
 			passes = 3,
-			noise = 0.02,
+			noise = 0.04,
 			vibrancy = 0.17,
 			ignore_opacity = true,
 			-- The Settings app's dropdown lists are popups on the shell's glass
