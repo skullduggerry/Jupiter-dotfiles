@@ -346,6 +346,9 @@ FocusScope {
                         value: tab.name
                     }))
             current: root.tab
+            // Given the page's width, so a window tiled narrower than its
+            // minimum wraps the tabs rather than cutting them off.
+            width: page.width - 2 * Style.settings.padding
             onPicked: tab => SettingsState.page = tab
 
             anchors {

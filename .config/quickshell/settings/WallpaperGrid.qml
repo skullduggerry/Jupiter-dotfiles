@@ -106,10 +106,14 @@ Item {
         font.pixelSize: Style.text.size
     }
 
+    // Where a pick goes on the left and the import on the right, or the
+    // import under it when the window is too narrow for both.
     Item {
         id: options
 
-        height: Style.popup.itemHeight
+        readonly property bool stacked: applyTo.implicitWidth + Style.settings.spacing + actions.implicitWidth > options.width
+
+        height: options.stacked ? applyTo.height + Style.bar.spacing + actions.height : Style.popup.itemHeight
 
         anchors {
             left: parent.left
@@ -120,7 +124,9 @@ Item {
         // hyprpaper sets a monitor, not a workspace: a workspace's own is put
         // on its monitor whenever the workspace is shown there.
         PillGroup {
-            anchors.verticalCenter: parent.verticalCenter
+            id: applyTo
+
+            anchors.top: parent.top
             label: "APPLY TO"
             choices: [
                 {
@@ -137,9 +143,11 @@ Item {
         }
 
         Row {
+            id: actions
+
             spacing: Style.bar.spacing
             anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.bottom: parent.bottom
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter

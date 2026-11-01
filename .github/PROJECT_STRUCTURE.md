@@ -271,6 +271,11 @@ channel from its colour when it is created, so one opened over Solid stayed
 opaque when Blur (or a theme over it) came on. `SettingsState` holds whether
 it is open and on which page, and any page or tab name opens its place
 (`openPage keybinds`).
+- Hyprland tiles the window narrower than its `minimumSize` (704 px on a
+  laptop beside another window), so a row of pills is given the page's width
+  and wraps (`PillGroup` is a `Flow`), and a row with something on either side
+  stacks once they would meet (`WallpaperGrid`'s import). Jupiter-testing's
+  `SettingsLayoutTest.qml` fails on a pill that runs off or onto another.
 - A `ChoiceField`'s list is a `PopupWindow` (an xdg_popup with a grab), so it
   is drawn over the whole window and past its edges, flips above the field
   where the screen has no room below, and is glass through Hyprland's
