@@ -249,8 +249,13 @@ Night Light at login.
   monitor is named once at start.
 - The choice persists as `$XDG_STATE_HOME/quickshell/hyprpaper.conf`, which
   `source`s the repo's file and is started with `-c`. Don't reverse that: a
-  hyprpaper config that sources a missing file fails to start. `fit_mode` is
-  `cover` everywhere (`fill` stretches, and the IPC cannot express stretch).
+  hyprpaper config that sources a missing file fails to start.
+- The fit (Settings → Wallpapers → FIT) is one `fit_mode` for every monitor
+  and workspace: `cover`, `contain` or `tile`, kept in `wallpaper.json` and
+  the saved config, and changing it names every monitor again. No stretch:
+  the config's `fill` stretches, but hyprctl's `stretch` reaches hyprpaper
+  0.8.5 as `fit`, which its renderer reads as `cover`. `contain`'s bars are
+  hyprpaper's black.
 - Blur size: `hyprctl eval` live, plus `blur.lua`, which `styles/layout.lua`
   applies. Glass tint: Adaptive mode raises `Colors.base.glassFloor` until
   muted text reaches WCAG AA over the brightest block that `BackdropProbe`

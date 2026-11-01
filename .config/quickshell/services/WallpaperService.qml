@@ -41,6 +41,25 @@ Singleton {
         }
     ]
     readonly property int rotateMinutes: settings.rotateMinutes
+    // How a picture meets its monitor, as hyprpaper names it: cover crops to
+    // fill the monitor, contain shows all of it between bars, tile repeats it.
+    // No stretch: hyprpaper 0.8.5's IPC hands it on as "fit", which its
+    // renderer does not know, and so shows cover.
+    readonly property string fit: settings.fit
+    readonly property var fitChoices: [
+        {
+            label: "Fill",
+            value: "cover"
+        },
+        {
+            label: "Fit",
+            value: "contain"
+        },
+        {
+            label: "Tile",
+            value: "tile"
+        }
+    ]
     readonly property list<int> rotateChoices: [5, 15, 30, 60]
     // Where a pick goes: "all" workspaces, or the focused "workspace" alone.
     readonly property string target: settings.target
@@ -75,6 +94,17 @@ Singleton {
     function setRotateMinutes(minutes: int) {
         settings.rotateMinutes = minutes;
         writeDebounce.restart();
+    }
+
+    // Every monitor is named again, as each keeps the fit it was named with.
+    function setFit(value: string) {
+        settings.fit = value;
+        writeDebounce.restart();
+        root.shown = ({});
+        if (chosen.path !== "")
+            root.setAllWorkspaces(chosen.path, false);
+        else
+            root.sync();
     }
 
     function setTarget(value: string) {
@@ -172,7 +202,7 @@ Singleton {
         }
         // Sources hyprpaper.conf first, so its other settings still apply,
         // then overrides its wallpaper: a later block for the same monitor wins.
-        savedFile.setText(["# Written by the shell (.config/quickshell/services/WallpaperService.qml).", "source = " + root.defaultConfig, "", "wallpaper {", "    monitor =", "    path = " + path, "    fit_mode = cover", "}", ""].join("\n"));
+        savedFile.setText(["# Written by the shell (.config/quickshell/services/WallpaperService.qml).", "source = " + root.defaultConfig, "", "wallpaper {", "    monitor =", "    path = " + path, "    fit_mode = " + settings.fit, "}", ""].join("\n"));
         root.sync();
     }
 
@@ -312,9 +342,7 @@ Singleton {
         property string monitor: ""
         property string path: ""
 
-        // cover, and not hyprpaper.conf's old fill: fill is hyprpaper's
-        // stretch, which its IPC cannot express at all.
-        command: ["hyprctl", "hyprpaper", "wallpaper", setter.monitor + "," + setter.path + ",cover"]
+        command: ["hyprctl", "hyprpaper", "wallpaper", setter.monitor + "," + setter.path + "," + settings.fit]
         onExited: (exitCode, exitStatus) => {
             if (exitCode !== 0) {
                 root.error = "hyprpaper did not take " + setter.path.split("/").pop();
@@ -401,6 +429,7 @@ Singleton {
             property int rotateMinutes: 15
             property string target: "all"
             property string category: ""
+            property string fit: "cover"
             // "DP-2:3" -> path, for the workspaces with a wallpaper of their own
             property var workspaces: ({})
         }

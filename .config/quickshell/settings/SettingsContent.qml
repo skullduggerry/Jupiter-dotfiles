@@ -28,7 +28,7 @@ FocusScope {
                 {
                     name: "wallpaper",
                     title: "Wallpapers",
-                    keywords: "wallpaper background rotate image workspace"
+                    keywords: "wallpaper background rotate image workspace fit fill tile crop cut off scale"
                 },
                 {
                     name: "themes",

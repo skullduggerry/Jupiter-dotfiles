@@ -5,17 +5,19 @@ import "../services"
 import "../style"
 import QtQuick
 
-// ~/Wallpapers under the wallpaper mode and, once it has subfolders, a tab for
-// each; below, where a pick goes.
+// ~/Wallpapers under the wallpaper mode and fit and, once it has subfolders,
+// a tab for each; below, where a pick goes.
 Item {
     id: root
 
     readonly property int columns: Math.max(1, Math.floor((root.width + Style.settings.spacing) / (Style.wallpaper.cardWidth + Style.settings.spacing)))
 
-    // Where the theme grid has its search field, so both grids start level.
-    Row {
+    // Where the theme grid has its search field, so both grids start level;
+    // a window too narrow for the row wraps it.
+    Flow {
         id: mode
 
+        width: root.width
         spacing: Style.settings.spacing
 
         PillGroup {
@@ -34,6 +36,13 @@ Item {
                     }))
             current: WallpaperService.rotateMinutes
             onPicked: minutes => WallpaperService.setRotateMinutes(minutes)
+        }
+
+        PillGroup {
+            label: "FIT"
+            choices: WallpaperService.fitChoices
+            current: WallpaperService.fit
+            onPicked: fit => WallpaperService.setFit(fit)
         }
     }
 
