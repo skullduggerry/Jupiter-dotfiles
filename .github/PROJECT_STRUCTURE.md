@@ -273,6 +273,13 @@ Night Light at login.
   blur down to `ignore_alpha` 0.05 (`styles/layout.lua`); raise both
   together. Acrylic is *specular*: its edges are a faint `edge`, with
   `GlassHighlight` under the content instead of the flat border.
+- Acrylic's lens displaces outward: its rim shows what lies up to
+  `refraction` px *past* the glass's edge. Past the 10 px `gaps_out` that
+  is the neighbouring window, squeezed into a dark band along the bar's
+  lower edge, so `BlurVariants` offers at most 12 and `effective()` holds a
+  kept value to the range. Its tint is thickest at the rim, so it is the
+  theme's lighter colour (`Colors.base.glassTint`): the darker one smokes
+  the rim instead of lighting it.
 - **Hyprland 0.57 draws acrylic's lens around a whole window or layer, never
   a part of one**: no layer rule gives it a shape. The bar, a lone toast and
   a ChoiceField's list fill their layer and get the real lens

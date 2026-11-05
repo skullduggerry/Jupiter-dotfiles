@@ -49,9 +49,9 @@ QtObject {
     // liquid glass; Adaptive raises it where text needs it.
     readonly property real tintLeast: 0.1
     readonly property real tintMost: 0.95
-    // How much of the light a clear pane of acrylic's glass (glassTint)
-    // absorbs: Hyprland thickens it toward the rim, which reads as depth.
-    readonly property real glassAbsorption: 0.35
+    // How milky a clear pane of acrylic's glass (glassTint) is: Hyprland
+    // thickens it toward the rim, so the rim catches the light as glass does.
+    readonly property real glassAbsorption: 0.15
     // The wallpaper at its least readable behind the panels, over every
     // screen: its brightest under light text, its darkest under dark text.
     // Transparent until a bar has measured one (Theme.backdrops).
@@ -106,9 +106,10 @@ QtObject {
         readonly property color lensBand: root.withAlpha(root.palette.background, 0.4)
         readonly property color caustic: root.light ? root.withAlpha(root.palette.background, 0.35) : root.withAlpha(root.palette.foreground, 0.06)
         // What Hyprland colours its glass with (services/HyprBlur): acrylic's
-        // pane in the theme's background, aurora's curtains in the accent and
-        // a second accent, the fluid jar's liquid in the accent.
-        readonly property color glassTint: root.withAlpha(root.palette.background, root.glassAbsorption)
+        // pane in the lighter of the theme's two colours (in the darker, its
+        // thick rim reads as smoked, not lit), aurora's curtains in the
+        // accent and a second accent, the fluid jar's liquid in the accent.
+        readonly property color glassTint: root.withAlpha(root.light ? root.palette.background : root.palette.foreground, root.glassAbsorption)
         readonly property color glowFirst: root.accent.primary
         readonly property color glowSecond: root.accentColor(Theme.accent === "purple" ? "cyan" : "purple")
         readonly property color fluid: root.withAlpha(root.accent.primary, 0.8)

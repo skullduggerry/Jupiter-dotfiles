@@ -91,11 +91,16 @@ QtObject {
                     unit: "px"
                 },
                 {
+                    // How far past its edge the rim fetches what it bends in.
+                    // Beyond the gap around a window or the bar (gaps_out,
+                    // .config/hypr/styles/color.lua), that is the neighbour:
+                    // a dark band along the bar's lower edge, a window's border
+                    // down the next one's side.
                     key: "acrylic.refraction",
                     label: "Refraction",
-                    fallback: 24,
+                    fallback: 8,
                     least: 0,
-                    most: 48,
+                    most: 12,
                     step: 1,
                     unit: "px"
                 },
@@ -379,14 +384,16 @@ QtObject {
 
     // Every sub-option any variant reads, once each, at the value picked
     // (chosen, by key) or Hyprland's default: written whole, so a value set
-    // back to its default reaches the running Hyprland too.
+    // back to its default reaches the running Hyprland too. A value kept from
+    // a wider range than the one now offered is held to it.
     function effective(chosen: var): var {
         const values = {};
         for (let index = 0; index < root.variants.length; index++) {
             const options = root.variants[index].options;
             for (let option = 0; option < options.length; option++) {
-                const key = options[option].key;
-                values[key] = chosen && chosen[key] !== undefined ? chosen[key] : options[option].fallback;
+                const spec = options[option];
+                const picked = chosen && chosen[spec.key] !== undefined ? chosen[spec.key] : spec.fallback;
+                values[spec.key] = Math.max(spec.least, Math.min(spec.most, picked));
             }
         }
         return values;
