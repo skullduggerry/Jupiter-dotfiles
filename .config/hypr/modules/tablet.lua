@@ -74,9 +74,9 @@ local function letGo()
 	notify("Back on " .. where(kept.area))
 end
 
--- The shape of the box every screen together covers, nil before there is a
--- screen.
-local function layoutRatio()
+-- The box every screen together covers, in the layout's coordinates: left,
+-- top, width and height, nil before there is a screen.
+local function layoutBox()
 	local left, top, right, bottom = math.huge, math.huge, -math.huge, -math.huge
 	for _, monitor in ipairs(hl.get_monitors()) do
 		left = math.min(left, monitor.x)
@@ -87,12 +87,14 @@ local function layoutRatio()
 	if right <= left or bottom <= top then
 		return nil
 	end
-	return (right - left) / (bottom - top)
+	return left, top, right - left, bottom - top
 end
 
 -- Where the tablet draws: an output ("" for every screen, "current" for the
--- focused one), a box on it (empty for all of it) and the shape of what that
--- is, width over height.
+-- focused one), a box on it, or in the layout where absolute, and the shape
+-- of what that is, width over height. Hyprland takes no 0x0 box for all of
+-- it, so the box is the whole of it; with no screen yet, it is 0x0 and none
+-- is given.
 local function target()
 	if held ~= nil and held.window ~= nil then
 		local window = hl.get_window("address:" .. held.window)
@@ -122,14 +124,26 @@ local function target()
 	end
 	if monitor == nil then
 		local output = area == "focused" and "current" or area == "all" and "" or area
-		return { output = output, x = 0, y = 0, width = 0, height = 0, ratio = layoutRatio() }
+		local x, y, width, height = layoutBox()
+		if x == nil then
+			return { output = output, x = 0, y = 0, width = 0, height = 0 }
+		end
+		return {
+			output = output,
+			absolute = true,
+			x = x,
+			y = y,
+			width = width,
+			height = height,
+			ratio = width / height,
+		}
 	end
 	return {
 		output = area == "focused" and "current" or monitor.name,
 		x = 0,
 		y = 0,
-		width = 0,
-		height = 0,
+		width = monitor.width / monitor.scale,
+		height = monitor.height / monitor.scale,
 		ratio = monitor.width / monitor.height,
 	}
 end
@@ -149,13 +163,12 @@ end
 
 function M.apply()
 	local to = target()
-	local tablet = {
-		output = to.output,
-		region_position = { to.x, to.y },
-		region_size = { to.width, to.height },
-		absolute_region_position = false,
-		left_handed = kept.leftHanded,
-	}
+	local tablet = { output = to.output, left_handed = kept.leftHanded }
+	if to.width > 0 and to.height > 0 then
+		tablet.region_position = { to.x, to.y }
+		tablet.region_size = { to.width, to.height }
+		tablet.absolute_region_position = to.absolute == true
+	end
 	-- Hyprland keeps the last active area set when it is set back to 0x0, so
 	-- the whole tablet is given as an area too.
 	if kept.width > 0 and kept.height > 0 then
@@ -163,8 +176,9 @@ function M.apply()
 	end
 	local tool = { pressure_range_min = kept.pressureMin, pressure_range_max = kept.pressureMax }
 	local given = string.format(
-		"%s %d %d %d %d %s %s %s %s",
+		"%s %s %g %g %g %g %s %s %s %s",
 		to.output,
+		tostring(to.absolute == true),
 		to.x,
 		to.y,
 		to.width,
