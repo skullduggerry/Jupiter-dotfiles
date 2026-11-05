@@ -11,12 +11,19 @@ Rectangle {
     readonly property int notificationId: root.modelData.id
     readonly property bool urgent: root.modelData.urgency === NotificationUrgency.Critical
     required property int timeout
+    // The only toast showing fills the toasts' window, which Hyprland's lens
+    // then frames; in a stack, each draws its own rim.
+    property bool alone: false
 
     implicitHeight: entry.implicitHeight + Style.bar.padding * 2
     radius: Style.bar.radius
     color: Colors.base.surface
     border.width: Style.border.width
-    border.color: root.urgent ? Colors.notification.urgent : Colors.base.border
+    border.color: root.urgent ? Colors.notification.urgent : Colors.base.edge
+
+    GlassHighlight {
+        lensed: root.alone
+    }
 
     Timer {
         running: root.timeout > 0 && !entry.replying

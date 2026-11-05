@@ -1,3 +1,4 @@
+import "../panels"
 import "../style"
 import "./widgets"
 import QtQuick
@@ -18,8 +19,13 @@ Rectangle {
     anchors.margins: Style.border.width
     radius: Style.bar.radius
     color: Colors.base.surface
-    border.color: Colors.base.border
+    border.color: Colors.base.edge
     border.width: Style.border.width
+
+    // The bar's layer is the glass, so Hyprland's lens frames it.
+    GlassHighlight {
+        lensed: true
+    }
 
     WorkspaceWidget {
         id: workspaces

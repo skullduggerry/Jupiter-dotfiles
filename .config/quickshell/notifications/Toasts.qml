@@ -108,6 +108,7 @@ Scope {
 
                 delegate: Toast {
                     width: column.width
+                    alone: toastScope.shown.length === 1
                     timeout: toastScope.remainingTimeout(modelData)
                 }
             }

@@ -44,10 +44,14 @@ QtObject {
         return 1;
     }
     // The tint the Settings app offers: more than Hyprland's ignore_alpha for
-    // the shell's layers (0.2, .config/hypr/styles/layout.lua), below which a
-    // surface is not blurred at all, and short of Solid.
-    readonly property real tintLeast: 0.25
-    readonly property real tintMost: 0.9
+    // the shell's layers (0.05, .config/hypr/styles/layout.lua), below which a
+    // surface is not blurred at all, and short of Solid. Light enough for
+    // liquid glass; Adaptive raises it where text needs it.
+    readonly property real tintLeast: 0.1
+    readonly property real tintMost: 0.95
+    // How much of the light a clear pane of acrylic's glass (glassTint)
+    // absorbs: Hyprland thickens it toward the rim, which reads as depth.
+    readonly property real glassAbsorption: 0.35
     // The wallpaper at its least readable behind the panels, over every
     // screen: its brightest under light text, its darkest under dark text.
     // Transparent until a bar has measured one (Theme.backdrops).
@@ -87,6 +91,27 @@ QtObject {
         readonly property real glassCeiling: Math.max(baseColors.glassFloor, root.light ? 0.88 : 0.72)
         readonly property real opacity: !Theme.blur ? 1 : Theme.adaptiveTint ? root.glassOver(root.backdrop) : baseColors.glassFloor
         readonly property color surface: root.withAlpha(baseColors.base, baseColors.opacity)
+        // The blur variant's material (BlurVariants): clear shows the
+        // backdrop sharp, specular draws a curved rim of its own, which the
+        // glass's outline (edge) and the light on its upper half (highlight)
+        // follow rather than a flat border.
+        readonly property var variant: BlurVariants.find(Theme.blurVariant)
+        readonly property bool clear: Theme.blur && baseColors.variant.clear === true
+        readonly property bool specular: Theme.blur && baseColors.variant.specular === true
+        readonly property color edge: baseColors.specular ? root.withAlpha(root.palette.foreground, 0.2) : baseColors.border
+        readonly property color highlight: !baseColors.specular ? "transparent" : root.light ? root.withAlpha(root.palette.background, 0.55) : root.withAlpha(root.palette.foreground, 0.1)
+        // The drawn rim (panels/GlassHighlight): its outermost band, the
+        // thickest glass, in the glass's own colour, and the light caught
+        // where it meets the clear middle.
+        readonly property color lensBand: root.withAlpha(root.palette.background, 0.4)
+        readonly property color caustic: root.light ? root.withAlpha(root.palette.background, 0.35) : root.withAlpha(root.palette.foreground, 0.06)
+        // What Hyprland colours its glass with (services/HyprBlur): acrylic's
+        // pane in the theme's background, aurora's curtains in the accent and
+        // a second accent, the fluid jar's liquid in the accent.
+        readonly property color glassTint: root.withAlpha(root.palette.background, root.glassAbsorption)
+        readonly property color glowFirst: root.accent.primary
+        readonly property color glowSecond: root.accentColor(Theme.accent === "purple" ? "cyan" : "purple")
+        readonly property color fluid: root.withAlpha(root.accent.primary, 0.8)
         readonly property color hover: root.withAlpha(root.palette.foreground, 0.08)
         readonly property color scrim: Qt.rgba(0, 0, 0, 0.35)
     }
@@ -290,6 +315,12 @@ QtObject {
 
     function mix(from: color, to: color, amount: real): color {
         return Qt.tint(from, Qt.rgba(to.r, to.g, to.b, amount));
+    }
+
+    // A colour as Hyprland's options take it: rgba(rrggbbaa).
+    function hyprland(value: color): string {
+        const hex = channel => Math.round(channel * 255).toString(16).padStart(2, "0");
+        return `rgba(${hex(value.r)}${hex(value.g)}${hex(value.b)}${hex(value.a)})`;
     }
 
     function withAlpha(base: color, alpha: real): color {

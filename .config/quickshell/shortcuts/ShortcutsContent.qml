@@ -129,7 +129,7 @@ Rectangle {
     height: root.chrome + sectionsView.height
     radius: Style.bar.radius
     color: Colors.base.surface
-    border.color: Colors.base.border
+    border.color: Colors.base.edge
     border.width: Style.border.width
     Component.onCompleted: search.focusInput()
     // A search selects its first match, so its keys light up at once.
@@ -139,6 +139,8 @@ Rectangle {
     Keys.onDownPressed: root.step(1)
     Keys.onTabPressed: root.step(1)
     Keys.onBacktabPressed: root.step(-1)
+
+    GlassHighlight {}
 
     // Keeps clicks on the panel from closing it.
     MouseArea {

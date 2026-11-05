@@ -3,7 +3,7 @@
 The map of the repo and the rules the code alone does not show. How to write
 code: `.github/llm.md`. Colours across apps: `.github/THEMING.md`.
 
-Installed: Quickshell 0.3.2, Hyprland 0.56.2 (configured in Lua), Qt 6.12, Arch.
+Installed: Quickshell 0.3.2, Hyprland 0.57.0 (configured in Lua), Qt 6.12, Arch.
 
 ## Repo
 
@@ -256,8 +256,35 @@ Night Light at login.
   the config's `fill` stretches, but hyprctl's `stretch` reaches hyprpaper
   0.8.5 as `fit`, which its renderer reads as `cover`. `contain`'s bars are
   hyprpaper's black.
-- Blur size: `hyprctl eval` live, plus `blur.lua`, which `styles/layout.lua`
-  applies. Glass tint: Adaptive mode raises `Colors.base.glassFloor` until
+- Blur (Settings → Appearance → Style): Hyprland 0.57's variants
+  (`decoration:blur:variant`), listed in `style/BlurVariants` with the
+  sub-options each reads and Hyprland's number for it. Theme keeps the
+  variant, the size and the options picked (`appearance.json`);
+  `services/HyprBlur`, fed by `SettingsApp.qml` with the colours Colors
+  derives from the theme (acrylic's tint, aurora's, the fluid jar's), sends
+  every option with `hyprctl eval` and keeps them in `blur.lua`, which
+  `styles/layout.lua` applies. Colours go as `rgba(rrggbbaa)`: bare hex is
+  refused. Every option is sent, defaults too, or one set back would keep its
+  old value live.
+- The glass follows the variant (`Colors.base`). A *clear* one (acrylic,
+  prism) shows the backdrop sharp, not blurred: BackdropProbe measures it
+  sample by sample, and acrylic's clarity defaults below Hyprland's 0.82. The
+  tint goes from 10% (`Colors.tintLeast`), so the shell's layers and popups
+  blur down to `ignore_alpha` 0.05 (`styles/layout.lua`); raise both
+  together. Acrylic is *specular*: its edges are a faint `edge`, with
+  `GlassHighlight` under the content instead of the flat border.
+- **Hyprland 0.57 draws acrylic's lens around a whole window or layer, never
+  a part of one**: no layer rule gives it a shape. The bar, a lone toast and
+  a ChoiceField's list fill their layer and get the real lens
+  (`GlassHighlight { lensed: true }`). The dropdowns, widget popups, OSD,
+  shortcuts and quick-menu panels sit in full-screen layers, and toasts in a
+  stack share one, so they get only the clear middle; `GlassHighlight` draws
+  a rim for them, sized from acrylic's bulb, which bends nothing. When a
+  Hyprland release lets a layer rule give the lens a box and rounding, set
+  it from these panels and drop the drawn rim; the other way, splitting
+  each popup into a full-screen input layer and a panel-sized blurred one,
+  was judged not worth its risk to focus grabs, swoosh and resizing.
+- Glass tint: Adaptive mode raises `Colors.base.glassFloor` until
   muted text reaches WCAG AA over the brightest block that `BackdropProbe`
   measured, capped at `glassCeiling`. A `Canvas` reads image data in device
   pixels, so scale by the device pixel ratio. `AppTint` → `app-tint.sh`
@@ -608,6 +635,33 @@ Test anything risky outside the live session: a nested Hyprland with its own
 `HOME`/`XDG_*`, or a panel rendered with `QT_QPA_PLATFORM=offscreen` and
 `grabToImage()`. Never kill daemons by name: a nested session's daemons
 share the names.
+
+**A nested session that stays off the screen** (to see the blur, which only
+Hyprland draws), from a temporary folder `$T`:
+
+```bash
+run=$XDG_RUNTIME_DIR/jn     # short: .socket2.sock's path must fit 108 bytes
+mkdir -m 700 -p "$run" "$T/home/.config/hypr"
+ln -s ~/Jupiter-dotfiles/.config/quickshell "$T/home/.config/quickshell"
+# hyprland.lua: package.path = "<repo>/.config/hypr/?.lua;" .. package.path,
+# then require only what is tried (styles.layout): modules.start runs the apps.
+nested="env -u HYPRLAND_INSTANCE_SIGNATURE -u DBUS_SESSION_BUS_ADDRESS
+  HOME=$T/home XDG_CONFIG_HOME=$T/home/.config XDG_STATE_HOME=$T/home/.local/state
+  XDG_CACHE_HOME=$T/home/.cache XDG_RUNTIME_DIR=$run
+  WAYLAND_DISPLAY=$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"
+hyprctl eval "hl.exec_cmd([[$nested Hyprland -c $T/home/.config/hypr/hyprland.lua]],
+  { workspace = 'special:nest silent', render_unfocused = true })"
+# then, with the nested XDG_RUNTIME_DIR, HYPRLAND_INSTANCE_SIGNATURE (ls $run/hypr)
+# and WAYLAND_DISPLAY (ls $run): qs -p …, hyprctl eval …, grim shot.png
+```
+
+- The window goes to a hidden special workspace, and `render_unfocused`
+  keeps it drawing there (without it `grim` waits forever).
+- A headless output (`hyprctl output create headless`) cannot allocate
+  buffers nested on the NVIDIA desktop: draw on the window's own output.
+- Its output takes a monitor rule only with an explicit mode
+  (`mode = "1898x1015"`), and starts at the parent's scale.
+- Stop it by its PID (`pgrep -xf "Hyprland -c $T/…"`), never by name.
 
 ## Entry points
 

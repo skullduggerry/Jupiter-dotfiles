@@ -125,8 +125,13 @@ Item {
             radius: Style.bar.radius
             color: Colors.base.surface
             border.width: Style.border.width
-            border.color: Colors.base.border
+            border.color: Colors.base.edge
             Keys.onEscapePressed: root.expanded = false
+
+            // The list's popup is the glass, so Hyprland's lens frames it.
+            GlassHighlight {
+                lensed: true
+            }
 
             InputField {
                 id: search

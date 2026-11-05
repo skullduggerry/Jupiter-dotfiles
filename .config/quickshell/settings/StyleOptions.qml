@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import "../panels"
 import "../services"
 import "../style"
@@ -25,6 +27,39 @@ Column {
 
     function percent(share: real): string {
         return Math.round(share * 100) + "%";
+    }
+
+    // What sets a blur variant apart in its list: how it shows the backdrop
+    // and what it costs.
+    function traits(variant: var): string {
+        const traits = [];
+        if (variant.clear)
+            traits.push("clear");
+        if (variant.animated)
+            traits.push("animated");
+        if (variant.interactive)
+            traits.push("follows the pointer");
+        return traits.join(", ");
+    }
+
+    // A slider's value on its option's steps, without the float's dust.
+    function snapped(option: var, value: real): real {
+        const least = Number(option.least);
+        const step = Number(option.step);
+        return Math.round((least + Math.round((value - least) / step) * step) * 10000) / 10000;
+    }
+
+    function formatted(option: var, value: real): string {
+        switch (option.unit) {
+        case "%":
+            return Number((value * 100).toFixed(1)) + "%";
+        case "px":
+            return Math.round(value) + " px";
+        case "s":
+            return Number(value.toFixed(2)) + " s";
+        default:
+            return Number(value.toFixed(1)) + option.unit;
+        }
     }
 
     spacing: Style.settings.spacing
@@ -126,7 +161,8 @@ Column {
     }
 
     // Frosted glass, or opaque for a wallpaper too light to read the bar over.
-    // Over glass, how strongly Hyprland blurs what is behind, and how much of
+    // Over glass, Hyprland's blur variant (BlurVariants) and its options, how
+    // strongly Hyprland blurs what is behind, and how much of
     // the glass is the theme's background: the slider sets the least, for dark
     // and for light themes apart; Adaptive raises it where the wallpaper behind
     // would make text hard to read, and Static keeps to it. The line under the
@@ -159,6 +195,44 @@ Column {
                 }
             }
 
+            // Hyprland's blur variant, what it looks like and costs, and back
+            // to the defaults (BlurVariants) for its options below.
+            FormRow {
+                visible: Theme.blur
+                label: "Material"
+
+                Column {
+                    width: parent.width
+                    spacing: Style.bar.spacing
+
+                    ChoiceField {
+                        width: parent.width
+                        choices: BlurVariants.variants.map(variant => ({
+                                    label: variant.label,
+                                    value: variant.name,
+                                    detail: root.traits(variant)
+                                }))
+                        current: Colors.base.variant.name
+                        onPicked: name => Theme.setBlurVariant(name)
+                    }
+
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: Colors.base.variant.about + (Colors.base.variant.animated ? " Redrawn every frame, so it costs GPU time while anything blurred is on screen." : "")
+                        color: Colors.text.muted
+                        font.family: Style.text.font
+                        font.pixelSize: Style.text.smallSize
+                    }
+
+                    TextButton {
+                        visible: Colors.base.variant.options.some(option => Theme.blurOptions[option.key] !== undefined)
+                        text: "Defaults"
+                        onClicked: Theme.resetBlurOptions(Colors.base.variant.options.map(option => option.key))
+                    }
+                }
+            }
+
             FormRow {
                 visible: Theme.blur
                 label: "Blur"
@@ -183,6 +257,44 @@ Column {
                         color: Colors.text.muted
                         font.family: Style.text.font
                         font.pixelSize: Style.text.smallSize
+                    }
+                }
+            }
+
+            // The variant's own options, each from its least to its most.
+            Repeater {
+                model: Theme.blur ? Colors.base.variant.options : []
+
+                delegate: FormRow {
+                    id: option
+
+                    required property var modelData
+                    readonly property real current: BlurVariants.effective(Theme.blurOptions)[option.modelData.key]
+                    readonly property real range: option.modelData.most - option.modelData.least
+
+                    label: option.modelData.label
+
+                    Row {
+                        width: parent.width
+                        height: Style.popup.itemHeight
+                        spacing: Style.widgets.spacing
+
+                        PanelSlider {
+                            width: parent.width - Style.settings.labelWidth - Style.widgets.spacing
+                            anchors.verticalCenter: parent.verticalCenter
+                            value: (option.current - option.modelData.least) / option.range
+                            onMoved: position => Theme.setBlurOption(option.modelData.key, root.snapped(option.modelData, option.modelData.least + position * option.range))
+                        }
+
+                        Text {
+                            width: Style.settings.labelWidth
+                            anchors.verticalCenter: parent.verticalCenter
+                            horizontalAlignment: Text.AlignRight
+                            text: root.formatted(option.modelData, option.current)
+                            color: Colors.text.muted
+                            font.family: Style.text.font
+                            font.pixelSize: Style.text.smallSize
+                        }
                     }
                 }
             }

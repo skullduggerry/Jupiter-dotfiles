@@ -1,4 +1,5 @@
 import "../services"
+import "../panels"
 import "../style"
 import QtQuick
 
@@ -50,7 +51,9 @@ Item {
         radius: Style.bar.radius
         color: Colors.base.surface
         border.width: Style.border.width
-        border.color: Colors.base.border
+        border.color: Colors.base.edge
+
+        GlassHighlight {}
 
         Item {
             id: header

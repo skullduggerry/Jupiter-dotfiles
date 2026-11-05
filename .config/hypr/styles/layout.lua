@@ -22,8 +22,11 @@ hl.config({
 			vibrancy = 0.17,
 			ignore_opacity = true,
 			-- The Settings app's dropdown lists are popups on the shell's glass
-			-- (.config/quickshell/settings/ChoiceField.qml).
+			-- (.config/quickshell/settings/ChoiceField.qml). Their glass, and
+			-- the layers' below (ignore_alpha), may be as light as the shell's
+			-- least tint (Colors.tintLeast, 0.1) and still be blurred.
 			popups = true,
+			popups_ignorealpha = 0.05,
 		},
 	},
 	animations = {
@@ -31,8 +34,10 @@ hl.config({
 	},
 })
 
--- The blur size the shell's Settings app kept on this machine (Appearance →
--- Style), in place of the 6 above.
+-- The blur the shell's Settings app kept on this machine (Appearance → Style,
+-- .config/quickshell/services/HyprBlur.qml): its size in place of the 6
+-- above, the variant (Hyprland 0.57's, Kawase by default) and the variants'
+-- options, with the glass colours taken from the theme.
 local state = os.getenv("XDG_STATE_HOME")
 if state == nil or state == "" then
 	state = (os.getenv("HOME") or "") .. "/.local/state"
@@ -51,7 +56,7 @@ hl.window_rule({
 })
 
 hl.layer_rule({ name = "waybar-blur", match = { namespace = "^waybar$" }, blur = true, ignore_alpha = 0.0 })
-hl.layer_rule({ name = "qs-bar-blur", match = { namespace = "^quickshell:bar$" }, blur = true, ignore_alpha = 0.2 })
+hl.layer_rule({ name = "qs-bar-blur", match = { namespace = "^quickshell:bar$" }, blur = true, ignore_alpha = 0.05 })
 hl.layer_rule({
 	name = "qs-overview-blur",
 	match = { namespace = "^quickshell:overview$" },
@@ -81,13 +86,13 @@ hl.layer_rule({
 	name = "qs-popup-blur",
 	match = { namespace = "^quickshell:.*-popup$" },
 	blur = true,
-	ignore_alpha = 0.2,
+	ignore_alpha = 0.05,
 })
 hl.layer_rule({
 	name = "qs-dropdown-blur",
 	match = { namespace = "^quickshell:dropdown$" },
 	blur = true,
-	ignore_alpha = 0.2,
+	ignore_alpha = 0.05,
 })
 -- Dropdowns set to Swoosh in the shell's Settings app (Appearance → Style)
 -- move by themselves, so Hyprland's fade stays off them. The shell switches

@@ -20,7 +20,7 @@ Rectangle {
 
     radius: Style.bar.radius
     color: Colors.base.surface
-    border.color: Colors.base.border
+    border.color: Colors.base.edge
     border.width: Style.border.width
     clip: true
     opacity: Math.min(1, root.reveal / Style.swoosh.fade)
@@ -35,6 +35,8 @@ Rectangle {
             y: -WindowGaps.top * (1 - root.reveal)
         }
     ]
+
+    GlassHighlight {}
 
     // Clicks on the panel stay on it rather than dismissing it.
     MouseArea {

@@ -83,9 +83,11 @@ Scope {
             height: Math.floor(content.implicitHeight) || Style.popup.minHeight
             radius: Style.bar.radius
             color: Colors.base.surface
-            border.color: Colors.base.border
+            border.color: Colors.base.edge
             border.width: Style.border.width
             clip: true
+
+            GlassHighlight {}
 
             Loader {
                 id: content

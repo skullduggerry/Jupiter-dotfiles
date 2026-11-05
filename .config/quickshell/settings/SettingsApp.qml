@@ -35,6 +35,43 @@ Scope {
         value: Colors.base.opacity
     }
 
+    // Hyprland's blur, and the glass colours it takes from the theme, follow
+    // the Settings app's choices whether or not the window is open.
+    Binding {
+        target: HyprBlur
+        property: "active"
+        value: true
+    }
+
+    Binding {
+        target: HyprBlur
+        property: "variant"
+        value: Colors.base.variant.value
+    }
+
+    Binding {
+        target: HyprBlur
+        property: "size"
+        value: Theme.blurSize
+    }
+
+    Binding {
+        target: HyprBlur
+        property: "options"
+        value: BlurVariants.effective(Theme.blurOptions)
+    }
+
+    Binding {
+        target: HyprBlur
+        property: "colors"
+        value: ({
+                "acrylic.tint": Colors.hyprland(Colors.base.glassTint),
+                "aurora.color1": Colors.hyprland(Colors.base.glowFirst),
+                "aurora.color2": Colors.hyprland(Colors.base.glowSecond),
+                "fluid_jar.color": Colors.hyprland(Colors.base.fluid)
+            })
+    }
+
     IpcHandler {
         function toggle(): void {
             SettingsState.toggle("");

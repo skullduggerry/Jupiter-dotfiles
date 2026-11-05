@@ -23,8 +23,9 @@ Item {
     // Nothing to read while nothing would use it.
     readonly property string wallpaper: Theme.blur && Theme.adaptiveTint && root.monitor ? WallpaperService.wallpaperFor(root.monitor.activeWorkspace) : ""
     readonly property string source: root.wallpaper === "" ? "" : "file://" + root.wallpaper
-    // The blur's size in the sample's units, which a stronger blur averages over.
-    readonly property real block: Style.backdrop.blockSize * Theme.blurSize / Style.backdrop.blockBlurSize
+    // The blur's size in the sample's units, which a stronger blur averages
+    // over; a clear variant's glass averages nothing, so each sample counts.
+    readonly property real block: Colors.base.clear ? 1 : Style.backdrop.blockSize * Theme.blurSize / Style.backdrop.blockBlurSize
 
     function load() {
         if (root.source === "")

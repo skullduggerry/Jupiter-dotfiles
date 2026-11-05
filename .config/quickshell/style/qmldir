@@ -1,3 +1,4 @@
+singleton BlurVariants 1.0 BlurVariants.qml
 singleton Colors 1.0 Colors.qml
 singleton LockLook 1.0 LockLook.qml
 singleton Style 1.0 Style.qml
