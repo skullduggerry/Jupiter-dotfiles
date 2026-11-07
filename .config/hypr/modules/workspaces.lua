@@ -72,6 +72,12 @@ local function own(monitor, workspace)
 	return math.floor(workspace.id / perMonitor) == block(monitor)
 end
 
+-- A monitor's workspace in a block: not a special one (the scratchpad), which
+-- Hyprland 0.57.0 hands Lua without an id.
+local function numbered(workspace, monitor)
+	return not workspace.special and workspace.monitor == monitor
+end
+
 -- The first id in the monitor's block after `after` that no workspace has.
 local function free(monitor, after)
 	for id = after + 1, base(monitor) + perMonitor - 1 do
@@ -101,8 +107,7 @@ function M.step(direction)
 	local target = nil
 
 	for _, workspace in ipairs(hl.get_workspaces()) do
-		-- special workspaces have negative ids
-		if workspace.monitor == monitor and workspace.id > 0 then
+		if numbered(workspace, monitor) then
 			local distance = (workspace.id - current.id) * direction
 			if distance > 0 and (target == nil or distance < (target - current.id) * direction) then
 				target = workspace.id
@@ -128,34 +133,35 @@ end
 -- after, before anything is drawn.
 --
 -- Left alone: a mirror, which has no workspace of its own, FALLBACK, the
--- stand-in Hyprland puts up while no monitor is connected, and a monitor
--- showing windows, which only takes its block here.
-local function settle(monitor)
+-- stand-in Hyprland puts up while no monitor is connected, a monitor
+-- showing windows, which only takes its block here, and on a reload one
+-- already on a workspace of its own, empty or not, which is where it was put.
+local function settle(monitor, added)
 	local workspace = monitor.active_workspace
 	if not workspace or monitor.name == "FALLBACK" then
 		return
 	end
 
 	local home = own(monitor, workspace)
-	if workspace.windows > 0 then
+	if workspace.windows > 0 or (home and not added) then
 		return
 	end
 
 	local first = nil
 	for _, other in ipairs(hl.get_workspaces()) do
-		if other.monitor == monitor and other.id ~= workspace.id and own(monitor, other) and (first == nil or other.id < first) then
+		if numbered(other, monitor) and other.id ~= workspace.id and own(monitor, other) and (first == nil or other.id < first) then
 			first = other.id
 		end
 	end
 
 	if first ~= nil then
-		monitor:set_workspace({ workspace = first })
+		monitor:set_workspace(first)
 	elseif not home then
 		local focused = hl.get_active_monitor()
 		local pointer = hl.get_cursor_pos()
 		hl.dispatch(hl.dsp.focus({ monitor = monitor }))
 		hl.dispatch(hl.dsp.focus({ workspace = free(monitor, base(monitor)) }))
-		if focused ~= monitor then
+		if focused ~= nil and focused ~= monitor then
 			hl.dispatch(hl.dsp.focus({ monitor = focused }))
 			if pointer then
 				hl.dispatch(hl.dsp.cursor.move({ x = pointer.x, y = pointer.y }))
@@ -164,7 +170,9 @@ local function settle(monitor)
 	end
 end
 
-hl.on("monitor.added", settle)
+hl.on("monitor.added", function(monitor)
+	settle(monitor, true)
+end)
 
 -- The monitors that were already there when the config was (re)loaded. The
 -- ones showing windows go first, so that a monitor seen for the first time
