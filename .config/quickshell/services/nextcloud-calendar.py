@@ -239,10 +239,18 @@ def read_config() -> tuple[str, str, str]:
 
 def is_secure(url: str) -> bool:
     """https anywhere, or plain http only when it cannot leave the machine."""
-    parts = urllib.parse.urlsplit(url)
+    try:
+        parts = urllib.parse.urlsplit(url)
+        # Read here, so an address that is none ("https://[", a port that is
+        # no number) is refused rather than raised over later.
+        host, _ = parts.hostname, parts.port
+    except ValueError:
+        return False
+    if not host:
+        return False
     if parts.scheme == "https":
         return True
-    return parts.scheme == "http" and parts.hostname in (
+    return parts.scheme == "http" and host in (
         "localhost",
         "127.0.0.1",
         "::1",
@@ -261,8 +269,13 @@ def resolve(base: str, href: str) -> str:
     password goes with every request, so an href naming another server is
     refused. A path is the server's own (a subpath install's hrefs start
     with its path), not one under base."""
-    url = urllib.parse.urljoin(base + "/", href)
-    if origin(url) != origin(base):
+    try:
+        url = urllib.parse.urljoin(base + "/", href)
+        same = origin(url) == origin(base)
+    except ValueError:
+        # No address at all: a bracket without its end, a port of letters.
+        same = False
+    if not same:
         raise Failed(f"{href}: not on {base}")
     return url
 
@@ -273,7 +286,11 @@ class SameServer(urllib.request.HTTPRedirectHandler):
     plain http alike."""
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        if origin(newurl) != origin(req.full_url):
+        try:
+            same = origin(newurl) == origin(req.full_url)
+        except ValueError:
+            same = False
+        if not same:
             raise urllib.error.HTTPError(
                 req.full_url,
                 code,
@@ -885,6 +902,11 @@ def next_occurrence(rule: str, anchor: str) -> datetime | None:
     parts = dict(
         part.split("=", 1) for part in rule.upper().split(";") if "=" in part
     )
+    # RFC 5545 has an interval of 1 or more; dateutil takes 0, and then
+    # looks for the next occurrence for ever.
+    interval = parts.get("INTERVAL", "1")
+    if not interval.isdigit() or int(interval) < 1:
+        raise ValueError(f"invalid 'INTERVAL': {interval}")
     until = parts.pop("UNTIL", None)
     parts.pop("COUNT", None)
     recurrence = rrulestr(
@@ -1010,13 +1032,19 @@ def complete(href: str) -> None:
         ics = data.decode()
     except UnicodeDecodeError:
         raise Failed(f"GET {url}: not iCalendar text") from None
+    # A date or a rule that cannot be read: nothing is written, and the
+    # answer says so, as every answer does.
+    try:
+        done = mark_completed(ics, datetime.now(UTC))
+    except (ValueError, OverflowError) as error:
+        raise Failed(f"this task cannot be read: {error}") from None
     # If-Match: written over only the version just read, never over one
     # another client changed in between.
     exchange(
         "PUT",
         url,
         auth,
-        mark_completed(ics, datetime.now(UTC)),
+        done,
         {"Content-Type": "text/calendar; charset=utf-8"}
         | ({"If-Match": etag} if etag else {}),
         " (already gone)",

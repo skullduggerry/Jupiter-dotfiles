@@ -58,10 +58,18 @@ def emit(payload: dict) -> None:
 def is_secure(url: str) -> bool:
     """https anywhere, or plain http only when it cannot leave the machine,
     the same rule as nextcloud-calendar.py's."""
-    parts = urllib.parse.urlsplit(url)
+    try:
+        parts = urllib.parse.urlsplit(url)
+        # Read here, so an address that is none ("https://[", a port that is
+        # no number) is refused rather than raised over later.
+        host, _ = parts.hostname, parts.port
+    except ValueError:
+        return False
+    if not host:
+        return False
     if parts.scheme == "https":
         return True
-    return parts.scheme == "http" and parts.hostname in (
+    return parts.scheme == "http" and host in (
         "localhost",
         "127.0.0.1",
         "::1",
@@ -185,6 +193,8 @@ def sign_in(base: str) -> str:
             app_password = finished["appPassword"]
         except (ValueError, KeyError, TypeError):
             raise Failed("unexpected reply while polling") from None
+        if not (isinstance(login_name, str) and isinstance(app_password, str)):
+            raise Failed("unexpected reply while polling")
         store(base, login_name, app_password)
         return login_name
 
