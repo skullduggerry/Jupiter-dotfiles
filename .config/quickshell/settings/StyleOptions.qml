@@ -263,7 +263,7 @@ Column {
 
             // The variant's own options, each from its least to its most.
             Repeater {
-                model: Theme.blur ? Colors.base.variant.options : []
+                model: Colors.base.variant.options
 
                 delegate: FormRow {
                     id: option

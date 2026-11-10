@@ -4,9 +4,11 @@ import QtQuick
 
 // Hyprland's decoration:blur variants (0.57) as the Settings app offers them:
 // `value` is the option's number, `options` the sub-options each reads, with
-// the default (Hyprland's, but for acrylic's clarity) and the range offered
-// (narrower than Hyprland's where the rest is unusable). Colours are not among them: Colors derives those
-// from the theme (Colors.base.glassTint and the like).
+// the default (Hyprland's, but for acrylic's clarity and refraction) and the
+// range offered (narrower than Hyprland's where the rest is unusable).
+// Colours are not among them: Colors derives those from the theme
+// (Colors.base.glassTint and the like). Jupiter-testing holds every key,
+// default and bound to what the installed Hyprland takes.
 //
 // `clear` variants show the backdrop sharp through the glass rather than
 // blurred (acrylic's lens, prism's facets), which Adaptive tint measures so;
@@ -93,7 +95,7 @@ QtObject {
                 {
                     // How far past its edge the rim fetches what it bends in.
                     // Beyond the gap around a window or the bar (gaps_out,
-                    // .config/hypr/styles/color.lua), that is the neighbour:
+                    // .config/hypr/styles/layout.lua), that is the neighbour:
                     // a dark band along the bar's lower edge, a window's border
                     // down the next one's side.
                     key: "acrylic.refraction",
@@ -338,10 +340,12 @@ QtObject {
                     unit: "×"
                 },
                 {
+                    // Hyprland's least is 0.1 as a float, a little more
+                    // than the 0.1 Lua hands it, which it refuses.
                     key: "fluid_jar.mass",
                     label: "Weight",
                     fallback: 1.4,
-                    least: 0.1,
+                    least: 0.2,
                     most: 10,
                     step: 0.1,
                     unit: "×"

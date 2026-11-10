@@ -4,8 +4,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 
-// Measures the wallpaper behind this screen's panels for Colors' adaptive
-// glass, and hands it to Theme. The picture is drawn small, cropped as
+// Measures the wallpaper behind this screen's panels for Colors' glass (how
+// far Adaptive raises the tint, how far muted text goes toward the text
+// colour over a tint that stays), and hands it to Theme. The picture is drawn small, cropped as
 // hyprpaper's cover mode crops it (the Image, decoded small, is only there for
 // its proportions: a Canvas cannot draw an Image item it does not show), and
 // read in its upper part, where the bar, the dropdowns and the toasts are, in
@@ -20,8 +21,8 @@ Item {
     // Taken at the start: an unplugged screen is gone before its bar is.
     property string name: ""
     readonly property HyprlandMonitor monitor: Hyprland.monitorFor(root.screen)
-    // Nothing to read while nothing would use it.
-    readonly property string wallpaper: Theme.blur && Theme.adaptiveTint && root.monitor ? WallpaperService.wallpaperFor(root.monitor.activeWorkspace) : ""
+    // Nothing to read while nothing would use it: a Solid surface hides it.
+    readonly property string wallpaper: Theme.blur && root.monitor ? WallpaperService.wallpaperFor(root.monitor.activeWorkspace) : ""
     readonly property string source: root.wallpaper === "" ? "" : "file://" + root.wallpaper
     // The blur's size in the sample's units, which a stronger blur averages
     // over; a clear variant's glass averages nothing, so each sample counts.

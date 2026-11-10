@@ -428,10 +428,11 @@ QtObject {
         readonly property real highlightFade: 0.45
         // The rim drawn where Hyprland's lens cannot reach: as wide as the
         // lens's (acrylic's bulb), and at most this share of the glass's
-        // smaller side, as Hyprland bounds it; in this many bands.
+        // smaller side, as Hyprland bounds it; in bands this wide, thin
+        // enough that none shows as a step.
         readonly property real rim: BlurVariants.effective(Theme.blurOptions)["acrylic.bulb"]
         readonly property real rimShare: 0.4
-        readonly property int rimSteps: 6
+        readonly property int rimBand: 2
     }
     readonly property BlurStyle blur: BlurStyle {}
 

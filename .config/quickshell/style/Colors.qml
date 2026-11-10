@@ -32,6 +32,9 @@ QtObject {
     readonly property real readableContrast: 4.5
     readonly property real glassKeeps: 0.9
     readonly property real glassStep: 0.02
+    // How much of the text colour muted text is on a solid surface; over
+    // glass it takes more where it has to (mutedOver()).
+    readonly property real mutedShare: 0.7
     // The least share of the text colour faded text keeps (faded()): where
     // it still reads at readableContrast over the surface, over blur over
     // the backdrop's least readable part too; no fading at all where full
@@ -69,8 +72,10 @@ QtObject {
     component TextColors: QtObject {
         readonly property color base: root.palette.foreground
         // Brighter than the apps' inactive text (templates' shade(0.58)): it is
-        // read over glass.
-        readonly property color muted: root.mix(root.palette.background, root.palette.foreground, 0.7)
+        // read over glass. Where the glass is too thin for it (a Static tint
+        // over a bright wallpaper, Adaptive at its ceiling), it goes toward
+        // the text colour as far as it needs to read.
+        readonly property color muted: root.mix(root.palette.background, root.palette.foreground, root.mutedOver(root.backdrop))
         readonly property color inverted: root.palette.background
     }
     readonly property TextColors text: TextColors {}
@@ -94,17 +99,18 @@ QtObject {
         // The blur variant's material (BlurVariants): clear shows the
         // backdrop sharp, specular draws a curved rim of its own, which the
         // glass's outline (edge) and the light on its upper half (highlight)
-        // follow rather than a flat border.
-        readonly property var variant: BlurVariants.find(Theme.blurVariant)
-        readonly property bool clear: Theme.blur && baseColors.variant.clear === true
-        readonly property bool specular: Theme.blur && baseColors.variant.specular === true
+        // follow rather than a flat border. A Solid surface has none, and
+        // Hyprland (services/HyprBlur) is on Kawase then: no glass of the
+        // shell's shows the variant picked, and an animated one would
+        // still be redrawn every frame behind it.
+        readonly property var variant: BlurVariants.find(Theme.blur ? Theme.blurVariant : "")
+        readonly property bool clear: baseColors.variant.clear === true
+        readonly property bool specular: baseColors.variant.specular === true
         readonly property color edge: baseColors.specular ? root.withAlpha(root.palette.foreground, 0.2) : baseColors.border
         readonly property color highlight: !baseColors.specular ? "transparent" : root.light ? root.withAlpha(root.palette.background, 0.55) : root.withAlpha(root.palette.foreground, 0.1)
         // The drawn rim (panels/GlassHighlight): its outermost band, the
-        // thickest glass, in the glass's own colour, and the light caught
-        // where it meets the clear middle.
+        // thickest glass, in the glass's own colour.
         readonly property color lensBand: root.withAlpha(root.palette.background, 0.4)
-        readonly property color caustic: root.light ? root.withAlpha(root.palette.background, 0.35) : root.withAlpha(root.palette.foreground, 0.06)
         // What Hyprland colours its glass with (services/HyprBlur): acrylic's
         // pane in the lighter of the theme's two colours (in the darker, its
         // thick rim reads as smoked, not lit), aurora's curtains in the
@@ -268,11 +274,36 @@ QtObject {
         if (backdrop.a === 0)
             return floor;
 
-        const target = Math.min(root.readableContrast, root.glassKeeps * root.contrast(root.text.muted, root.palette.background));
+        const soft = root.mix(root.palette.background, root.palette.foreground, root.mutedShare);
+        const target = root.mutedTarget();
         for (let opacity = floor; opacity < ceiling; opacity += root.glassStep)
-            if (root.contrast(root.text.muted, root.mix(backdrop, root.palette.background, opacity)) >= target)
+            if (root.contrast(soft, root.mix(backdrop, root.palette.background, opacity)) >= target)
                 return opacity;
         return ceiling;
+    }
+
+    // What muted text keeps over glass: readableContrast, or, in a theme
+    // whose muted text is softer than that even on a solid surface,
+    // glassKeeps of the contrast it has there.
+    function mutedTarget(): real {
+        const soft = root.mix(root.palette.background, root.palette.foreground, root.mutedShare);
+        return Math.min(root.readableContrast, root.glassKeeps * root.contrast(soft, root.palette.background));
+    }
+
+    // The share of the text colour muted text takes over the glass and the
+    // backdrop behind it: mutedShare where that reads (mutedTarget()), and
+    // as much more as it takes where it does not, up to the text colour
+    // itself. Solid, and until a backdrop is measured, mutedShare.
+    function mutedOver(backdrop: color): real {
+        if (!Theme.blur || backdrop.a === 0)
+            return root.mutedShare;
+
+        const behind = root.mix(backdrop, root.palette.background, root.base.opacity);
+        const target = root.mutedTarget();
+        for (let share = root.mutedShare; share < 1; share += root.glassStep)
+            if (root.contrast(root.mix(root.palette.background, root.palette.foreground, share), behind) >= target)
+                return share;
+        return 1;
     }
 
     // WCAG's contrast ratio, from 1 (identical) to 21 (black on white).
