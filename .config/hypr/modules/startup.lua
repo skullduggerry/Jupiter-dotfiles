@@ -6,7 +6,7 @@
 -- is the uwsm slice each one runs in (modules/session.lua).
 local state = os.getenv("XDG_STATE_HOME")
 if state == nil or state == "" then
-	state = os.getenv("HOME") .. "/.local/state"
+	state = (os.getenv("HOME") or "") .. "/.local/state"
 end
 
 -- The shell keeps a config of its own for hyprpaper, the wallpaper picked

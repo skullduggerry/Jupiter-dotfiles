@@ -64,9 +64,8 @@ Singleton {
         return row?.description ?? "";
     }
 
-    // `keys`: each bind's key from hyprctl's text output, in the same order.
     // Binds of a submap other than the usual are left out.
-    function load(binds, keys) {
+    function load(binds) {
         const merged = [];
         const byName = {};
         for (let index = 0; index < binds.length; index++) {
@@ -75,7 +74,7 @@ Singleton {
                 continue;
 
             const description = bind.has_description ? bind.description : "";
-            const key = bind.key !== "" ? bind.key : keys.length === binds.length ? keys[index] : "code:" + bind.keycode;
+            const key = bind.key !== "" ? bind.key : "code:" + bind.keycode;
             const name = description + "\n" + bind.modmask + "\n" + bind.submap;
             // A press and a release bind on the same key are one row, one key.
             if (description !== "" && name in byName) {
@@ -110,16 +109,14 @@ Singleton {
     Process {
         id: reader
 
-        // Hyprland 0.56's JSON leaves out the key of a Lua bind on a keycode
-        // (no key, keycode 0); its text output has it, "key: code:66".
-        command: ["sh", "-c", "hyprctl binds -j && hyprctl binds"]
+        // A bind on a keycode has no key but its keycode (66), which
+        // Hyprland 0.57.1's JSON carries; 0.56's left it out.
+        command: ["hyprctl", "binds", "-j"]
 
         stdout: StdioCollector {
             onStreamFinished: {
-                const textAt = text.search(/^bind/m);
-                const listed = textAt < 0 ? "" : text.slice(textAt);
                 try {
-                    root.load(JSON.parse(textAt < 0 ? text : text.slice(0, textAt)), (listed.match(/^\tkey: .*$/gm) ?? []).map(line => line.slice("\tkey: ".length)));
+                    root.load(JSON.parse(text));
                 } catch (error) {
                     console.warn("keybinds: hyprctl printed no binds:", error);
                 }

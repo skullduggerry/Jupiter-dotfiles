@@ -28,7 +28,7 @@ PanelFrame {
     // The number the keys go by; a special workspace keeps its name.
     function label(workspace: HyprlandWorkspace): string {
         if (workspace.id <= 0)
-            return workspace.name;
+            return WorkspaceBlocks.specialName(workspace.name);
 
         return WorkspaceBlocks.number(workspace);
     }

@@ -73,7 +73,7 @@ local function own(monitor, workspace)
 end
 
 -- A monitor's workspace in a block: not a special one (the scratchpad), which
--- Hyprland 0.57.0 hands Lua without an id.
+-- Hyprland 0.57 hands Lua without an id.
 local function numbered(workspace, monitor)
 	return not workspace.special and workspace.monitor == monitor
 end
@@ -87,12 +87,20 @@ local function free(monitor, after)
 	end
 end
 
+-- Nothing while no monitor has focus, as between the last one unplugged and
+-- the next one up.
 function M.focus(number)
-	hl.dispatch(hl.dsp.focus({ workspace = base(hl.get_active_monitor()) + number }))
+	local monitor = hl.get_active_monitor()
+	if monitor ~= nil then
+		hl.dispatch(hl.dsp.focus({ workspace = base(monitor) + number }))
+	end
 end
 
 function M.moveWindow(number)
-	hl.dispatch(hl.dsp.window.move({ workspace = base(hl.get_active_monitor()) + number }))
+	local monitor = hl.get_active_monitor()
+	if monitor ~= nil then
+		hl.dispatch(hl.dsp.window.move({ workspace = base(monitor) + number }))
+	end
 end
 
 -- The previous or next workspace on the focused monitor, the way the

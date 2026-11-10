@@ -24,6 +24,12 @@ Singleton {
         return workspace.id % root.idsPerMonitor;
     }
 
+    // What a special workspace is called: "special:magic" is "magic", which
+    // fits a tile where the whole of it was cut off after "specia".
+    function specialName(name: string): string {
+        return name.replace(/^special:/, "");
+    }
+
     // "DP-2:3": the same workspace in every session, where its id is not. A
     // special workspace has none.
     function key(workspace: HyprlandWorkspace): string {

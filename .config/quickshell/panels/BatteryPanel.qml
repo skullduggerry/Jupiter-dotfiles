@@ -8,6 +8,8 @@ PanelFrame {
 
     implicitHeight: root.chromeHeight + rows.implicitHeight
     readonly property UPowerDevice device: UPower.displayDevice
+    // A desktop has none: its page is the power profiles alone.
+    readonly property bool battery: root.device.isLaptopBattery
     readonly property bool charging: root.device.state === UPowerDeviceState.Charging || root.device.state === UPowerDeviceState.PendingCharge
 
     function stateLabel(state: int): string {
@@ -38,7 +40,7 @@ PanelFrame {
         return hours === 0 ? minutes + "m" : hours + "h " + minutes + "m";
     }
 
-    title: "Battery"
+    title: root.battery ? "Battery" : "Power"
 
     Column {
         id: rows
@@ -47,33 +49,36 @@ PanelFrame {
 
         DetailRow {
             label: "State"
+            visible: root.battery
             value: root.stateLabel(root.device.state)
         }
 
         DetailRow {
             label: root.charging ? "Until full" : "Remaining"
-            visible: root.device.state !== UPowerDeviceState.FullyCharged
+            visible: root.battery && root.device.state !== UPowerDeviceState.FullyCharged
             value: root.durationLabel(root.charging ? root.device.timeToFull : root.device.timeToEmpty)
         }
 
         DetailRow {
             label: "Power draw"
+            visible: root.battery
             value: Math.abs(root.device.changeRate).toFixed(1) + " W"
         }
 
         DetailRow {
             label: "Capacity"
-            visible: root.device.healthSupported
+            visible: root.battery && root.device.healthSupported
             value: Math.round(root.device.healthPercentage) + "%"
         }
 
         DetailRow {
             label: "Model"
-            visible: root.device.model !== ""
+            visible: root.battery && root.device.model !== ""
             value: root.device.model
         }
 
         Item {
+            visible: root.battery
             width: parent.width
             height: Style.bar.spacing
         }
@@ -91,6 +96,7 @@ PanelFrame {
     }
 
     trailing: Text {
+        visible: root.battery
         text: Math.round(root.device.percentage * 100) + "%"
         color: root.charging ? Colors.battery.charging : Colors.text.base
         font.family: Style.text.font

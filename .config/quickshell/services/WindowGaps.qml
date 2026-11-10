@@ -29,8 +29,9 @@ Singleton {
     // Hyprland prints the gaps as CSS does: top, right, bottom, left, the
     // later ones left out where they repeat the earlier.
     function load(css: string) {
-        const sides = css.trim().split(/\s+/).map(Number);
-        if (sides.length === 0 || sides.length > 4 || sides.some(side => !Number.isFinite(side))) {
+        // Number("") is 0: an empty answer is no gap of 0.
+        const sides = css.trim().split(/\s+/).map(side => side === "" ? NaN : Number(side));
+        if (sides.length > 4 || sides.some(side => !Number.isFinite(side))) {
             console.warn("window gaps: hyprctl printed", JSON.stringify(css));
             return;
         }

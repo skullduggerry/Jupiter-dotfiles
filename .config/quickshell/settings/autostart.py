@@ -231,7 +231,15 @@ def entries():
     for name in sorted(names):
         mine, theirs = user_file(name), system_file(name)
         path = mine or theirs
-        keys = parse(read(path))
+        # A link to an entry that is gone (its app removed), or a file that
+        # cannot be read: the generator starts neither, and the rest are
+        # still listed.
+        if path is None:
+            continue
+        try:
+            keys = parse(read(path))
+        except OSError:
+            continue
         if not starts_here(keys, desktops):
             continue
         ident = name[: -len(".desktop")]
