@@ -2,8 +2,9 @@
 # Install what the dotfiles need outside the home, as root: the udev rules in
 # etc/udev/rules.d (a drawing tablet's pad, which
 # .config/quickshell/services/tablet.py reads) and the pacman hooks in
-# etc/pacman.d/hooks with the scripts they run (uwsm-desktop-entries.py), and
-# root's copy of the login screen's installer with what it runs as root.
+# etc/pacman.d/hooks with the scripts they run (uwsm-desktop-entries.py),
+# root's copy of the login screen's installer with what it runs as root, and
+# the drop-ins that keep the session's services out of the login screen.
 #
 #     sudo scripts/install-system.sh [root]      default: /
 #
@@ -31,6 +32,22 @@ install -m 0755 "$repo/scripts/install-greeter.sh" "$greeter/scripts/"
 install -m 0644 "$repo/etc/greetd/config.toml" "$greeter/etc/greetd/"
 install -m 0644 "$repo"/etc/pam.d/greetd* "$greeter/etc/pam.d/"
 echo "installed   the login screen's installer"
+
+# What a session starts and the login screen never uses: each gets
+# etc/systemd/user/not-greeter.conf as a drop-in, so the greeter's user manager
+# skips it. A unit that is not installed gets one too, which does nothing.
+not_greeter=(
+    hyprpolkitagent.service
+    xdg-desktop-portal.service xdg-desktop-portal-gtk.service
+    xdg-desktop-portal-hyprland.service xdg-document-portal.service
+    xdg-user-dirs.service at-spi-dbus-bus.service
+    pipewire.socket pipewire.service pipewire-pulse.socket wireplumber.service
+)
+for unit in "${not_greeter[@]}"; do
+    install -D -m 0644 "$repo/etc/systemd/user/not-greeter.conf" \
+        "$root/etc/systemd/user/$unit.d/10-not-greeter.conf"
+done
+echo "installed   the login screen's drop-ins"
 
 # The hook sees what pacman changes from now on; this covers what is there.
 ROOT=$root/ "$root/usr/local/lib/jupiter/uwsm-desktop-entries.py" </dev/null
