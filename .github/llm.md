@@ -15,7 +15,7 @@ Quickshell and Hyprland reload as soon as a file they loaded changes.
 2. The installed Quickshell's type information,
    `/usr/lib/qt6/qml/Quickshell/**/*.qmltypes` (`Quickshell.Widgets` is plain
    QML in the same folder). The online docs (quickshell.org/docs) may describe
-   a newer version than the installed 0.3.1.
+   a newer version than the installed 0.3.2.
 3. The Qt 6 QML docs, the Hyprland wiki (this config is Lua:
    `/usr/share/hypr/stubs/hl.meta.lua` lists the API), and the ArchWiki.
 

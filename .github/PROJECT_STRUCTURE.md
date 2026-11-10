@@ -3,7 +3,7 @@
 The map of the repo and the rules the code alone does not show. How to write
 code: `.github/llm.md`. Colours across apps: `.github/THEMING.md`.
 
-Installed: Quickshell 0.3.2, Hyprland 0.57.0 (configured in Lua), Qt 6.12, Arch.
+Installed: Quickshell 0.3.2, Hyprland 0.57.1 (configured in Lua), Qt 6.12, Arch.
 
 ## Repo
 
@@ -235,6 +235,11 @@ Night Light at login.
   (`fetchHides`), and the fetch queued behind it still goes out. The helper GETs
   the object and PUTs it back with `If-Match`, so another client's change is
   never written over; it takes only a path under `/remote.php/dav/calendars/`.
+- The helper answers one JSON object whatever it is given: an address that
+  is none (`https://[`) is unconfigured, and a task whose date or rule cannot
+  be read is refused before anything is written. An `INTERVAL=0` is refused
+  by hand: dateutil takes it and never returns, and tasks are marked done
+  one at a time.
 - A repeating task with a date is done as Nextcloud Tasks does it: a record of
   that occurrence done (`RECURRENCE-ID`), and the task moved on to the next one
   (python-dateutil's `rrule`, counted from the current one, `COUNT` lowered),
@@ -242,7 +247,7 @@ Night Light at login.
   object, as Thunderbird writes it: Nextcloud Tasks PUTs it as an object of its
   own, which the server refuses for sharing the UID (`no-uid-conflict`, 409).
 
-**Wallpaper** (`WallpaperService`, hyprpaper 0.8.4 over `hyprctl hyprpaper`):
+**Wallpaper** (`WallpaperService`, hyprpaper 0.8.5 over `hyprctl hyprpaper`):
 - The library is `~/Wallpapers`, and its subfolders are the category tabs. A
   workspace's own wallpaper is keyed as `MONITOR:N` (see "Workspaces"),
   because ids change between sessions. hyprpaper outlives the shell, so every
@@ -265,7 +270,14 @@ Night Light at login.
   every option with `hyprctl eval` and keeps them in `blur.lua`, which
   `styles/layout.lua` applies. Colours go as `rgba(rrggbbaa)`: bare hex is
   refused. Every option is sent, defaults too, or one set back would keep its
-  old value live.
+  old value live. Hyprland refuses a key it does not know and a value outside
+  its own range (a red banner at every login, from `blur.lua`), so
+  Jupiter-testing's `test_blur_options.py` puts every default and bound
+  `BlurVariants` offers through `Hyprland --verify-config`: the fluid jar's
+  weight starts at 0.2 because Hyprland's least, 0.1 as a float, is more than
+  the 0.1 Lua hands it. A Solid surface has no material
+  (`Colors.base.variant` is Kawase then, and so is Hyprland): an animated
+  variant would still redraw every frame behind glass that shows none of it.
 - The glass follows the variant (`Colors.base`). A *clear* one (acrylic,
   prism) shows the backdrop sharp, not blurred: BackdropProbe measures it
   sample by sample, and acrylic's clarity defaults below Hyprland's 0.82. The
@@ -286,14 +298,24 @@ Night Light at login.
   (`GlassHighlight { lensed: true }`). The dropdowns, widget popups, OSD,
   shortcuts and quick-menu panels sit in full-screen layers, and toasts in a
   stack share one, so they get only the clear middle; `GlassHighlight` draws
-  a rim for them, sized from acrylic's bulb, which bends nothing. When a
+  a rim for them, sized from acrylic's bulb, which bends nothing. The rim
+  runs under the panel's content (48 px against 12 of padding), so it is one
+  slope, in bands `Style.blur.rimBand` wide, with no line where it ends:
+  six bands and an outline at its inner edge crossed the text as steps and
+  a box. When a
   Hyprland release lets a layer rule give the lens a box and rounding, set
   it from these panels and drop the drawn rim; the other way, splitting
   each popup into a full-screen input layer and a panel-sized blurred one,
   was judged not worth its risk to focus grabs, swoosh and resizing.
 - Glass tint: Adaptive mode raises `Colors.base.glassFloor` until
   muted text reaches WCAG AA over the brightest block that `BackdropProbe`
-  measured, capped at `glassCeiling`. A `Canvas` reads image data in device
+  measured, capped at `glassCeiling`. Where the tint may not rise that far
+  (Static, or Adaptive at its ceiling), the text does instead:
+  `Colors.text.muted` goes from `mutedShare` toward the text colour as far as
+  it takes (`mutedOver()`), which over a 30% tint on a bright wallpaper is
+  all the way. So the probe measures whenever the surface is Blur, and
+  `glassOver()` goes by muted text as designed, never as raised (the two
+  would chase each other). A `Canvas` reads image data in device
   pixels, so scale by the device pixel ratio. `AppTint` → `app-tint.sh`
   carries the tint to kitty (each instance's socket; only
   `set-background-opacity` is allowed without a password), Kvantum's SVG and
@@ -331,8 +353,8 @@ it is open and on which page, and any page or tab name opens its place
   hypridle reads its config only at start: `hypridle-restart.sh` restarts the
   instance with this `HYPRLAND_INSTANCE_SIGNATURE` only.
 - Keybinds and the shortcuts overlay: both read `services/Keybinds`
-  (`hyprctl binds -j`, and the text output for a keycode bind's key, which
-  the JSON leaves out). A Lua bind reports only `__lua`, so every bind in
+  (`hyprctl binds -j`; a bind on a keycode has no key there but its
+  keycode, shown as `code:66`). A Lua bind reports only `__lua`, so every bind in
   `keybinds.lua` carries a `description`. Key labels come from xkbcommon
   (`keymap.py`), and a bind's key is looked up in the first layout, as
   Hyprland does.
@@ -417,6 +439,9 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
 - Media: MPRIS. Players without a title, and playerctld, are ignored. The
   last player to start playing is shown. `position` does not update by
   itself, so the open panel emits `positionChanged()` on a timer.
+- Battery: `UPower.displayDevice` is there on a desktop too, at 0% and
+  "Unknown". Without a laptop battery the quick settings' first page is
+  "Power", the power profiles alone (`BatteryPanel.battery`).
 - Usage: the detailed reads run only while `SystemUsage.viewers > 0`. The
   temperature sensor is found by driver name, because hwmon numbers change
   between boots.
@@ -520,8 +545,9 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
 **Workspaces.** Each monitor numbers its own: `modules/workspaces.lua` gives
 each output name a block of 100 ids, recorded in
 `$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/workspace-blocks.json`,
-and the number shown is `id % 100`. Don't renumber with `change_id`: Quickshell
-ignores that event. Hyprland creates a new monitor's first workspace in
+and the number shown is `id % 100`. A special workspace (the scratchpad) has
+no id at all in Hyprland 0.57's Lua and JSON, so nothing compares one.
+Don't renumber with `change_id`: Quickshell ignores that event. Hyprland creates a new monitor's first workspace in
 another monitor's block, so `settle()` opens workspace 1 of the monitor's own
 block. SUPER+CTRL+arrows need monitors whose edges touch.
 
@@ -575,18 +601,19 @@ Each of these has already caused a bug.
   Quickshell restarts; a fresh start loads it fine. New properties in an
   existing group reload.
 
-**QML and Qt 6.11**
+**QML and Qt 6.12**
 - A function whose result a binding reads, and which has typed parameters,
   needs a return type. Otherwise every call site logs an error. Untyped
   functions are fine.
 - `state` and `top` are taken on every `Item`.
 - A `Repeater` over a JS array gives each delegate a copy, so `===` and
   `includes()` fail. Compare by index or key.
-- Qt 6.11's JS has no `Array.flat()`/`flatMap()`, and destructuring inside a
-  loop reuses the previous element's values. Index arrays instead.
+- Qt's JS has no `Array.flat()`/`flatMap()` (6.12 still). On 6.11,
+  destructuring inside a loop reused the previous element's values; 6.12
+  gets it right, and the code written around it indexes arrays.
 - A `Binding` destroyed with its object leaves its target set. For a service
   flag, count `viewers` in `onCompleted`/`onDestruction` instead.
-- **Qt 6.11 can stop delivering the pointer** to a list that opens below its
+- **Qt (seen on 6.11) can stop delivering the pointer** to a list that opens below its
   card if a later sibling lies inside the card (not `ChoiceField`'s, a popup). Keep such a row last, or move
   the sibling out (`PowerPage`). Debug with
   `QT_LOGGING_RULES="qt.quick.effectiveclip.debug=true"`.
