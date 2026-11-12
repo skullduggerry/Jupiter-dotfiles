@@ -136,88 +136,271 @@ ScrollPage {
         DisplayChange.apply(applied, previous);
     }
 
-    // Where a dragged monitor lands: against the side of the nearest other one
-    // it was dropped towards, since Hyprland finds monitors in a direction
-    // only across touching edges. Edges within a tenth snap into line; the
-    // two always overlap along the shared edge. Null if it would cover a third.
-    function landing(name, x, y) {
-        const moving = root.footprint(root.effective(root.monitors.find(monitor => monitor.name === name)));
-        const others = root.enabledMonitors.filter(monitor => monitor.name !== name).map(monitor => {
-            const state = root.effective(monitor);
-            const size = root.footprint(state);
-            return {
-                x: state.x,
-                y: state.y,
-                width: size.width,
-                height: size.height
-            };
-        });
-        if (others.length === 0)
-            return {
-                x: 0,
-                y: 0
-            };
-
-        let nearest = others[0];
-        let distance = Infinity;
-        for (const other of others) {
-            const gap = Math.hypot(x + moving.width / 2 - other.x - other.width / 2, y + moving.height / 2 - other.y - other.height / 2);
-            if (gap < distance) {
-                distance = gap;
-                nearest = other;
-            }
-        }
-        const align = (value, start, size, otherSize) => {
-            const threshold = Math.max(size, otherSize) / 10;
-            for (const candidate of [start, start + otherSize - size, start + (otherSize - size) / 2]) {
-                if (Math.abs(value - candidate) < threshold)
-                    return candidate;
-            }
-            return Math.max(start - size + 1, Math.min(start + otherSize - 1, value));
+    // A monitor's place in whole logical pixels, as Hyprland lays them out.
+    function box(monitor) {
+        const state = root.effective(monitor);
+        const size = root.footprint(state);
+        return {
+            name: monitor.name,
+            x: Math.round(state.x),
+            y: Math.round(state.y),
+            width: Math.round(size.width),
+            height: Math.round(size.height)
         };
-        const dx = x + moving.width / 2 - nearest.x - nearest.width / 2;
-        const dy = y + moving.height / 2 - nearest.y - nearest.height / 2;
-        let landed;
-        if (Math.abs(dx) / (moving.width + nearest.width) >= Math.abs(dy) / (moving.height + nearest.height))
-            landed = {
-                x: dx > 0 ? nearest.x + nearest.width : nearest.x - moving.width,
-                y: align(y, nearest.y, moving.height, nearest.height)
-            };
-        else
-            landed = {
-                x: align(x, nearest.x, moving.width, nearest.width),
-                y: dy > 0 ? nearest.y + nearest.height : nearest.y - moving.height
-            };
-        landed.x = Math.round(landed.x);
-        landed.y = Math.round(landed.y);
-        for (const other of others) {
-            if (landed.x < other.x + other.width && landed.x + moving.width > other.x && landed.y < other.y + other.height && landed.y + moving.height > other.y)
-                return null;
-        }
-        return landed;
     }
 
-    // A drop moves one monitor; then the whole layout shifts to start at 0,0.
+    function others(name: string): var {
+        return root.enabledMonitors.filter(monitor => monitor.name !== name).map(monitor => root.box(monitor));
+    }
+
+    function overlaps(a, b): bool {
+        return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+    }
+
+    // Which side of b a sits flush against, sharing some of the edge; "" when
+    // they only meet at a corner or not at all.
+    function side(a, b): string {
+        const alongX = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x) > 0;
+        const alongY = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y) > 0;
+        if (alongY && a.x + a.width === b.x)
+            return "left";
+        if (alongY && b.x + b.width === a.x)
+            return "right";
+        if (alongX && a.y + a.height === b.y)
+            return "above";
+        if (alongX && b.y + b.height === a.y)
+            return "below";
+        return "";
+    }
+
+    // The monitors in pieces, each joined across touching edges.
+    function groups(boxes) {
+        const result = [];
+        const seen = [];
+        for (const start of boxes) {
+            if (seen.includes(start))
+                continue;
+
+            const group = [start];
+            seen.push(start);
+            for (let index = 0; index < group.length; index++) {
+                for (const other of boxes) {
+                    if (!seen.includes(other) && root.side(group[index], other) !== "") {
+                        seen.push(other);
+                        group.push(other);
+                    }
+                }
+            }
+            result.push(group);
+        }
+        return result;
+    }
+
+    // Along a shared edge, where a sits against b: lined up at the top or
+    // left ("start"), the bottom or right ("end"), centred, or at an offset.
+    function anchor(a, b, side: string): var {
+        const across = side === "left" || side === "right";
+        const start = across ? a.y - b.y : a.x - b.x;
+        const free = across ? b.height - a.height : b.width - a.width;
+        if (start === 0)
+            return {
+                kind: "start",
+                offset: 0
+            };
+        if (start === free)
+            return {
+                kind: "end",
+                offset: 0
+            };
+        if (Math.abs(start * 2 - free) <= 1)
+            return {
+                kind: "center",
+                offset: 0
+            };
+        return {
+            kind: "offset",
+            offset: start
+        };
+    }
+
+    // How a monitor sits against the ones it touches, to keep when it changes size.
+    function relations(name: string): var {
+        const self = root.box(root.monitors.find(monitor => monitor.name === name));
+        const result = [];
+        for (const other of root.others(name)) {
+            const side = root.side(self, other);
+            if (side !== "")
+                result.push({
+                    other: other.name,
+                    side: side,
+                    anchor: root.anchor(self, other, side)
+                });
+        }
+        return result;
+    }
+
+    // Where a can sit along b's edge, as its top or left: sharing at least a
+    // quarter of the shorter edge, so the pointer can cross between them.
+    function along(wanted: real, start: int, size: int, otherSize: int): int {
+        const share = Math.ceil(Math.min(size, otherSize) / 4);
+        return Math.max(start - size + share, Math.min(start + otherSize - share, Math.round(wanted)));
+    }
+
+    // Where a slides along b's edge: anywhere it keeps enough of the edge,
+    // snapping to either end or the middle when within a twentieth.
+    function slide(wanted: real, start: int, size: int, otherSize: int): var {
+        const lined = [start, start + otherSize - size, Math.round(start + (otherSize - size) / 2)];
+        const threshold = Math.max(size, otherSize) / 20;
+        const snapped = lined.find(candidate => Math.abs(wanted - candidate) < threshold);
+        return [snapped !== undefined ? snapped : root.along(wanted, start, size, otherSize)].concat(lined);
+    }
+
+    // How far to move a group of monitors, wanted dx,dy, so one of them
+    // sits flush against a side of a fixed one, sharing some of that edge
+    // (Hyprland finds monitors in a direction only across touching edges)
+    // and covering none. A single monitor keeps a relation from `keep` if
+    // it can, else the nearest place wins. Null if nothing fits.
+    function fit(moving, fixed, dx: real, dy: real, keep): var {
+        if (fixed.length === 0)
+            return {
+                dx: 0,
+                dy: 0,
+                kept: false
+            };
+
+        let best = null;
+        for (const mover of moving) {
+            for (const other of fixed) {
+                for (const side of ["left", "right", "above", "below"]) {
+                    const across = side === "left" || side === "right";
+                    const flush = side === "left" ? other.x - mover.width : side === "right" ? other.x + other.width : side === "above" ? other.y - mover.height : other.y + other.height;
+                    const start = across ? other.y : other.x;
+                    const size = across ? mover.height : mover.width;
+                    const otherSize = across ? other.height : other.width;
+                    const places = root.slide((across ? mover.y + dy : mover.x + dx), start, size, otherSize).map(value => ({
+                                value: value,
+                                kept: false
+                            }));
+                    const relation = moving.length === 1 ? keep.find(candidate => candidate.other === other.name && candidate.side === side) : undefined;
+                    if (relation !== undefined) {
+                        const kind = relation.anchor.kind;
+                        const value = kind === "start" ? start : kind === "end" ? start + otherSize - size : kind === "center" ? Math.round(start + (otherSize - size) / 2) : root.along(start + relation.anchor.offset, start, size, otherSize);
+                        places.unshift({
+                            value: value,
+                            kept: true
+                        });
+                    }
+                    for (const place of places) {
+                        const shift = across ? {
+                            dx: flush - mover.x,
+                            dy: place.value - mover.y
+                        } : {
+                            dx: place.value - mover.x,
+                            dy: flush - mover.y
+                        };
+                        const covers = moving.some(one => fixed.some(two => root.overlaps({
+                                    x: one.x + shift.dx,
+                                    y: one.y + shift.dy,
+                                    width: one.width,
+                                    height: one.height
+                                }, two)));
+                        if (covers)
+                            continue;
+
+                        const score = [place.kept ? 0 : 1, Math.hypot(shift.dx - dx, shift.dy - dy)];
+                        if (best === null || score[0] < best.score[0] || (score[0] === best.score[0] && score[1] < best.score[1]))
+                            best = {
+                                dx: shift.dx,
+                                dy: shift.dy,
+                                kept: place.kept,
+                                score: score
+                            };
+                    }
+                }
+            }
+        }
+        return best;
+    }
+
+    function move(boxes, shift) {
+        for (const one of boxes)
+            root.change(one.name, {
+                x: one.x + shift.dx,
+                y: one.y + shift.dy
+            });
+    }
+
+    // After any move: monitors cut off from the rest, when one between them
+    // moved or turned off, move up against the others one group at a time;
+    // then the whole layout shifts to start at 0,0.
+    function settle() {
+        for (let round = 0; round < root.monitors.length; round++) {
+            const boxes = root.enabledMonitors.map(monitor => root.box(monitor));
+            const parts = root.groups(boxes).sort((a, b) => b.length - a.length);
+            if (parts.length < 2)
+                break;
+
+            const group = parts[parts.length - 1];
+            const shift = root.fit(group, boxes.filter(one => !group.includes(one)), 0, 0, []);
+            if (shift === null)
+                break;
+
+            root.move(group, shift);
+        }
+        const boxes = root.enabledMonitors.map(monitor => root.box(monitor));
+        const left = Math.min(...boxes.map(one => one.x));
+        const top = Math.min(...boxes.map(one => one.y));
+        root.move(boxes, {
+            dx: -left,
+            dy: -top
+        });
+    }
+
     function drop(name: string, dx: real, dy: real) {
-        const state = root.effective(root.monitors.find(monitor => monitor.name === name));
-        const landed = root.landing(name, state.x + dx, state.y + dy);
-        if (landed === null)
+        const moving = root.box(root.monitors.find(monitor => monitor.name === name));
+        const shift = root.fit([moving], root.others(name), dx, dy, []);
+        if (shift === null)
             return;
 
-        let left = Infinity;
-        let top = Infinity;
-        const places = {};
-        for (const monitor of root.enabledMonitors) {
-            const place = monitor.name === name ? landed : root.effective(monitor);
-            places[monitor.name] = place;
-            left = Math.min(left, place.x);
-            top = Math.min(top, place.y);
+        root.move([moving], shift);
+        root.settle();
+    }
+
+    // A change that can resize a monitor or turn it on or off. A resized
+    // monitor keeps how it sat against a neighbour (lined up, centred or at
+    // an offset) where that covers nothing; else it stays put and those past
+    // its right or bottom edge move along with that edge; else it takes the
+    // nearest free place. A monitor turned on takes the nearest free place.
+    function reshape(name: string, fields) {
+        const monitor = root.monitors.find(candidate => candidate.name === name);
+        if (monitor === undefined)
+            return;
+
+        const wasOn = !root.effective(monitor).disabled;
+        const before = root.box(monitor);
+        const keep = wasOn ? root.relations(name) : [];
+        root.change(name, fields);
+        if (!root.effective(monitor).disabled) {
+            const after = root.box(monitor);
+            const others = root.others(name);
+            const kept = root.fit([after], others, 0, 0, keep);
+            const pushed = others.map(other => Object.assign({}, other, {
+                    x: other.x >= before.x + before.width ? other.x + after.width - before.width : other.x,
+                    y: other.y >= before.y + before.height ? other.y + after.height - before.height : other.y
+                }));
+            const layout = pushed.concat([after]);
+            const apart = layout.every(a => layout.every(b => a === b || !root.overlaps(a, b)));
+            if (wasOn && !(kept !== null && kept.kept) && apart && root.groups(layout).length === 1) {
+                for (const other of pushed)
+                    root.change(other.name, {
+                        x: other.x,
+                        y: other.y
+                    });
+            } else if (kept !== null) {
+                root.move([after], kept);
+            }
         }
-        for (const monitorName of Object.keys(places))
-            root.change(monitorName, {
-                x: places[monitorName].x - left,
-                y: places[monitorName].y - top
-            });
+        root.settle();
     }
 
     function resolutions(monitor) {
@@ -282,7 +465,7 @@ ScrollPage {
         // The rate it has if this resolution offers it, the highest otherwise.
         const keep = matching.find(mode => Math.abs(mode.rate - state.rate) < 0.01);
         const rate = keep !== undefined ? keep.rate : matching.reduce((best, mode) => Math.max(best, mode.rate), state.rate);
-        root.change(root.current.name, {
+        root.reshape(root.current.name, {
             width: width,
             height: height,
             rate: rate
@@ -504,7 +687,7 @@ ScrollPage {
 
                 PillGroup {
                     current: !root.selectedOff
-                    onPicked: on => root.change(root.current.name, {
+                    onPicked: on => root.reshape(root.current.name, {
                             disabled: !on
                         })
                 }
@@ -555,7 +738,7 @@ ScrollPage {
                                 value: scale
                             }))
                     current: scaleField.scales.find(scale => Math.abs(root.selectedState?.scale - scale) < 0.001)
-                    onPicked: scale => root.change(root.current.name, {
+                    onPicked: scale => root.reshape(root.current.name, {
                             scale: scale
                         })
                 }
@@ -586,7 +769,7 @@ ScrollPage {
                         }
                     ]
                     current: root.selectedState !== null ? root.selectedState.transform : -1
-                    onPicked: transform => root.change(root.current.name, {
+                    onPicked: transform => root.reshape(root.current.name, {
                             transform: transform
                         })
                 }

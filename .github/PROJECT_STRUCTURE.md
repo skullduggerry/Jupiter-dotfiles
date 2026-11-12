@@ -343,6 +343,11 @@ it is open and on which page, and any page or tab name opens its place
   `hyprctl eval` and reverts them unless Keep is pressed within 15 s. Kept
   rules (`desc:<description>`) go to `monitors.json`/`monitors.lua`, which
   `modules/monitors.lua` applies last. Hyprland's `desc:` matches by prefix.
+  The arrangement keeps every monitor flush against another, sharing at
+  least a quarter of the shorter edge at any offset, and covering none:
+  Hyprland finds a monitor in a direction only across touching edges. A drop,
+  a new size and turning one off or on all place monitors again (`fit()`,
+  `settle()`).
 - Bluetooth and Wi-Fi: start searching only once the adapter's `state` is on
   (`enabled` flips before the radio is up). Use `value: true` with
   `when: active && …`, so pages built unseen write nothing. Switch searching
