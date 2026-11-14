@@ -14,11 +14,21 @@ Singleton {
     property var users: []
     property var sessions: []
     property bool listed: false
+    // fprintd has a reader (greeter-env.py): Enter on an empty field asks
+    // for a finger, by answering the password's question with nothing,
+    // which etc/pam.d/greetd sends to pam_fprintd. Without one, an empty
+    // field sends nothing, as ever.
+    property bool fingerprint: false
+    // This attempt is a finger's: its first question is answered empty.
+    property bool fingerAttempt: false
+    property bool fingerTried: false
+    readonly property string noPassword: "No password entered!"
     property string username: ""
     property string sessionExec: ""
     property string password: ""
     property string errorText: ""
-    property string promptText: "Password"
+    readonly property string passwordPrompt: root.fingerprint ? "Password, or Enter for a finger" : "Password"
+    property string promptText: root.passwordPrompt
     property bool promptSecret: true
     // A question asked after the password went out (a code, say), which the
     // field answers rather than starting a new login.
@@ -31,8 +41,13 @@ Singleton {
     readonly property bool canSubmit: root.ready && !root.busy && root.username !== "" && root.sessionExec !== ""
 
     function submit() {
-        if (!root.canSubmit || root.password === "")
+        if (!root.canSubmit)
             return;
+        const finger = root.password === "" && !root.answering && root.fingerprint;
+        if (root.password === "" && !finger) {
+            root.errorText = root.answering ? "" : root.noPassword;
+            return;
+        }
 
         root.errorText = "";
         root.busy = true;
@@ -44,6 +59,8 @@ Singleton {
             return;
         }
         root.said = [];
+        root.fingerAttempt = finger;
+        root.fingerTried = finger;
         Greetd.createSession(root.username);
     }
 
@@ -57,6 +74,7 @@ Singleton {
 
     function applyEnvironment(environment) {
         root.users = environment.users;
+        root.fingerprint = environment.fingerprint === true;
         root.sessions = environment.sessions;
         if (root.username === "" && environment.users.length > 0)
             root.username = environment.users[0].name;
@@ -72,7 +90,8 @@ Singleton {
         root.password = "";
         root.busy = false;
         root.answering = false;
-        root.promptText = "Password";
+        root.fingerAttempt = false;
+        root.promptText = root.passwordPrompt;
         root.promptSecret = true;
         root.errorText = message;
     }
@@ -102,6 +121,13 @@ Singleton {
                 }
                 return;
             }
+            if (root.fingerAttempt) {
+                // The password's question, answered with nothing: the
+                // reader's turn. Any question after it is the user's.
+                root.fingerAttempt = false;
+                Greetd.respond("");
+                return;
+            }
             root.promptText = message;
             root.promptSecret = !echoResponse;
             if (root.password === "") {
@@ -115,7 +141,9 @@ Singleton {
         }
 
         function onAuthFailure(message: string) {
-            root.fail(root.said.length > 0 ? root.said.join("\n") : "Incorrect password");
+            // A finger attempt that failed with nothing said found no finger
+            // enrolled: to the user, Enter on an empty field.
+            root.fail(root.said.length > 0 ? root.said.join("\n") : root.fingerTried ? root.noPassword : "Incorrect password");
         }
 
         function onError(error: string) {

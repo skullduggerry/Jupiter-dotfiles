@@ -16,11 +16,26 @@
 # stack to hang it off, and `passwd` rekeys the keyring through /etc/pam.d/passwd
 # regardless of which display manager is installed.
 #
+# A finger logs in too, without a typed password ever waiting on the reader:
+# greetd runs one conversation, and cannot cancel one while pam_fprintd scans.
+# So the first question is the password's, as always, and only an empty answer
+# (the greeter sends one for Enter on an empty field, where greeter-env.py found
+# a reader) goes to pam_fprintd: finger-asked succeeds for an empty answer
+# alone, and any other result skips the reader. The reader's success ends the
+# auth stack (done), and anything else from it fails the login (die): an empty
+# answer never reaches the password check, or pam_faillock would count each
+# finger as a wrong password. Fail-safe both ways: without finger-asked the
+# password path is as before, and without pam_fprintd an empty answer fails.
+# pam_gnome_keyring gets no password from a finger; the login keyring is kept
+# unencrypted for that on an encrypted disk (Jupiter-installer's phase 4).
+#
 # This file is in pacman's backup set, so an upgrade of greetd leaves it alone
 # and drops /etc/pam.d/greetd.pacnew next to it. Diff that after a greetd update.
 
 auth       required     pam_securetty.so
 auth       requisite    pam_nologin.so
+auth       [success=ok default=1]     pam_exec.so quiet expose_authtok /etc/greetd/finger-asked
+auth       [success=done default=die] pam_fprintd.so max-tries=3 timeout=10
 auth       include      system-local-login
 -auth      optional     pam_gnome_keyring.so
 

@@ -1,0 +1,6 @@
+#!/bin/sh
+# Whether the answer to the login's first question was empty: the greeter's
+# way of asking for a finger instead of the password (etc/pam.d/greetd).
+# pam_exec hands the answer over on stdin, followed by a NUL; nothing of it is
+# kept or shown. Runs as root, installed from root's copy (install-greeter.sh).
+[ -z "$(tr -d '\000' | head -c 1)" ]

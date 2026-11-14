@@ -8,12 +8,14 @@ Prints one JSON object, read by GreeterService.qml through Quickshell.Io.Process
     {"users": [{"name": "alice", "display": "Alice"}, ...],
      "sessions": [{"id": "hyprland-uwsm", "name": "Hyprland (uwsm-managed)",
                    "exec": "uwsm start -- hyprland.desktop",
-                   "command": ["uwsm", "start", "--", "hyprland.desktop"]}, ...]}
+                   "command": ["uwsm", "start", "--", "hyprland.desktop"]}, ...],
+     "fingerprint": true}
 
 The users are the login-capable accounts in world-readable /etc/passwd, the
 sessions the desktop entries in the session directories, each with its Exec
-split into the argv greetd's start_session takes. Logging in itself goes
-through Quickshell.Services.Greetd.
+split into the argv greetd's start_session takes, and whether fprintd has a
+reader, which lets Enter on an empty field ask for a finger. Logging in
+itself goes through Quickshell.Services.Greetd.
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ from __future__ import annotations
 import json
 import os
 import shlex
+import subprocess
 import sys
 
 PASSWD = "/etc/passwd"
@@ -98,8 +101,36 @@ def list_sessions(directories: tuple[str, ...] = SESSION_DIRS) -> list[dict]:
     return sessions
 
 
+def has_reader() -> bool:
+    """Whether fprintd lists a fingerprint reader. Anyone may ask it
+    (no polkit rule guards GetDevices); no fprintd, no reader."""
+    try:
+        listed = subprocess.run(
+            [
+                "gdbus", "call", "--system",
+                "--dest", "net.reactivated.Fprint",
+                "--object-path", "/net/reactivated/Fprint/Manager",
+                "--method", "net.reactivated.Fprint.Manager.GetDevices",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )  # fmt: skip
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return listed.returncode == 0 and "/Device/" in listed.stdout
+
+
 def main() -> int:
-    json.dump({"users": list_users(), "sessions": list_sessions()}, sys.stdout)
+    json.dump(
+        {
+            "users": list_users(),
+            "sessions": list_sessions(),
+            "fingerprint": has_reader(),
+        },
+        sys.stdout,
+    )
     print()
     return 0
 

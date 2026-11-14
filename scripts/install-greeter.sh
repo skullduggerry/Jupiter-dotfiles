@@ -110,6 +110,8 @@ install -d -m 0755 "$dest" "$dest/quickshell" "$dest/quickshell/style" "$dest/qu
 
 # greetd reads it as root, and it names the user the greeter runs as.
 install -m 0644 "$self/etc/greetd/config.toml" "$dest/config.toml"
+# PAM runs it as root (etc/pam.d/greetd): root's copy too.
+install -m 0755 "$self/etc/greetd/finger-asked" "$dest/finger-asked"
 copy etc/greetd/hyprland.lua "$dest/hyprland.lua"
 copy etc/greetd/monitors.lua "$dest/monitors.lua"
 copy etc/greetd/vconsole.lua "$dest/vconsole.lua"
