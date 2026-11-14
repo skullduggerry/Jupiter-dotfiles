@@ -44,6 +44,40 @@ Singleton {
     readonly property string serverUrl: settings.serverUrl
     readonly property string user: settings.user
     readonly property bool configured: root.serverUrl !== "" && root.user !== ""
+    // The day a week starts on, Sunday 0 to Saturday 6 as Date.getDay()
+    // counts; what is kept is -1 until one is picked, following the locale.
+    readonly property int weekStart: preferences.weekStart
+    readonly property int firstDayOfWeek: root.weekStart >= 0 && root.weekStart <= 6 ? root.weekStart : Qt.locale().firstDayOfWeek
+    // How much the grid shows: 0 is the whole month, else that many weeks
+    // from the week holding the day it is on, paging by as many.
+    readonly property int shownWeeks: root.weekChoices.some(choice => choice.value === preferences.shownWeeks) ? preferences.shownWeeks : 0
+    readonly property var weekChoices: [
+        {
+            label: "Month",
+            value: 0
+        },
+        {
+            label: "1 week",
+            value: 1
+        },
+        {
+            label: "2 weeks",
+            value: 2
+        },
+        {
+            label: "3 weeks",
+            value: 3
+        }
+    ]
+    readonly property var weekStartChoices: [
+        {
+            label: "As the language (" + Qt.locale().dayName(Qt.locale().firstDayOfWeek) + ")",
+            value: -1
+        }
+    ].concat([1, 2, 3, 4, 5, 6, 0].map(day => ({
+                label: Qt.locale().dayName(day),
+                value: day
+            })))
     property string loginMessage: ""
     readonly property bool signingIn: login.running
     readonly property bool loading: status === "loading"
@@ -139,6 +173,58 @@ Singleton {
         } else {
             root.loginMessage = event.message;
         }
+    }
+
+    function setWeekStart(day: int) {
+        preferences.weekStart = day >= 0 && day <= 6 ? day : -1;
+        preferencesWrite.restart();
+    }
+
+    function setShownWeeks(weeks: int) {
+        preferences.shownWeeks = weeks;
+        preferencesWrite.restart();
+    }
+
+    // Days from the start of its week to this one.
+    function weekOffset(day: date): int {
+        return (day.getDay() - root.firstDayOfWeek + 7) % 7;
+    }
+
+    // The grid around a day: its first day, at the start of a week, and how
+    // many weeks it has; for the month, those holding the 1st and the last.
+    function gridStart(day: date): date {
+        const first = root.shownWeeks === 0 ? root.monthStart(day) : day;
+        return root.shift(first, -root.weekOffset(first));
+    }
+
+    function weekCount(day: date): int {
+        if (root.shownWeeks !== 0)
+            return root.shownWeeks;
+
+        const first = root.monthStart(day);
+        const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+        return Math.ceil((root.weekOffset(first) + daysInMonth) / 7);
+    }
+
+    // The day the grid pages to, a month or its weeks either way.
+    function page(day: date, direction: int): date {
+        if (root.shownWeeks === 0)
+            return new Date(day.getFullYear(), day.getMonth() + direction, 1);
+
+        return root.shift(day, direction * root.shownWeeks * 7);
+    }
+
+    function gridTitle(day: date): string {
+        if (root.shownWeeks === 0)
+            return Qt.formatDate(day, "MMMM yyyy");
+
+        const first = root.gridStart(day);
+        const last = root.shift(first, root.shownWeeks * 7 - 1);
+        if (first.getFullYear() !== last.getFullYear())
+            return Qt.formatDate(first, "d MMM yyyy") + " – " + Qt.formatDate(last, "d MMM yyyy");
+        if (first.getMonth() !== last.getMonth())
+            return Qt.formatDate(first, "d MMM") + " – " + Qt.formatDate(last, "d MMM yyyy");
+        return first.getDate() + " – " + Qt.formatDate(last, "d MMMM yyyy");
     }
 
     function shift(day: date, days: int): date {
@@ -321,6 +407,7 @@ Singleton {
     onRangeEndChanged: rangeDebounce.restart()
     Component.onCompleted: {
         settingsFile.text();
+        preferencesFile.text();
         root.restore();
     }
 
@@ -386,6 +473,31 @@ Singleton {
             property string serverUrl: ""
             property string user: ""
         }
+    }
+
+    // What the calendar shows, apart from the account in nextcloud.json.
+    FileView {
+        id: preferencesFile
+
+        path: Quickshell.statePath("calendar.json")
+        preload: true
+        blockLoading: true
+        printErrors: false
+        watchChanges: false
+
+        adapter: JsonAdapter {
+            id: preferences
+
+            property int weekStart: -1
+            property int shownWeeks: 0
+        }
+    }
+
+    Timer {
+        id: preferencesWrite
+
+        interval: 200
+        onTriggered: preferencesFile.writeAdapter()
     }
 
     FileView {

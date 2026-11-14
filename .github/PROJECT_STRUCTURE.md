@@ -225,6 +225,12 @@ Night Light at login.
   (`task_url()`). One
   object or calendar that cannot be read costs only itself. The calendar home is discovered through
   `current-user-principal`, never built from the login name.
+- Settings → Calendar keeps the grid's layout in `calendar.json`: the day a
+  week starts on (`weekStart`, -1 follows the locale, as before there was a
+  choice) and the month or 1–3 weeks from the shown day's (`shownWeeks`),
+  paged by as many. The grid is `gridStart()`/`weekCount()`/`page()`, so the
+  fetched range follows whatever it shows; a page of weeks stays well inside
+  `prefetchDays`.
 - `calendar-color` lives in Apple's namespace and arrives as `#rrggbbaa`. Cut
   it to `#rrggbb`, because QML reads eight hex digits as ARGB. Nested
   components (`VALARM`) are skipped. Tasks are the open VTODOs (`COMPLETED`

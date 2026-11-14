@@ -4,6 +4,7 @@ AppearancePage 1.0 AppearancePage.qml
 AppVolumeRow 1.0 AppVolumeRow.qml
 AudioDeviceRow 1.0 AudioDeviceRow.qml
 BluetoothPage 1.0 BluetoothPage.qml
+CalendarPage 1.0 CalendarPage.qml
 Card 1.0 Card.qml
 ChoiceField 1.0 ChoiceField.qml
 DisplaysPage 1.0 DisplaysPage.qml

@@ -78,6 +78,12 @@ FocusScope {
             keywords: "do not disturb dnd alerts"
         },
         {
+            name: "calendar",
+            title: "Calendar",
+            icon: Icons.calendar,
+            keywords: "calendar week start first day monday sunday days weeks month grid dropdown"
+        },
+        {
             name: "power",
             title: "Power",
             icon: Icons.power,
@@ -378,6 +384,8 @@ FocusScope {
                     return bluetoothPage;
                 case "notifications":
                     return notificationsPage;
+                case "calendar":
+                    return calendarPage;
                 case "power":
                     return powerPage;
                 case "keyboard":
@@ -443,6 +451,12 @@ FocusScope {
         id: notificationsPage
 
         NotificationsPage {}
+    }
+
+    Component {
+        id: calendarPage
+
+        CalendarPage {}
     }
 
     Component {

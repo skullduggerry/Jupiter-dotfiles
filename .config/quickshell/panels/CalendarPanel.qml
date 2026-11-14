@@ -11,22 +11,12 @@ Item {
     implicitHeight: Style.bar.padding * 2 + header.height + weekdays.height + grid.height + Style.bar.spacing + Style.border.width + Style.bar.spacing + agendaHeader.height + root.agendaHeight + tasks.height + status.height
     readonly property int agendaHeight: setup.visible ? setup.implicitHeight + Style.bar.spacing : Math.max(Style.popup.itemHeight, agenda.contentHeight)
     readonly property date today: Time.now
-    property date displayedMonth: new Date(root.today.getFullYear(), root.today.getMonth(), 1)
+    // A day in what the grid shows: its month, or its week and those after.
+    property date shownDay: root.today
     property date selectedDay: root.today
-    readonly property int firstDayOfWeek: Qt.locale().firstDayOfWeek
     readonly property int columns: 7
-    readonly property int weekCount: {
-        const year = root.displayedMonth.getFullYear();
-        const month = root.displayedMonth.getMonth();
-        const offset = (new Date(year, month, 1).getDay() - root.firstDayOfWeek + 7) % 7;
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        return Math.ceil((offset + daysInMonth) / root.columns);
-    }
-    readonly property date gridStart: {
-        const first = new Date(root.displayedMonth.getFullYear(), root.displayedMonth.getMonth(), 1);
-        const offset = (first.getDay() - root.firstDayOfWeek + 7) % 7;
-        return new Date(first.getFullYear(), first.getMonth(), 1 - offset);
-    }
+    readonly property int weekCount: CalendarService.weekCount(root.shownDay)
+    readonly property date gridStart: CalendarService.gridStart(root.shownDay)
     readonly property var selectedEvents: CalendarService.eventsByDay[CalendarService.dayKey(root.selectedDay)] || []
     readonly property bool showingUpcoming: root.selectedEvents.length === 0 && root.upcomingEvents.length > 0
     readonly property var upcomingEvents: {
@@ -54,12 +44,12 @@ Item {
         return events.slice(0, Style.calendar.maxDots).map(event => event.colour || Colors.calendar.event);
     }
 
-    function shiftMonth(months: int) {
-        root.displayedMonth = new Date(root.displayedMonth.getFullYear(), root.displayedMonth.getMonth() + months, 1);
+    function page(direction: int) {
+        root.shownDay = CalendarService.page(root.shownDay, direction);
     }
 
     function showToday() {
-        root.displayedMonth = new Date(root.today.getFullYear(), root.today.getMonth(), 1);
+        root.shownDay = root.today;
         root.selectedDay = root.today;
     }
 
@@ -99,7 +89,7 @@ Item {
                 width: Style.popup.rowIconWidth
                 text: Icons.chevronLeft
                 font.family: Icons.font
-                onClicked: root.shiftMonth(-1)
+                onClicked: root.page(-1)
 
                 anchors {
                     left: parent.left
@@ -111,7 +101,7 @@ Item {
                 id: month
 
                 anchors.centerIn: parent
-                text: Qt.formatDate(root.displayedMonth, "MMMM yyyy")
+                text: CalendarService.gridTitle(root.shownDay)
                 color: month.hovered ? Colors.calendar.today : Colors.text.base
                 font.pixelSize: Style.text.size
                 onClicked: root.showToday()
@@ -122,7 +112,7 @@ Item {
                 horizontalAlignment: Text.AlignRight
                 text: Icons.chevronRight
                 font.family: Icons.font
-                onClicked: root.shiftMonth(1)
+                onClicked: root.page(1)
 
                 anchors {
                     right: parent.right
@@ -176,7 +166,7 @@ Item {
             }
 
             WheelHandler {
-                onWheel: event => root.shiftMonth(event.angleDelta.y > 0 ? -1 : 1)
+                onWheel: event => root.page(event.angleDelta.y > 0 ? -1 : 1)
             }
 
             Repeater {
@@ -187,7 +177,7 @@ Item {
 
                     required property int index
                     readonly property date day: root.dayAt(cell.index)
-                    readonly property bool inMonth: cell.day.getMonth() === root.displayedMonth.getMonth()
+                    readonly property bool inMonth: CalendarService.shownWeeks !== 0 || cell.day.getMonth() === root.shownDay.getMonth()
                     readonly property bool isToday: root.sameDay(cell.day, root.today)
                     readonly property bool selected: root.sameDay(cell.day, root.selectedDay)
                     readonly property var dots: root.dotColours(cell.day)
