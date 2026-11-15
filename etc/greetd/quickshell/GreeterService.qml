@@ -36,8 +36,8 @@ Singleton {
     property string sessionExec: ""
     property string password: ""
     property string errorText: ""
-    readonly property string passwordPrompt: root.fingerprint ? "Password, or Enter for fingerprint" : "Password"
-    readonly property string scanPrompt: "Touch the reader, or type the password"
+    // As the lock screen's, scanning or not.
+    readonly property string passwordPrompt: root.fingerprint ? "Password or fingerprint" : "Password"
     property string promptText: root.passwordPrompt
     property bool promptSecret: true
     // A question asked after the password went out (a code, say), which the
