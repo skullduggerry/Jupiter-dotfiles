@@ -2,14 +2,14 @@
 
 A desktop for Arch Linux: Hyprland with a shell of its own, written in QML on Quickshell (bar, lock and login screen, notifications, quick menu, Settings app), and the configs of the apps around it, all coloured from one wallust theme. By @skullduggery and @lwctr.
 
-Part of Jupiter: [Jupiter-installer](https://codeberg.org/skullduggery/Jupiter-installer) sets these dotfiles up, and [Jupiter-testing](https://codeberg.org/skullduggery/Jupiter-testing) lints and tests them.
+Part of Jupiter: [Jupiter-installer](https://github.com/skullduggerry/Jupiter-installer) sets these dotfiles up, and [Jupiter-testing](https://github.com/skullduggerry/Jupiter-testing) lints and tests them.
 
 ## Installing
 
 On an Arch install of your own, as your user:
 
 ```bash
-git clone https://codeberg.org/skullduggery/Jupiter-installer.git ~/Jupiter-installer
+git clone https://github.com/skullduggerry/Jupiter-installer.git ~/Jupiter-installer
 ~/Jupiter-installer/bootstrap.sh 2 3 4
 ```
 
