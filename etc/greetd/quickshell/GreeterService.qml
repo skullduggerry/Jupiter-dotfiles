@@ -27,7 +27,7 @@ Singleton {
     property string sessionExec: ""
     property string password: ""
     property string errorText: ""
-    readonly property string passwordPrompt: root.fingerprint ? "Password, or Enter for a finger" : "Password"
+    readonly property string passwordPrompt: root.fingerprint ? "Password, or Enter for fingerprint" : "Password"
     property string promptText: root.passwordPrompt
     property bool promptSecret: true
     // A question asked after the password went out (a code, say), which the
