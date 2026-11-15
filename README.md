@@ -13,7 +13,7 @@ git clone https://github.com/skullduggerry/Jupiter-installer.git ~/Jupiter-insta
 ~/Jupiter-installer/bootstrap.sh 2 3 4
 ```
 
-Then reboot. Phase 4 clones this repo into your home and links each folder of `.config/` into `~/.config/`, moving whatever was in the way to `~/.dotfiles-backup/`. Running it again only does what is missing. To keep your own changes, fork this repo and point the installer at your fork ([Customising](https://codeberg.org/skullduggery/Jupiter-dotfiles/wiki/Customising)).
+Then reboot. Phase 4 clones this repo into your home and links each folder of `.config/` into `~/.config/`, moving whatever was in the way to `~/.dotfiles-backup/`. Running it again only does what is missing. To keep your own changes, fork this repo and point the installer at your fork ([Customising](https://github.com/skullduggerry/Jupiter-dotfiles/wiki/Customising)).
 
 ## Contents
 
@@ -40,5 +40,5 @@ Each Jupiter repo has this `check.sh`, with the same arguments. The linters and 
 
 ## Documentation
 
-- [The wiki](https://codeberg.org/skullduggery/Jupiter-dotfiles/wiki): installing, the login screen, themes, the scripts, development.
+- [The wiki](https://github.com/skullduggerry/Jupiter-dotfiles/wiki): installing, the login screen, themes, the scripts, development.
 - `.github/`: how the shell is built and the rules it follows (`PROJECT_STRUCTURE.md`, `THEMING.md`, and `llm.md` for coding agents).

@@ -1,0 +1,33 @@
+# Pushes the wiki to Codeberg's wiki after each edit here, so the Codeberg
+# wiki stays a backup like the code. GitHub serves a wiki from `master` and
+# Codeberg from `main`, so the one branch goes across under the other name.
+# Needs the same CODEBERG_TOKEN secret as mirror-codeberg.yml. The daily run
+# catches edits pushed with git, which may not fire `gollum`.
+name: Mirror wiki to Codeberg
+
+on:
+  gollum:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * *"
+
+concurrency:
+  group: mirror-wiki-codeberg
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Push the wiki
+        env:
+          CODEBERG_TOKEN: ${{ secrets.CODEBERG_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          # owner/name: a scheduled run's event carries no repository.
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          git clone --bare \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPOSITORY}.wiki.git" wiki.git
+          git -C wiki.git push --force \
+            "https://skullduggery:${CODEBERG_TOKEN}@codeberg.org/skullduggery/${REPOSITORY#*/}.wiki.git" \
+            HEAD:refs/heads/main
