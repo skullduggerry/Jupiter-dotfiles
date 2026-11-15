@@ -30,7 +30,7 @@ greeter=$root/usr/local/lib/jupiter/greeter
 install -d -m 0755 "$greeter/scripts" "$greeter/etc/greetd" "$greeter/etc/pam.d"
 install -m 0755 "$repo/scripts/install-greeter.sh" "$greeter/scripts/"
 install -m 0644 "$repo/etc/greetd/config.toml" "$greeter/etc/greetd/"
-install -m 0755 "$repo/etc/greetd/finger-asked" "$greeter/etc/greetd/"
+install -m 0755 "$repo/etc/greetd/finger-asked" "$repo/etc/greetd/disk-encrypted" "$greeter/etc/greetd/"
 install -m 0644 "$repo"/etc/pam.d/greetd* "$greeter/etc/pam.d/"
 echo "installed   the login screen's installer"
 

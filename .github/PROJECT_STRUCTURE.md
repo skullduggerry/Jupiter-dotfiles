@@ -14,8 +14,8 @@ Installed: Quickshell 0.3.2, Hyprland 0.57.1 (configured in Lua), Qt 6.12, Arch.
 | `.config/hypr/` | Hyprland: `hyprland.lua`, `modules/` (binds, monitors, startup, workspaces…), `styles/` (layer rules, blur, animations) |
 | `.config/wallust/` | theming, see THEMING.md |
 | `.config/claude-desktop-flags.conf` | flags for Claude Desktop: keeps its secrets in gnome-keyring, without which it forgets the sign-in on every start |
-| `etc/greetd/` | the login screen, a second Quickshell config that logs in through `Quickshell.Services.Greetd` (`greeter-env.py` lists users and sessions); `scripts/install-greeter.sh` installs it as a copy, with `etc/pam.d/`; what runs as root (`config.toml`, `finger-asked`, `etc/pam.d/`) comes from root's copy when the Settings app runs it |
-| `etc/udev/`, `etc/pacman.d/`, `etc/systemd/user/` | system files `scripts/install-system.sh` installs as root (Jupiter-installer's phase 4): the tablet pad's udev rule, the pacman hook that runs `scripts/uwsm-desktop-entries.py`, the drop-in (`ConditionUser=!greeter`) that keeps the portals, PipeWire and the polkit agent out of the login screen's session, and root's copy of `install-greeter.sh` with greetd's config, `finger-asked` and the PAM stacks in `/usr/local/lib/jupiter/greeter` |
+| `etc/greetd/` | the login screen, a second Quickshell config that logs in through `Quickshell.Services.Greetd` (`greeter-env.py` lists users and sessions); `scripts/install-greeter.sh` installs it as a copy, with `etc/pam.d/`; what runs as root (`config.toml`, `finger-asked`, `disk-encrypted`, `etc/pam.d/`) comes from root's copy when the Settings app runs it |
+| `etc/udev/`, `etc/pacman.d/`, `etc/systemd/user/` | system files `scripts/install-system.sh` installs as root (Jupiter-installer's phase 4): the tablet pad's udev rule, the pacman hook that runs `scripts/uwsm-desktop-entries.py`, the drop-in (`ConditionUser=!greeter`) that keeps the portals, PipeWire and the polkit agent out of the login screen's session, and root's copy of `install-greeter.sh` with greetd's config, `finger-asked`, `disk-encrypted` and the PAM stacks in `/usr/local/lib/jupiter/greeter` |
 | `scripts/` | what installs the system files and the login screen, and generators (`kvantum-template.py`). The checks are Jupiter-testing's, next to this repo: its `scripts/lint.sh` lints this repo, and its suites test it (a `dotfiles/test_*.py` per helper script, the QML tests in `dotfiles/qml/`, the security suites in `dotfiles/security/`) |
 | `pyproject.toml`, `.luarc.json`, `.editorconfig` | settings of the formatters and linters Jupiter-testing runs, which editors read too (no Python package) |
 
@@ -488,7 +488,10 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
   entered!".
   The login keyring opens without a password because Jupiter-installer's
   phase 4 keeps it unencrypted on an encrypted disk; on an unencrypted one
-  a finger logs in with the keyring locked. The login screen's look
+  a finger logs in with the keyring locked. On the encrypted disk a typed
+  password never reaches gnome-keyring either (`etc/greetd/disk-encrypted`
+  skips its line): it opens a plain keyring with the password it is given
+  and saves it encrypted with it, which no finger opens after. The login screen's look
   only applies through `install-greeter.sh`. The Lock Screen tab runs root's
   copy of it (`/usr/local/lib/jupiter/greeter`, from `install-system.sh`)
   through pkexec with `--from` the clone, never the repo's: root takes the

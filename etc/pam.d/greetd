@@ -29,7 +29,13 @@
 # The reader waits 5 s for a finger: greetd answers nothing else meanwhile, so
 # a password entered then waits that long at most (the greeter sends it after).
 # pam_gnome_keyring gets no password from a finger; the login keyring is kept
-# unencrypted for that on an encrypted disk (Jupiter-installer's phase 4).
+# unencrypted for that on an encrypted disk (Jupiter-installer's phase 4). There
+# it gets no password from a typed one either: gnome-keyring opens a plain
+# keyring with the password it is given and saves it encrypted with that
+# password, which a finger then cannot open. disk-encrypted (run as root,
+# installed from root's copy) skips the password's line where / is on LUKS; the
+# session's line still starts the daemon. On an unencrypted disk the keyring is
+# encrypted with the login password, which a typed one opens as before.
 #
 # This file is in pacman's backup set, so an upgrade of greetd leaves it alone
 # and drops /etc/pam.d/greetd.pacnew next to it. Diff that after a greetd update.
@@ -39,6 +45,7 @@ auth       requisite    pam_nologin.so
 auth       [success=ok default=1]     pam_exec.so quiet expose_authtok /etc/greetd/finger-asked
 auth       [success=done default=die] pam_fprintd.so max-tries=3 timeout=5
 auth       include      system-local-login
+auth       [success=1 default=ignore] pam_exec.so quiet /etc/greetd/disk-encrypted
 -auth      optional     pam_gnome_keyring.so
 
 account    include      system-local-login

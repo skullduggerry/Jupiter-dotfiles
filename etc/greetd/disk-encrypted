@@ -1,0 +1,14 @@
+#!/bin/sh
+# Whether / is on a LUKS volume, as Jupiter-installer's tpm.root_volume() tells:
+# there the login keyring is kept unencrypted (its phase 4), and
+# etc/pam.d/greetd gives gnome-keyring no password, which it would encrypt that
+# keyring with the next time it saves it. Runs as root, installed from root's
+# copy (install-greeter.sh); the tools by path, as pam_exec gives no PATH.
+source=$(/usr/bin/findmnt --noheadings -o SOURCE /) || exit 1
+source=${source%%\[*} # Btrfs adds the subvolume: [/@]
+case $source in
+    /dev/mapper/*) ;;
+    *) exit 1 ;;
+esac
+/usr/bin/lsblk --noheadings --inverse --list -o FSTYPE "$source" |
+    /usr/bin/grep -qx crypto_LUKS
