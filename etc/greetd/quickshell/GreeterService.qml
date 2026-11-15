@@ -14,20 +14,30 @@ Singleton {
     property var users: []
     property var sessions: []
     property bool listed: false
-    // fprintd has a reader (greeter-env.py): Enter on an empty field asks
-    // for a finger, by answering the password's question with nothing,
-    // which etc/pam.d/greetd sends to pam_fprintd. Without one, an empty
-    // field sends nothing, as ever.
+    // fprintd has a reader (greeter-env.py): the greeter asks for a finger
+    // by itself once it has the users, and again for Enter on an empty
+    // field, by answering the password's question with nothing, which
+    // etc/pam.d/greetd sends to pam_fprintd. greetd answers nothing else
+    // until the reader is done (a finger, or its timeout there), so a
+    // password entered meanwhile waits for it (queued). Without a reader,
+    // an empty field sends nothing, as ever.
     property bool fingerprint: false
     // This attempt is a finger's: its first question is answered empty.
     property bool fingerAttempt: false
-    property bool fingerTried: false
+    // The reader has greetd, from the empty answer until it is done.
+    property bool scanning: false
+    // The scan the greeter began by itself, which ending without a finger
+    // (its timeout) is no error to the user.
+    property bool autoScan: false
+    // Enter on a password while the reader had greetd: sent once it is done.
+    property bool queued: false
     readonly property string noPassword: "No password entered!"
     property string username: ""
     property string sessionExec: ""
     property string password: ""
     property string errorText: ""
     readonly property string passwordPrompt: root.fingerprint ? "Password, or Enter for fingerprint" : "Password"
+    readonly property string scanPrompt: "Touch the reader, or type the password"
     property string promptText: root.passwordPrompt
     property bool promptSecret: true
     // A question asked after the password went out (a code, say), which the
@@ -41,6 +51,14 @@ Singleton {
     readonly property bool canSubmit: root.ready && !root.busy && root.username !== "" && root.sessionExec !== ""
 
     function submit() {
+        if (root.scanning) {
+            if (root.password !== "") {
+                root.errorText = "";
+                root.queued = true;
+                root.busy = true;
+            }
+            return;
+        }
         if (!root.canSubmit)
             return;
         const finger = root.password === "" && !root.answering && root.fingerprint;
@@ -50,6 +68,10 @@ Singleton {
         }
 
         root.errorText = "";
+        if (finger) {
+            root.scan(false);
+            return;
+        }
         root.busy = true;
         if (root.answering) {
             const answer = root.password;
@@ -58,10 +80,45 @@ Singleton {
             Greetd.respond(answer);
             return;
         }
+        root.login();
+    }
+
+    function login() {
         root.said = [];
-        root.fingerAttempt = finger;
-        root.fingerTried = finger;
         Greetd.createSession(root.username);
+    }
+
+    function scan(auto: bool) {
+        root.said = [];
+        root.fingerAttempt = true;
+        root.scanning = true;
+        root.autoScan = auto;
+        Greetd.createSession(root.username);
+    }
+
+    // The reader is done without a finger it knows. A manual scan says what
+    // it said; one the greeter began says nothing, as no finger came.
+    function scanFailed(message: string) {
+        const auto = root.autoScan;
+        root.scanning = false;
+        root.autoScan = false;
+        root.fingerAttempt = false;
+        if (root.queued) {
+            root.sendQueued();
+            return;
+        }
+        root.promptText = root.passwordPrompt;
+        root.promptSecret = true;
+        root.errorText = auto ? "" : message;
+    }
+
+    // Once greetd has ended the reader's login, the password entered
+    // meanwhile starts one of its own.
+    function sendQueued() {
+        if (!root.queued || root.scanning || Greetd.state !== GreetdState.Inactive)
+            return;
+        root.queued = false;
+        root.login();
     }
 
     function preferredSession(available): string {
@@ -83,6 +140,8 @@ Singleton {
             root.sessionExec = root.preferredSession(environment.sessions);
 
         root.listed = true;
+        if (root.fingerprint && root.canSubmit)
+            root.scan(true);
     }
 
     // Greetd has ended the attempt already (or never began one).
@@ -91,6 +150,7 @@ Singleton {
         root.busy = false;
         root.answering = false;
         root.fingerAttempt = false;
+        root.queued = false;
         root.promptText = root.passwordPrompt;
         root.promptSecret = true;
         root.errorText = message;
@@ -117,7 +177,9 @@ Singleton {
             if (!responseRequired) {
                 if (message !== "") {
                     root.said = root.said.concat([message]);
-                    root.errorText = root.said.join("\n");
+                    // While it scans, the field's prompt says what to do.
+                    if (!root.scanning)
+                        root.errorText = root.said.join("\n");
                 }
                 return;
             }
@@ -141,13 +203,25 @@ Singleton {
         }
 
         function onAuthFailure(message: string) {
-            // A finger attempt that failed with nothing said found no finger
-            // enrolled: to the user, Enter on an empty field.
-            root.fail(root.said.length > 0 ? root.said.join("\n") : root.fingerTried ? root.noPassword : "Incorrect password");
+            if (root.scanning) {
+                // No finger enrolled says nothing: to the user, Enter on an
+                // empty field.
+                root.scanFailed(root.said.length > 0 ? root.said.join("\n") : root.noPassword);
+                return;
+            }
+            root.fail(root.said.length > 0 ? root.said.join("\n") : "Incorrect password");
         }
 
         function onError(error: string) {
+            if (root.scanning) {
+                root.scanFailed(error);
+                return;
+            }
             root.fail(error);
+        }
+
+        function onStateChanged() {
+            root.sendQueued();
         }
 
         function onReadyToLaunch() {

@@ -183,7 +183,7 @@ PanelWindow {
                 Text {
                     anchors.fill: parent
                     visible: passwordInput.text === ""
-                    text: GreeterService.busy ? "Checking…" : GreeterService.promptText
+                    text: GreeterService.busy ? "Checking…" : GreeterService.scanning ? GreeterService.scanPrompt : GreeterService.promptText
                     textFormat: Text.PlainText
                     color: Colors.lock.muted
                     font.family: Style.text.font

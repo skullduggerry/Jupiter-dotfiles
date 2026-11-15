@@ -477,11 +477,15 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
   `pam/fingerprint.conf` beside the password, never in the password's stack
   (each attempt would wait on the reader). The login screen has one PAM
   conversation (greetd's), which it cannot cancel while pam_fprintd scans:
-  where `greeter-env.py` found a reader, Enter on an empty field answers the
-  password's question with nothing, and `etc/pam.d/greetd` sends that empty
-  answer alone to pam_fprintd (`etc/greetd/finger-asked`, run as root,
-  installed from root's copy); a typed password never reaches the reader.
-  With no reader, or no finger enrolled, it says "No password entered!".
+  where `greeter-env.py` found a reader, the greeter answers the password's
+  question with nothing as it opens, and again for Enter on an empty field,
+  and `etc/pam.d/greetd` sends that empty answer alone to pam_fprintd
+  (`etc/greetd/finger-asked`, run as root, installed from root's copy); a
+  typed password never reaches the reader. While it scans (5 s at most) the
+  field takes a password, and Enter on one sends it once the scan is over
+  (`queued`). The scan the greeter began says nothing when it ends without a
+  finger; Enter on an empty field with no finger enrolled says "No password
+  entered!".
   The login keyring opens without a password because Jupiter-installer's
   phase 4 keeps it unencrypted on an encrypted disk; on an unencrypted one
   a finger logs in with the keyring locked. The login screen's look

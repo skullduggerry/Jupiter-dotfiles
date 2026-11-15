@@ -14,7 +14,8 @@ Prints one JSON object, read by GreeterService.qml through Quickshell.Io.Process
 The users are the login-capable accounts in world-readable /etc/passwd, the
 sessions the desktop entries in the session directories, each with its Exec
 split into the argv greetd's start_session takes, and whether fprintd has a
-reader, which lets Enter on an empty field ask for a finger. Logging in
+reader, which the greeter asks for a finger from as it opens and for Enter
+on an empty field. Logging in
 itself goes through Quickshell.Services.Greetd.
 """
 
