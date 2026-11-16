@@ -1,116 +1,63 @@
 # Theming
 
-How colour gets from a wallust theme to the shell and every app. The shell
-side is covered in `.github/PROJECT_STRUCTURE.md`.
+wallust theme → shell and apps. Shell side: `.github/PROJECT_STRUCTURE.md`.
 
-## The chain
+## Chain
 
 ```
-Settings → Appearance → Themes, or by hand:
-.config/wallust/apply.sh [--shell-only] THEME | --from IMAGE
-   wallust theme THEME  (built-in)  |  wallust cs colorschemes/THEME.json
-   ├─ quickshell.json → ~/.cache/wallust/quickshell.json          the shell's palette
-   ├─ kitty.conf      → ~/.config/kitty/colors.conf               (gitignored)
-   ├─ nvim.lua        → ~/.config/nvim/lua/colors.lua             (gitignored)
-   ├─ kdeglobals      → ~/.cache/wallust/kdeglobals, merged into ~/.config/kdeglobals
+.config/wallust/apply.sh [--shell-only] THEME | --from IMAGE   (also Settings → Appearance → Themes)
+   wallust theme THEME | wallust cs colorschemes/THEME.json
+   ├─ quickshell.json → ~/.cache/wallust/quickshell.json
+   ├─ kitty.conf      → ~/.config/kitty/colors.conf          (gitignored)
+   ├─ nvim.lua        → ~/.config/nvim/lua/colors.lua        (gitignored)
+   ├─ kdeglobals      → ~/.cache/wallust/kdeglobals → merged into ~/.config/kdeglobals
    │                  → ~/.local/share/color-schemes/Wallust.colors
-   ├─ qt6ct.conf      → ~/.config/qt6ct/qt6ct.conf                style, icons, font
-   ├─ Wallust.kvconfig, Wallust.svg → ~/.config/Kvantum/Wallust/  (gitignored)
+   ├─ qt6ct.conf      → ~/.config/qt6ct/qt6ct.conf
+   ├─ Wallust.kvconfig, Wallust.svg → ~/.config/Kvantum/Wallust/ (gitignored)
    ├─ gtk-3.0.css, gtk-4.0.css → ~/.local/share/themes/Wallust/
    ├─ gtk.css         → ~/.config/gtk-4.0/gtk.css
-   └─ color-scheme    → gsettings color-scheme (prefer-dark/light)
-   then gtk-theme.sh renames the GTK theme, and $XDG_STATE_HOME/wallust/theme
-   records "THEME all|shell-only"
+   └─ color-scheme    → gsettings color-scheme
+   then gtk-theme.sh; $XDG_STATE_HOME/wallust/theme records "THEME all|shell-only"
 ```
 
-- `apply.sh` with no argument re-applies the recorded theme (or the default,
-  Oxocarbon-Dark). `modules/start.lua` runs it at login.
-- `--shell-only` (APPLY TO: Shell) renders through `shell.toml`, which lists
-  only the quickshell template, and passes `-s` so the open terminals keep
-  their colours.
-- `--from IMAGE` saves `colorschemes/<image>.json` into the repo, where it
-  becomes a theme like any other.
-- The Settings accent and font reach the templates through
-  `templates/appearance.jinja`. `apply.sh` renders from a temporary config dir
-  (`-d`) in which `appearance.py` replaces that file with values from the
-  shell's `appearance.json` and `tint.conf`. `APPEARANCE_ACCENT` and
-  `APPEARANCE_FONT` in the environment win over the file, because the file is
-  written with a debounce.
-- `templates/palette.jinja` holds the colour arithmetic every template
-  imports, the same formulas as `style/Colors.qml`: `mix`, `shade(t)` (t of
-  the way from the background to the text), `accent`, `selection`, `scheme()`.
-  Every surface is a `shade()`, so light themes mirror dark ones.
-- wallust may not be on the compositor's PATH (a cargo install), so
-  `apply.sh` prepends `~/.cargo/bin`.
+- No argument: re-apply recorded theme (default Oxocarbon-Dark). Run at login by `modules/start.lua`.
+- `--shell-only`: uses `shell.toml` (quickshell template only) and `-s`.
+- `--from IMAGE`: writes `colorschemes/<image>.json` into the repo.
+- Accent/font: `apply.sh` renders from a temp config dir (`-d`) where `appearance.py` replaces `templates/appearance.jinja` from `appearance.json` + `tint.conf`. Env `APPEARANCE_ACCENT`/`APPEARANCE_FONT` override (file is debounced).
+- `templates/palette.jinja` = `style/Colors.qml` formulas (`mix`, `shade(t)`, `accent`, `selection`, `scheme()`). All surfaces are `shade()` so light mirrors dark.
+- `apply.sh` prepends `~/.cargo/bin` to PATH.
 
-**Test with `-s`.** Without it, wallust writes escape sequences into every
-open terminal. A template that fails to render is only a warning, and wallust
-still exits 0, so Jupiter-testing's `dotfiles/test_wallust_templates.py` fails on any warning. To
-try a template in isolation:
-`wallust -d /tmp/wtest -q -s cs <scheme> -f pywal`.
-`wallust theme X --preview` *applies* the theme when combined with `-q`.
+**Pitfalls**
+- Always test with `-s` (else escape codes hit every terminal). Isolated: `wallust -d /tmp/wtest -q -s cs <scheme> -f pywal`. `theme X --preview -q` *applies*.
+- Template errors are warnings, exit 0; `Jupiter-testing/dotfiles/test_wallust_templates.py` fails on any warning.
+- Filters (wallust 3.5.1, minijinja): `strip`, `rgb`, `red`/`green`/`blue` (strings, `| int` first), `lighten`, `darken`, `saturate`, `complementary`, `blend(c)` (50/50). Missing: `rgba`, `alpha`, `desaturate`, `invert`, `mix`. `hexa` is broken. Macros, `{% from %}`, `set`, `"%02x" | format(n)` work.
 
-**Template filters (wallust 3.5.1, minijinja).** Available: `strip`, `rgb`,
-`red`/`green`/`blue` (strings: add `| int` before doing arithmetic),
-`lighten`, `darken`, `saturate`, `complementary`, `blend(c)` (50/50 only).
-Not available: `rgba`, `alpha`, `desaturate`, `invert`, `mix`. `hexa` prints
-garbage. Macros, `{% from "palette.jinja" import … %}`, `set` and
-`"%02x" | format(n)` all work.
+## Live update
 
-## What changes live
-
-| Target | When a theme is applied |
+| Target | Updates |
 | --- | --- |
-| The shell, the blur | at once |
-| Open terminals, nvim (`init.lua` watches `colors.lua`) | at once (not with `--shell-only`) |
-| GTK 3 apps, the portal's file dialogs | at once, because the theme is renamed |
-| Dark/light for Electron, browsers, GTK 4 | at once, through the portal's `color-scheme` |
-| Qt/KDE apps, GTK 4 colours, new kittys | at their next start (open Qt apps get new icons and fonts, but not colours or glass) |
-| The lock screen | at once, unless the Lock Screen tab's Theme is Dark |
-| The login screen | at Apply on the Lock Screen tab, which copies the palette, `appearance.json` and the theme's name beside it (root's copy of `install-greeter.sh`, reading them as you) |
+| Shell, blur, terminals, nvim | at once (terminals/nvim not with `--shell-only`) |
+| GTK 3, portal dialogs | at once (theme rename) |
+| Dark/light (Electron, browsers, GTK 4) | at once (portal `color-scheme`) |
+| Qt/KDE colours, GTK 4 colours, new kittys | next app start |
+| Lock screen | at once, unless its Theme is Dark |
+| Login screen | Apply on Lock Screen tab (root `install-greeter.sh` copies palette, `appearance.json`, theme name) |
 
-## Qt and KDE apps
+## Qt/KDE
 
-| Piece | Owns | Where |
-| --- | --- | --- |
-| `QT_QPA_PLATFORMTHEME=qt6ct` | style, icon theme, font | `.config/uwsm/env` (uwsm exports it to systemd too), `qt6ct.conf` |
-| `Wallust.colors` | KDE apps' colours | `templates/kdeglobals` |
-| kdeglobals | which scheme, style and icons KDE apps load | merged by `kdeglobals.py` |
-| Kvantum `Wallust` | widget drawing, translucency, other Qt apps' colours | `Wallust.kvconfig` + `Wallust.svg` |
+- `QT_QPA_PLATFORMTHEME=qt6ct` (`.config/uwsm/env`): style, icons, font.
+- `Wallust.colors` (`templates/kdeglobals`): KDE colours. Outside Plasma KDE apps read only `[UiSettings] ColorScheme=Wallust`; `widgetStyle` goes in `[KDE]`.
+- `kdeglobals.py` merges key by key, never overwrites (apps write to it).
+- Icons: `breeze` light / `breeze-dark` dark.
+- Kvantum `Wallust`: drawing, translucency. `Wallust.svg` generated by `scripts/kvantum-template.py` from KvMojave: change roles in the script, not colours in the template. Window/dialog backgrounds `class="tint"` with `{{ window_opacity() }}`, rewritten by `app-tint.sh`. Not `reduce_window_opacity` (fades text).
+- Running Qt apps can't take new colours; in-place style rebuild breaks translucency. KeePassXC (Qt 5) and self-themed apps are excluded.
 
-- Outside Plasma, KDE apps ignore the colours in kdeglobals. They load the
-  scheme named in `[UiSettings] ColorScheme=Wallust`. `widgetStyle` belongs
-  in `[KDE]`, not `[General]`.
-- kdeglobals is merged key by key, never overwritten, because KDE apps write
-  their own settings into it.
-- The icon theme follows `scheme()`: `breeze` on light, `breeze-dark` on dark.
-- `Wallust.svg` is generated by `scripts/kvantum-template.py` from KvMojave.
-  Change a role in the script, never a colour in the template. The window and
-  dialog backgrounds are marked `class="tint"` and carry
-  `{{ window_opacity() }}`, which `app-tint.sh` rewrites when the shell's tint
-  changes. Don't use `reduce_window_opacity`, because it fades text as well.
-- A running Qt app can't pick up new colours or glass. Rebuilding the style
-  in place breaks Kvantum's translucency.
-- KeePassXC is Qt 5 and gets none of this. Apps with their own theme are not
-  on this path.
+## GTK
 
-## GTK apps
-
-- `adw-gtk3` draws GTK 3 with libadwaita's named colours, so the
-  `@define-color`s in `templates/gtk.css` recolour GTK 3 and libadwaita
-  alike. `gtk-3.0.css` imports `adw-gtk3` or `adw-gtk3-dark` according to
-  `scheme()`.
-- Glass: each window's `.background` uses the tint, on the lines marked
-  `/* glass */` (which `app-tint.sh` rewrites). Everything inside is
-  transparent *at the text's colour*, because GTK 3's `mix()` does not
-  premultiply. Menus, popovers and dialogs stay solid.
-- Running GTK 3 apps reload only when the theme gets a new name (dconf ignores
-  a write that changes nothing), so `gtk-theme.sh` alternates between
-  `Wallust` and `Wallust-2`, a symlink to the same theme.
+- `adw-gtk3` uses libadwaita named colours, so `templates/gtk.css` `@define-color`s cover GTK 3 and libadwaita. `gtk-3.0.css` imports `adw-gtk3[-dark]` per `scheme()`.
+- Glass: `.background` tint on `/* glass */` lines (rewritten by `app-tint.sh`). Inner transparency uses the text colour (GTK 3 `mix()` isn't premultiplied). Menus/popovers/dialogs solid.
+- `gtk-theme.sh` alternates `Wallust`/`Wallust-2` (symlink) so dconf sees a change.
 
 ## Packages
 
-`dolphin`, `qt6-wayland`, `qt6ct`, `kvantum`, `breeze-icons`,
-`adw-gtk-theme`, `zenity`, and `wallust` (AUR), all listed in
-Jupiter-installer. Don't install anything from Plasma: `plasma-integration`
-pulls in the whole workspace.
+`dolphin qt6-wayland qt6ct kvantum breeze-icons adw-gtk-theme zenity wallust`(AUR), in Jupiter-installer. Nothing from Plasma (`plasma-integration` pulls the workspace).

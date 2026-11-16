@@ -1,66 +1,28 @@
 # Agent instructions
 
-A desktop shell for Hyprland on Arch Linux, written in QML on Quickshell, plus
-the Hyprland, wallust and app configs around it. Read
-`.github/PROJECT_STRUCTURE.md` (the map, the conventions and the known
-pitfalls) before changing the shell, and `.github/THEMING.md` before changing
-colours outside it.
-
-`.config/*` is symlinked into `~/.config/`, so this repo is the live session.
-Quickshell and Hyprland reload as soon as a file they loaded changes.
+Hyprland desktop shell (QML, Quickshell 0.3.2) on Arch, plus Hyprland/wallust/app configs. Read `.github/PROJECT_STRUCTURE.md` before touching the shell, `.github/THEMING.md` before touching colours outside it. `.config/*` is symlinked into `~/.config/`: edits are live, Quickshell and Hyprland hot-reload.
 
 ## Sources of truth, in order
 
-1. This repo's code and conventions.
-2. The installed Quickshell's type information,
-   `/usr/lib/qt6/qml/Quickshell/**/*.qmltypes` (`Quickshell.Widgets` is plain
-   QML in the same folder). The online docs (quickshell.org/docs) may describe
-   a newer version than the installed 0.3.2.
-3. The Qt 6 QML docs, the Hyprland wiki (this config is Lua:
-   `/usr/share/hypr/stubs/hl.meta.lua` lists the API), and the ArchWiki.
+1. This repo.
+2. `/usr/lib/qt6/qml/Quickshell/**/*.qmltypes` (online docs may be newer than 0.3.2).
+3. Qt 6 QML docs, Hyprland wiki (config is Lua; API in `/usr/share/hypr/stubs/hl.meta.lua`), ArchWiki.
 
-Don't copy APIs from other people's dotfiles, forum posts or older Quickshell
-examples. Before you use a type, property, signal or dispatcher, find it in 1
-or 2.
+Verify every type/property/signal/dispatcher in 1 or 2. Never copy from other dotfiles, forums or old Quickshell examples.
 
-## Writing code
+## Code
 
-- Reuse the closest existing pattern. The bar and `panels/` are the reference
-  implementation. Keep each change scoped to its task: no unrelated refactors,
-  renames, reformatting or new dependencies. Explain any architectural change
-  before you make it.
-- Colours come from `style/Colors.qml`, derived from its palette. Sizes,
-  spacing, radii, fonts and durations come from `style/Style.qml`. Reuse an
-  existing token before adding a new one. Add new tokens to those files, named
-  by role and never by widget.
-- Naming: PascalCase files, camelCase ids and properties, typed properties
-  rather than `var`. Import the project's folders by relative path
-  (`import "../services"`), which qmllint resolves without a running shell,
-  with no unused imports.
-- Prefer declarative bindings to imperative syncing, and never break a
-  binding by assigning to its property. Keep state with whatever owns it, and
-  derive values rather than duplicating them.
-- Prefer Quickshell's reactive services (Hyprland, PipeWire, Networking,
-  UPower, …) over processes, polling or repeated `hyprctl` calls. Run
-  expensive work only while its result is on screen.
-- Don't add fallbacks that hide a missing API. Handle state that is genuinely
-  optional explicitly.
-- Comments: a few lines explaining *why*, and only where the code doesn't make
-  it obvious. Longer explanations go in `.github/`. Don't write human-facing
-  docs (README) unless you're asked to.
+- Follow the closest existing pattern (bar and `panels/` are the reference). Stay in scope: no unrelated refactors, renames, reformatting or dependencies. Explain architectural changes first.
+- Colours from `style/Colors.qml`; sizes, spacing, radii, fonts, durations from `style/Style.qml`. Reuse tokens; new ones named by role, not widget.
+- PascalCase files, camelCase ids/properties, typed properties (not `var`), relative imports (`import "../services"`), no unused imports.
+- Declarative bindings; never assign over a binding. State lives with its owner; derive, don't duplicate.
+- Quickshell services over processes/polling/`hyprctl`. Expensive work only while visible.
+- No fallbacks hiding missing APIs; handle genuinely optional state explicitly.
+- Comments: brief, *why* only. Long explanations go in `.github/`. No human docs unless asked.
 
 ## Done means
 
-- `./check.sh` passes (it hands over to Jupiter-testing's; `--fix` formats
-  first).
-  Fix every failure you introduced, and name any that were already there.
-- New behaviour has a test, in Jupiter-testing (next to this repo, with
-  conventions of its own in its `.github/`): a helper script a
-  `dotfiles/test_<name>.py`, QML logic a `dotfiles/qml/<Name>Test.qml`, and
-  anything about logging in, locking, the Nextcloud account or text from
-  outside under `dotfiles/security/` ("Where things go").
-- You have read the whole diff and checked the running shell's log after the
-  reload (see "Validating" in PROJECT_STRUCTURE.md). Some failures only show
-  up in the log.
-- Your report covers what changed, why, how you verified it, and what you
-  couldn't verify.
+- `./check.sh` passes (`--fix` formats). Fix what you broke; name pre-existing failures.
+- New behaviour has a test in `../Jupiter-testing` (see its `.github/`): scripts → `dotfiles/test_<name>.py`, QML → `dotfiles/qml/<Name>Test.qml`, login/lock/Nextcloud/external text → `dotfiles/security/`.
+- Whole diff read; shell log checked after reload ("Validating" in PROJECT_STRUCTURE.md).
+- Report: what changed, why, how verified, what wasn't.
