@@ -6,7 +6,7 @@ Part of Jupiter: [Jupiter-installer](https://github.com/skullduggerry/Jupiter-in
 
 ## Installing
 
-On an Arch install of your own, as your user:
+On an Arch or NixOS install of your own, as your user:
 
 ```bash
 git clone https://github.com/skullduggerry/Jupiter-installer.git ~/Jupiter-installer
@@ -15,7 +15,7 @@ git clone https://github.com/skullduggerry/Jupiter-installer.git ~/Jupiter-insta
 
 Then reboot. Phase 4 clones this repo into your home and links each folder of `.config/` into `~/.config/`, moving whatever was in the way to `~/.dotfiles-backup/`. Running it again only does what is missing. To keep your own changes, fork this repo and point the installer at your fork ([Customising](https://github.com/skullduggerry/Jupiter-dotfiles/wiki/Customising)).
 
-On NixOS, Jupiter-nixos (for now a branch of Jupiter-installer, see its `docs/nixos.md`) declares what Arch's phase 4 installs as root, and its phase 3 links these dotfiles the same way; the system's PAM stacks are left alone by `scripts/install-greeter.sh` where they are links, as NixOS's are.
+On NixOS the same installer and the same commands set them up: it tells which system it is on, and there its flake declares what phase 4 installs as root on Arch (its `docs/nixos.md`); the system's PAM stacks are left alone by `scripts/install-greeter.sh` where they are links, as NixOS's are.
 
 ## Contents
 
@@ -40,7 +40,7 @@ Wallpapers are not part of the repo: Settings → Appearance → Wallpapers show
 
 Each Jupiter repo has this `check.sh`, with the same arguments. The linters and tests live in Jupiter-testing, which it clones next to this repo if it is missing.
 
-GitHub Actions checks every push and pull request against both setups (`.github/workflows/check.yml`): this repo's linters and every Jupiter repo's suites on Arch, and on NixOS the flake built with these dotfiles, their Hyprland config checked by NixOS's Hyprland and their QML run in its Quickshell. The pre-push hook runs the Arch half before a push.
+GitHub Actions checks every push and pull request against both systems the installer supports (`.github/workflows/check.yml`): this repo's linters and every Jupiter repo's suites on Arch, and on NixOS the installer's flake built with these dotfiles, their Hyprland config checked by NixOS's Hyprland and their QML run in its Quickshell. The pre-push hook runs the Arch half before a push.
 
 ## Documentation
 

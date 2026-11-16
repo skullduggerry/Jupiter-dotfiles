@@ -218,7 +218,8 @@ chmod -R a+rX "$dest"
 # you out, so: only on a real install, never when staging; keep a backup; and
 # every rule added is `optional` with a `-` prefix so it cannot fail a login.
 # A stack that is a link belongs to the system's own configuration (NixOS links
-# each from its store, and Jupiter-nixos declares these two, adapted to it):
+# each from its store, and Jupiter-installer's nixos/login.nix declares these
+# two, adapted to it):
 # left as it is, as this one's modules and includes are Arch's.
 if [[ $dest == /etc/greetd ]]; then
     for stack in "$self/etc/pam.d/greetd" "$self/etc/pam.d/greetd-greeter"; do

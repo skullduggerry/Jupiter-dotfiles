@@ -42,7 +42,7 @@ Singleton {
     property int fingerprintMisses: 0
     // The reader's stack is the system's own where it declares one: NixOS's
     // PAM finds pam_fprintd by its store path alone, which pam/fingerprint.conf
-    // cannot name, so Jupiter-nixos puts it in /etc/pam.d/jupiter-fingerprint.
+    // cannot name, so Jupiter-installer's NixOS side puts it in /etc/pam.d/jupiter-fingerprint.
     // Only root writes there; elsewhere (Arch) it is pam/fingerprint.conf.
     readonly property bool systemFingerprint: systemFingerprintFile.text() !== ""
 
