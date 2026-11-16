@@ -7,9 +7,9 @@ import QtQuick
 // variants. Light along the upper edge, where the lens catches the light from
 // above, fading down the surface. And where the glass is only part of its
 // window (a dropdown in its full-screen layer), the rim Hyprland's lens would
-// give it: Hyprland draws the lens around a whole window or layer only
-// (.github/PROJECT_STRUCTURE.md, "Wallpaper"), so this draws the glass
-// thickening toward its edge, in bands thin enough to read as one slope: the
+// give it: Hyprland draws the lens around a whole window or layer only, so
+// this draws the glass thickening toward its edge, in bands thin enough to
+// read as one slope: the
 // rim runs under the content, where a step or a line would cross the text.
 // It bends nothing behind it. The glass's first child, so its content draws
 // over it.

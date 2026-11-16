@@ -1,6 +1,6 @@
 {#- Rendered to ~/.config/Kvantum/Wallust/Wallust.svg: KvMojave's SVG with its
     colours put on the palette, written by scripts/kvantum-template.py. Edit a
-    colour by its role; see .github/THEMING.md. -#}
+    colour by its role there, not here. -#}
 {%- from "palette.jinja" import shade, accent, selection -%}
 {%- from "appearance.jinja" import window_opacity -%}
 <svg width="450" version="1.0" xmlns="http://www.w3.org/2000/svg" height="800" xmlns:xlink="http://www.w3.org/1999/xlink">
