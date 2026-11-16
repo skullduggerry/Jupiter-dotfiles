@@ -15,29 +15,29 @@ vim.o.winborder = "rounded"
 vim.g.mapleader = " "
 
 vim.keymap.set("n", "<leader>o", ":update<CR> :source<CR>") -- source current file
-vim.keymap.set("n", "<leader>w", ":write<CR>")              -- write current file
-vim.keymap.set("n", "<leader>q", ":q<CR>")                  -- quit
-vim.keymap.set("t", "<Esc>", "<C-\\><C-n>")                 -- fix esc in terminal
-vim.keymap.set("v", "<leader>y", '"+y')                     -- yank to system clipboard
-vim.keymap.set("v", "<leader>d", '"+d')                     -- cut to system clipboard
-vim.keymap.set("n", "<leader>lf", vim.lsp.buf.format)       -- format code
+vim.keymap.set("n", "<leader>w", ":write<CR>") -- write current file
+vim.keymap.set("n", "<leader>q", ":q<CR>") -- quit
+vim.keymap.set("t", "<Esc>", "<C-\\><C-n>") -- fix esc in terminal
+vim.keymap.set("v", "<leader>y", '"+y') -- yank to system clipboard
+vim.keymap.set("v", "<leader>d", '"+d') -- cut to system clipboard
+vim.keymap.set("n", "<leader>lf", vim.lsp.buf.format) -- format code
 vim.keymap.set("n", "<leader>f", ":lua MiniFiles.open() <CR>")
 
 -- plugins
 
 vim.pack.add({
-	{ src = "https://github.com/nvim-mini/mini.nvim" },         -- autopairs (maybe replace with snipets),
-	{ src = "https://github.com/mason-org/mason.nvim" },        -- manage lsp's
-	{ src = "https://github.com/neovim/nvim-lspconfig" },       -- configurations for lsp's
+	{ src = "https://github.com/nvim-mini/mini.nvim" }, -- autopairs (maybe replace with snipets),
+	{ src = "https://github.com/mason-org/mason.nvim" }, -- manage lsp's
+	{ src = "https://github.com/neovim/nvim-lspconfig" }, -- configurations for lsp's
 	{ src = "https://github.com/mason-org/mason-lspconfig.nvim" }, -- automatically enable lsp's
-	{ src = "https://github.com/hrsh7th/nvim-cmp" },            -- code completion, TODO: replace with native
-	{ src = "https://github.com/hrsh7th/cmp-nvim-lsp" },        -- code completion source
-	{ src = "https://github.com/L3MON4D3/LuaSnip" },            -- snippet engine TODO: propper setup/ replace with native
+	{ src = "https://github.com/hrsh7th/nvim-cmp" }, -- code completion, TODO: replace with native
+	{ src = "https://github.com/hrsh7th/cmp-nvim-lsp" }, -- code completion source
+	{ src = "https://github.com/L3MON4D3/LuaSnip" }, -- snippet engine TODO: propper setup/ replace with native
 })
 
 -- plugin config
 
-require("mason").setup()           --disabled bc nix
+require("mason").setup() --disabled bc nix
 require("mason-lspconfig").setup() --disabled bc nix
 require("mini.pairs").setup()
 require("mini.files").setup()
