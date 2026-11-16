@@ -25,6 +25,7 @@ Verify every type/property/signal/dispatcher in 1 or 2. Never copy from other do
 - Popups: open/close with `open`, never `visible`; layer namespace ends in `-popup` or Hyprland won't blur it.
 - Panels report `implicitHeight` from intrinsic sizes, never their own `height` (binding loop).
 - No fallbacks hiding missing APIs; handle genuinely optional state explicitly.
+- Arch and NixOS (Jupiter-nixos) both run these. Find a system file the system's way (`XDG_DATA_DIRS`, PATH), not by an Arch path; a path that must stay fixed is linked by Jupiter-nixos' `nixos/login.nix` (its `docs/nixos.md` lists them): add it there. PAM stacks name modules as Arch finds them, and NixOS gets them adapted there too.
 - Comments: brief, *why* only. Long explanations go in `.github/`. No human docs unless asked.
 
 ## Pitfalls

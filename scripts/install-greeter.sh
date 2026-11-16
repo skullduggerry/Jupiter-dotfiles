@@ -221,12 +221,13 @@ chmod -R a+rX "$dest"
 # each from its store, and Jupiter-nixos declares these two, adapted to it):
 # left as it is, as this one's modules and includes are Arch's.
 if [[ $dest == /etc/greetd ]]; then
-    for stack in greetd greetd-greeter; do
-        if [[ -L /etc/pam.d/$stack ]]; then
-            echo "pam         /etc/pam.d/$stack left alone: the system's configuration declares it"
+    for stack in "$self/etc/pam.d/greetd" "$self/etc/pam.d/greetd-greeter"; do
+        name=${stack##*/}
+        if [[ -L /etc/pam.d/$name ]]; then
+            echo "pam         /etc/pam.d/$name left alone: the system's configuration declares it"
         else
-            install -b -m 0644 "$self/etc/pam.d/$stack" "/etc/pam.d/$stack"
-            echo "pam         /etc/pam.d/$stack (the previous one kept as $stack~)"
+            install -b -m 0644 "$stack" "/etc/pam.d/$name"
+            echo "pam         /etc/pam.d/$name (the previous one kept as $name~)"
         fi
     done
 else

@@ -40,6 +40,11 @@ Singleton {
     readonly property int fingerprintTries: 3
     // The fingers that did not match since the lock went up.
     property int fingerprintMisses: 0
+    // The reader's stack is the system's own where it declares one: NixOS's
+    // PAM finds pam_fprintd by its store path alone, which pam/fingerprint.conf
+    // cannot name, so Jupiter-nixos puts it in /etc/pam.d/jupiter-fingerprint.
+    // Only root writes there; elsewhere (Arch) it is pam/fingerprint.conf.
+    readonly property bool systemFingerprint: systemFingerprintFile.text() !== ""
 
     function lock() {
         if (root.locked)
@@ -114,6 +119,14 @@ Singleton {
         reloadableId: "lockState"
     }
 
+    FileView {
+        id: systemFingerprintFile
+
+        path: "/etc/pam.d/jupiter-fingerprint"
+        blockLoading: true
+        printErrors: false
+    }
+
     // Per Hyprland instance, so a new session never starts out locked.
     FileView {
         id: lockFile
@@ -173,8 +186,8 @@ Singleton {
     PamContext {
         id: fingerprintPam
 
-        config: "fingerprint.conf"
-        configDirectory: Quickshell.shellPath("pam")
+        config: root.systemFingerprint ? "jupiter-fingerprint" : "fingerprint.conf"
+        configDirectory: root.systemFingerprint ? "/etc/pam.d" : Quickshell.shellPath("pam")
         onPamMessage: {
             // pam_fprintd only tells (place a finger, no match); a question
             // would come from a stack that is not this one.
