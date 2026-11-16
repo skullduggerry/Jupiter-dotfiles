@@ -40,7 +40,7 @@ Wallpapers are not part of the repo: Settings → Appearance → Wallpapers show
 
 Each Jupiter repo has this `check.sh`, with the same arguments. The linters and tests live in Jupiter-testing, which it clones next to this repo if it is missing.
 
-GitHub Actions runs the same `./check.sh` on every push and pull request (`.github/workflows/check.yml`).
+GitHub Actions checks every push and pull request against both setups (`.github/workflows/check.yml`): this repo's linters and every Jupiter repo's suites on Arch, and on NixOS the flake built with these dotfiles, their Hyprland config checked by NixOS's Hyprland and their QML run in its Quickshell. The pre-push hook runs the Arch half before a push.
 
 ## Documentation
 
