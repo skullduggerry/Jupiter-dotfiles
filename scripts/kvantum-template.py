@@ -6,8 +6,7 @@ its colours put on the wallust palette.
 
 SOURCE defaults to the KvMojave.svg the kvantum package installs, which the
 Wallust Kvantum theme has always been drawn from. Rerun it after a kvantum
-update changes that file; see "The Kvantum theme follows the palette" in
-.github/THEMING.md.
+update changes that file.
 
 Neutral greys become mix(background, foreground, t), with t measured against
 KvMojave's own window (#302f2e) and text (#ffffff), so the window is exactly
@@ -257,7 +256,7 @@ svg = svg.replace("</svg>", aliases() + "</svg>")
 
 HEADER = """{#- Rendered to ~/.config/Kvantum/Wallust/Wallust.svg: KvMojave's SVG with its
     colours put on the palette, written by scripts/kvantum-template.py. Edit a
-    colour by its role; see .github/THEMING.md. -#}
+    colour by its role there, not here. -#}
 {%- from "palette.jinja" import shade, accent, selection -%}
 {%- from "appearance.jinja" import window_opacity -%}
 """
