@@ -15,6 +15,8 @@ git clone https://github.com/skullduggerry/Jupiter-installer.git ~/Jupiter-insta
 
 Then reboot. Phase 4 clones this repo into your home and links each folder of `.config/` into `~/.config/`, moving whatever was in the way to `~/.dotfiles-backup/`. Running it again only does what is missing. To keep your own changes, fork this repo and point the installer at your fork ([Customising](https://github.com/skullduggerry/Jupiter-dotfiles/wiki/Customising)).
 
+On NixOS, Jupiter-nixos (for now a branch of Jupiter-installer, see its `docs/nixos.md`) declares what Arch's phase 4 installs as root, and its phase 3 links these dotfiles the same way; the system's PAM stacks are left alone by `scripts/install-greeter.sh` where they are links, as NixOS's are.
+
 ## Contents
 
 | Path | What |

@@ -217,10 +217,18 @@ chmod -R a+rX "$dest"
 # greetd's stock stack without them. They are the files here that could lock
 # you out, so: only on a real install, never when staging; keep a backup; and
 # every rule added is `optional` with a `-` prefix so it cannot fail a login.
+# A stack that is a link belongs to the system's own configuration (NixOS links
+# each from its store, and Jupiter-nixos declares these two, adapted to it):
+# left as it is, as this one's modules and includes are Arch's.
 if [[ $dest == /etc/greetd ]]; then
-    install -b -m 0644 "$self/etc/pam.d/greetd" /etc/pam.d/greetd
-    install -b -m 0644 "$self/etc/pam.d/greetd-greeter" /etc/pam.d/greetd-greeter
-    echo "pam         /etc/pam.d/greetd, greetd-greeter (previous ones kept as ~)"
+    for stack in greetd greetd-greeter; do
+        if [[ -L /etc/pam.d/$stack ]]; then
+            echo "pam         /etc/pam.d/$stack left alone: the system's configuration declares it"
+        else
+            install -b -m 0644 "$self/etc/pam.d/$stack" "/etc/pam.d/$stack"
+            echo "pam         /etc/pam.d/$stack (the previous one kept as $stack~)"
+        fi
+    done
 else
     echo "pam         skipped (staging install, /etc/pam.d left alone)"
 fi
