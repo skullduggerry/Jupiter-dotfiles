@@ -475,7 +475,11 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
   question after the password (lock and login screen alike) is answered from
   the field, and a failure shows what PAM said. A finger unlocks too, through
   `pam/fingerprint.conf` beside the password, never in the password's stack
-  (each attempt would wait on the reader). The login screen has one PAM
+  (each attempt would wait on the reader). Each attempt there is one try, so
+  every finger that did not match ends one and `LockService` counts it: after
+  three the lock leaves the password until the next lock (with three tries
+  in pam_fprintd, two misses and a timeout were retried without end). The
+  login screen has one PAM
   conversation (greetd's), which it cannot cancel while pam_fprintd scans:
   where `greeter-env.py` found a reader, the greeter answers the password's
   question with nothing as it opens, and again for Enter on an empty field,
@@ -485,7 +489,12 @@ runs after colorization and undoes it. Menus are QML (`TrayMenu` +
   field takes a password, and Enter on one sends it once the scan is over
   (`queued`). The scan the greeter began says nothing when it ends without a
   finger; Enter on an empty field with no finger enrolled says "No password
-  entered!".
+  entered!". A scan is three pam_fprintd lines of one try each, so that
+  pam_faillock counts every miss, in a count of the fingers' own
+  (`/var/lib/faillock-finger`, kept across a reboot): after five in a
+  quarter of an hour the reader is not asked for ten minutes, and the stack
+  says to type the password, which that count never touches and which clears
+  it, as a finger that matches does. Timeouts are not counted.
   The login keyring opens without a password because Jupiter-installer's
   phase 4 keeps it unencrypted on an encrypted disk; on an unencrypted one
   a finger logs in with the keyring locked. On the encrypted disk a typed

@@ -32,10 +32,14 @@ Singleton {
     // beside the password, because in the password's stack every attempt
     // would wait on the reader first. An attempt that never asked for a
     // finger found no reader or no enrolled print (fprintd-enroll) and is not
-    // repeated until the next lock; one that timed out is; too many failed
-    // matches leave the password.
+    // repeated until the next lock; one that timed out is; one a finger did
+    // not match (each attempt is one try there) is counted, and after
+    // fingerprintTries of them the lock leaves the password.
     readonly property bool fingerprint: fingerprintPam.active && root.fingerprintAsked
     property bool fingerprintAsked: false
+    readonly property int fingerprintTries: 3
+    // The fingers that did not match since the lock went up.
+    property int fingerprintMisses: 0
 
     function lock() {
         if (root.locked)
@@ -79,8 +83,16 @@ Singleton {
             fingerprintPam.abort();
     }
 
+    // After a finger that did not match: the reader again, the prompt as it
+    // is.
+    function listenAgain() {
+        if (root.locked && !fingerprintPam.active)
+            fingerprintPam.start();
+    }
+
     onLockedChanged: {
         lockFile.setText(root.locked ? "locked\n" : "");
+        root.fingerprintMisses = 0;
         root.listenForFinger();
     }
     // A shell that crashed while locked comes back unlocked (Quickshell's
@@ -181,7 +193,11 @@ Singleton {
                 root.errorText = "";
                 root.locked = false;
             } else if (result === PamResult.MaxTries) {
-                root.errorText = "Fingerprint not recognised: type the password";
+                root.fingerprintMisses += 1;
+                if (root.fingerprintMisses >= root.fingerprintTries)
+                    root.errorText = "Fingerprint not recognised: type the password";
+                else
+                    Qt.callLater(root.listenAgain);
             } else if (root.fingerprintAsked) {
                 fingerprintRetry.restart();
             }

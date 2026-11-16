@@ -11,7 +11,10 @@
 # Lock Screen tab runs it through pkexec, so that no file in a home decides
 # what runs as root. Everything else, which only the unprivileged greeter user
 # runs, comes from REPO, the owner's clone (by default that same tree), read
-# as the owner.
+# as the owner. That user is no boundary for a password, though: what it runs
+# is given every password typed at the login screen, as the lock screen, from
+# the same home, is given its owner's. Whoever installs the login screen is
+# trusted with the passwords of everyone who logs in at it.
 #
 # This exists because $HOME is 0700: the greeter user cannot read the shell's
 # config, its style/ folder or the wallpaper, so all three are copied out of the

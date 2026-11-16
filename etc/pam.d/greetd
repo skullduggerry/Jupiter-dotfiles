@@ -21,11 +21,27 @@
 # So the first question is the password's, as always, and only an empty answer
 # (the greeter sends one by itself as it opens, and for Enter on an empty field,
 # where greeter-env.py found a reader) goes to pam_fprintd: finger-asked succeeds for an empty answer
-# alone, and any other result skips the reader. The reader's success ends the
-# auth stack (done), and anything else from it fails the login (die): an empty
-# answer never reaches the password check, or pam_faillock would count each
-# finger as a wrong password. Fail-safe both ways: without finger-asked the
-# password path is as before, and without pam_fprintd an empty answer fails.
+# alone, and any other result skips the reader's lines. An empty answer never
+# reaches the password check, or pam_faillock would count each finger as a
+# wrong password. Fail-safe both ways: without finger-asked the password path
+# is as before, and without pam_fprintd an empty answer fails.
+#
+# A finger gets three tries, each a pam_fprintd line of its own with one try:
+# only so is every finger that did not match counted (PAM_MAXTRIES, which
+# pam_faillock's authfail notes), whatever follows it. One line with three
+# tries told a third miss only, and two misses then a timeout nothing, as
+# often as anyone liked. The count is the fingers' own
+# (dir=/var/lib/faillock-finger, kept across a reboot, which the login
+# screen is one power button away from): after five misses in a quarter of
+# an hour the reader is not asked for ten minutes (faillock.conf's
+# fail_interval and unlock_time), and the stack says so. The password's
+# count, and so the password, is untouched by it; a finger that matches
+# clears the fingers' count (authsucc), and so does the password, even while
+# the reader is not asked: the account line clears it then, which pam_faillock
+# does only after an auth line of its own ran, hence the optional authsucc
+# after the password's check. A reader that times
+# out, has no print for the user or is gone fails the login uncounted (die):
+# the greeter's own scan times out whenever nobody is there.
 # The reader waits 5 s for a finger: greetd answers nothing else meanwhile, so
 # a password entered then waits that long at most (the greeter sends it after).
 # pam_gnome_keyring gets no password from a finger; the login keyring is kept
@@ -42,13 +58,24 @@
 
 auth       required     pam_securetty.so
 auth       requisite    pam_nologin.so
-auth       [success=ok default=1]     pam_exec.so quiet expose_authtok /etc/greetd/finger-asked
-auth       [success=done default=die] pam_fprintd.so max-tries=3 timeout=5
+auth       [success=ok default=10]    pam_exec.so quiet expose_authtok /etc/greetd/finger-asked
+auth       [success=2 default=ignore] pam_faillock.so preauth silent dir=/var/lib/faillock-finger deny=5
+auth       [default=ignore]           pam_echo.so Fingerprint not recognised: type the password
+auth       requisite    pam_deny.so
+auth       [success=5 maxtries=ignore default=die] pam_fprintd.so max-tries=1 timeout=5
+auth       [ignore=ignore default=die] pam_faillock.so authfail dir=/var/lib/faillock-finger deny=5
+auth       [success=3 maxtries=ignore default=die] pam_fprintd.so max-tries=1 timeout=5
+auth       [ignore=ignore default=die] pam_faillock.so authfail dir=/var/lib/faillock-finger deny=5
+auth       [success=1 maxtries=bad default=die]    pam_fprintd.so max-tries=1 timeout=5
+auth       [default=die]              pam_faillock.so authfail dir=/var/lib/faillock-finger deny=5
+auth       [success=done default=die] pam_faillock.so authsucc dir=/var/lib/faillock-finger deny=5
 auth       include      system-local-login
+-auth      optional     pam_faillock.so authsucc dir=/var/lib/faillock-finger deny=5
 auth       [success=1 default=ignore] pam_exec.so quiet /etc/greetd/disk-encrypted
 -auth      optional     pam_gnome_keyring.so
 
 account    include      system-local-login
+-account   optional     pam_faillock.so dir=/var/lib/faillock-finger deny=5
 
 session    include      system-local-login
 -session   optional     pam_gnome_keyring.so    auto_start
