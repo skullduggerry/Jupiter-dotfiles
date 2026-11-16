@@ -1,5 +1,3 @@
-vim.api.nvim_set_hl(0, "Normal", { bg = "None", ctermbg = "None" })
-
 vim.o.number = true
 vim.o.relativenumber = true
 vim.o.wrap = true
@@ -34,6 +32,36 @@ vim.pack.add({
 	{ src = "https://github.com/hrsh7th/cmp-nvim-lsp" }, -- code completion source
 	{ src = "https://github.com/L3MON4D3/LuaSnip" }, -- snippet engine TODO: propper setup/ replace with native
 })
+
+-- theme
+
+-- Colours from the wallust theme: lua/colors.lua, which .config/wallust
+-- renders as a mini.base16 palette (mini.nvim is added above). It runs again
+-- whenever a theme is applied, so an open nvim follows. The background stays
+-- the terminal's, which is translucent.
+local colors = vim.fn.stdpath("config") .. "/lua/colors.lua"
+local function load_colors()
+	if vim.uv.fs_stat(colors) then
+		dofile(colors)
+	end
+	local normal = vim.api.nvim_get_hl(0, { name = "Normal" })
+	vim.api.nvim_set_hl(0, "Normal", vim.tbl_extend("force", normal, { bg = "NONE", ctermbg = "NONE" }))
+end
+load_colors()
+-- Watched before the first theme is applied too, so the folder must exist.
+vim.fn.mkdir(vim.fs.dirname(colors), "p")
+local watch = vim.uv.new_fs_event()
+if watch then
+	watch:start(
+		vim.fs.dirname(colors),
+		{},
+		vim.schedule_wrap(function(_, name)
+			if name == "colors.lua" then
+				load_colors()
+			end
+		end)
+	)
+end
 
 -- plugin config
 
