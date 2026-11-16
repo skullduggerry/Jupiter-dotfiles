@@ -33,10 +33,12 @@ Wallpapers are not part of the repo: Settings → Appearance → Wallpapers show
 ./check.sh                                    # lint and test this repo (--fix formats first)
 ./check.sh check all                          # all three: dotfiles, installer, testing
 ./check.sh lint                               # or test: one half (./check.sh --help)
-../Jupiter-testing/scripts/install-hooks.sh   # once: check on every commit and push
+../Jupiter-testing/scripts/install-hooks.sh   # once: lint on commit, lint and test on push
 ```
 
 Each Jupiter repo has this `check.sh`, with the same arguments. The linters and tests live in Jupiter-testing, which it clones next to this repo if it is missing.
+
+GitHub Actions runs the same `./check.sh` on every push and pull request (`.github/workflows/check.yml`).
 
 ## Documentation
 
