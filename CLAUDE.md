@@ -4,7 +4,7 @@ A Hyprland desktop: a shell of its own in QML on Quickshell, plus the configs of
 
 ## Git
 
-Commit and push straight to `main`, here and in Jupiter-installer and Jupiter-testing: no branches or pull requests unless asked. CI (`.github/workflows/check.yml`) checks every push of this repo alone, on Arch and on NixOS; Jupiter-installer's checks the installer, and Jupiter-testing runs none.
+Commit and push straight to `main`, here and in Jupiter-installer and Jupiter-testing: no branches or pull requests unless asked. CI (`.github/workflows/check.yml`) checks every push of this repo alone, on Arch and on NixOS; Jupiter-installer's checks the installer, and Jupiter-testing's all three with its tools as pushed.
 
 ## Sources of truth, in order
 
