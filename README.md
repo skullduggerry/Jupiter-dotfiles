@@ -45,4 +45,4 @@ GitHub Actions checks every push and pull request against both systems the insta
 ## Documentation
 
 - [The wiki](https://github.com/skullduggerry/Jupiter-dotfiles/wiki): installing, the login screen, themes, the scripts, development.
-- `.github/`: how the shell is built and the rules it follows (`PROJECT_STRUCTURE.md`, `THEMING.md`, and `llm.md` for coding agents).
+- [AGENTS.md](AGENTS.md): how the shell is built, where things go, the theme and the rules it follows; written for coding agents, and read by Claude Code through `CLAUDE.md`.

@@ -6,7 +6,7 @@ import Quickshell.Io
 
 // The palette Colors derives from, and what changes it:
 // .config/wallust/apply.sh renders it and records the theme
-// (.github/THEMING.md). Nothing runs until a theme is picked: the greeter gets
+// (AGENTS.md, "Theming"). Nothing runs until a theme is picked: the greeter gets
 // a copy of style/ and must only read.
 Singleton {
     id: root
