@@ -1,0 +1,24 @@
+{
+  "system": "base16",
+  "name": "rose-pine",
+  "author": "Jupiter-dotfiles, from wallust's palette",
+  "variant": "dark",
+  "palette": {
+    "base00": "#191724",
+    "base01": "#292735",
+    "base02": "#393745",
+    "base03": "#6d6b7b",
+    "base04": "#8c8a9d",
+    "base05": "#e0def4",
+    "base06": "#cccadf",
+    "base07": "#e0def4",
+    "base08": "#eb6f92",
+    "base09": "#eb96a6",
+    "base0A": "#ebbcba",
+    "base0B": "#f6c177",
+    "base0C": "#9ccfd8",
+    "base0D": "#31748f",
+    "base0E": "#c4a7e7",
+    "base0F": "#974c66"
+  }
+}

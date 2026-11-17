@@ -1,0 +1,24 @@
+{
+  "system": "base16",
+  "name": "Gruvbox-Dark",
+  "author": "Jupiter-dotfiles, from wallust's palette",
+  "variant": "dark",
+  "palette": {
+    "base00": "#282828",
+    "base01": "#383633",
+    "base02": "#47453e",
+    "base03": "#7a7362",
+    "base04": "#999078",
+    "base05": "#ebdbb2",
+    "base06": "#d8c9a4",
+    "base07": "#ebdbb2",
+    "base08": "#cc241d",
+    "base09": "#d25f1f",
+    "base0A": "#d79921",
+    "base0B": "#98971a",
+    "base0C": "#689d6a",
+    "base0D": "#458588",
+    "base0E": "#b16286",
+    "base0F": "#8a2621"
+  }
+}

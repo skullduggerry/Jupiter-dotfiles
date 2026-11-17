@@ -1,0 +1,24 @@
+{
+  "system": "base16",
+  "name": "Nord",
+  "author": "Jupiter-dotfiles, from wallust's palette",
+  "variant": "dark",
+  "palette": {
+    "base00": "#2e3440",
+    "base01": "#3c424e",
+    "base02": "#494f5b",
+    "base03": "#757b87",
+    "base04": "#9197a2",
+    "base05": "#d8dee9",
+    "base06": "#c7cdd8",
+    "base07": "#d8dee9",
+    "base08": "#bf616a",
+    "base09": "#d5967b",
+    "base0A": "#ebcb8b",
+    "base0B": "#a3be8c",
+    "base0C": "#88c0d0",
+    "base0D": "#81a1c1",
+    "base0E": "#b48ead",
+    "base0F": "#854f59"
+  }
+}

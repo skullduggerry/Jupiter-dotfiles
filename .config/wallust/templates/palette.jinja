@@ -38,3 +38,28 @@
 {%- set b = background | blue | int -%}
 {{- "light" if ([r, g, b] | max) + ([r, g, b] | min) > 255 else "dark" -}}
 {%- endmacro -%}
+
+{#- base16's slots, which are roles, not the terminal's colours: 00 to 07 run
+    from the background to the text, 08 to 0F are the accents. The surfaces
+    are the shell's. nvim (nvim.lua) and, on NixOS, the apps Stylix themes
+    (base16.json) take theirs from here, so the two agree. -#}
+{%- macro base16(slot) -%}
+{{- {
+    "00": background,
+    "01": shade(0.08),
+    "02": shade(0.16),
+    "03": shade(0.42),
+    "04": shade(0.58),
+    "05": foreground,
+    "06": shade(0.9),
+    "07": foreground,
+    "08": color1,
+    "09": mix(color1, color3, 0.5),
+    "0A": color3,
+    "0B": color2,
+    "0C": color6,
+    "0D": color4,
+    "0E": color5,
+    "0F": mix(color1, background, 0.4),
+}[slot] -}}
+{%- endmacro -%}

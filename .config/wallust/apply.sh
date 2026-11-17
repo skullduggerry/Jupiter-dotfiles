@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Apply a wallust theme to the shell and to every app template (kitty, nvim,
-# kdeglobals, Kvantum, qt6ct, GTK), then tell running apps. The shell runs
+# kdeglobals, Kvantum, qt6ct, GTK), then tell running apps; on NixOS, switch
+# the apps Stylix themes to the theme's pre-built colours. The shell runs
 # this with a theme (.config/quickshell/style/Theme.qml, for the Settings app's
 # Themes tab); modules/start.lua runs it bare at login.
 #
@@ -89,6 +90,23 @@ if ((! shell_only)); then
 
     # The Wallust GTK theme, named so that running GTK 3 apps load it again.
     "$dir/gtk-theme.sh" || true
+
+    # On NixOS, the apps Stylix themes (Jupiter-installer's nixos/theme.nix):
+    # its home-manager generation has a specialisation for each theme in
+    # base16/, and is the default theme's itself. Activated only when another
+    # is active, as at the first login after a boot, which activates the
+    # plain one. JUPITER_HOME_GENERATION is the tests' stand-in.
+    home=${JUPITER_HOME_GENERATION:-/etc/jupiter/home}
+    if [[ -x $home/activate ]]; then
+        generation=$home
+        [[ -x $home/specialisation/$theme/activate ]] && generation=$home/specialisation/$theme
+        current=${XDG_STATE_HOME:-$HOME/.local/state}/home-manager/gcroots/current-home
+        if [[ $(readlink -f "$generation") != "$(readlink -f "$current")" ]]; then
+            # A config the app wrote itself is kept beside it, as at boot.
+            HOME_MANAGER_BACKUP_EXT=before-stylix "$generation/activate" >/dev/null ||
+                echo "apply.sh: home-manager's activation failed: btop, mpv and Zed keep the theme before" >&2
+        fi
+    fi
 fi
 
 mkdir -p "$(dirname "$state")"

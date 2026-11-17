@@ -1,0 +1,24 @@
+{
+  "system": "base16",
+  "name": "Tokyo-Night",
+  "author": "Jupiter-dotfiles, from wallust's palette",
+  "variant": "dark",
+  "palette": {
+    "base00": "#1a1b26",
+    "base01": "#272937",
+    "base02": "#353747",
+    "base03": "#60657d",
+    "base04": "#7a819e",
+    "base05": "#c0caf5",
+    "base06": "#afb9e0",
+    "base07": "#c0caf5",
+    "base08": "#f7768e",
+    "base09": "#ec937b",
+    "base0A": "#e0af68",
+    "base0B": "#9ece6a",
+    "base0C": "#7dcfff",
+    "base0D": "#7aa2f7",
+    "base0E": "#bb9af7",
+    "base0F": "#9f5264"
+  }
+}

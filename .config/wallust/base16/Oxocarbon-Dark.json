@@ -1,0 +1,24 @@
+{
+  "system": "base16",
+  "name": "Oxocarbon-Dark",
+  "author": "Jupiter-dotfiles, from wallust's palette",
+  "variant": "dark",
+  "palette": {
+    "base00": "#161616",
+    "base01": "#292929",
+    "base02": "#3b3b3b",
+    "base03": "#787878",
+    "base04": "#9d9d9d",
+    "base05": "#ffffff",
+    "base06": "#e8e8e8",
+    "base07": "#ffffff",
+    "base08": "#ee5396",
+    "base09": "#f79e89",
+    "base0A": "#ffe97b",
+    "base0B": "#42be65",
+    "base0C": "#3ddbd9",
+    "base0D": "#33b1ff",
+    "base0E": "#ff7eb6",
+    "base0F": "#983b63"
+  }
+}
