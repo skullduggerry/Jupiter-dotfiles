@@ -26,7 +26,7 @@ Part of Jupiter: [Jupiter-installer](https://github.com/skullduggerry/Jupiter-in
 
 Tests and Linters are found in Jupiter-testing, and can be run with check.sh from each repositories root.
 
-GitHub Actions checks every push and pull request against both systems the installer supports (`.github/workflows/check.yml`): this repo's linters and every Jupiter repo's suites on Arch, and on NixOS the installer's flake built with these dotfiles, their Hyprland config checked by NixOS's Hyprland and their QML run in its Quickshell.
+GitHub Actions checks every push and pull request against both systems the installer supports (`.github/workflows/check.yml`): this repo's linters and suites on Arch, and on NixOS its Hyprland config checked by NixOS's Hyprland and its QML run in NixOS's Quickshell. The installer's own Actions check it with these dotfiles.
 
 ## Documentation
 
