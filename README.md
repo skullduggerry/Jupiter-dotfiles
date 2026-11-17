@@ -31,4 +31,4 @@ GitHub Actions checks every push and pull request against both systems the insta
 ## Documentation
 
 - [The wiki](https://github.com/skullduggerry/Jupiter-dotfiles/wiki): installing, the login screen, themes, the scripts, development.
-- [CLAUDE.md](CLAUDE).md): how the shell is built, where things go, the theme and the rules it follows; written for coding with Claude.
+- [CLAUDE.md](CLAUDE.md): how the shell is built, where things go, the theme and the rules it follows; written for coding with Claude.
