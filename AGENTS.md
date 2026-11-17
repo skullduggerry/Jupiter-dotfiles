@@ -26,7 +26,7 @@ Verify every type, property, signal and dispatcher in 1 or 2. Never copy from ot
 | `etc/udev/`, `etc/pacman.d/`, `etc/systemd/user/` | installed as root by `scripts/install-system.sh` (on NixOS the installer's flake declares them) |
 | `scripts/` | the system and greeter installers, generators |
 
-Tests and linters live in `../Jupiter-testing`; package dependencies in Jupiter-installer's `packages/core.txt`/`aur.txt` and `nixos/`.
+Tests and linters live in `../Jupiter-testing`; package dependencies in Jupiter-installer's `arch/packages/core.txt`/`aur.txt` (Arch) and `nixos/` (NixOS).
 
 ```
 .config/quickshell/
