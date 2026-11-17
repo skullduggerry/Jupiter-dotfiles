@@ -51,6 +51,9 @@ Singleton {
         blockLoading: true
         printErrors: false
         watchChanges: false
+        // An async write, once done, puts what it wrote back into the
+        // adapter, undoing a change made meanwhile.
+        blockWrites: true
 
         adapter: JsonAdapter {
             id: settings

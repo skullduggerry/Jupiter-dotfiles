@@ -112,7 +112,7 @@ One wallust theme colours the shell and the apps. `.config/wallust/apply.sh`'s h
 
 **Quickshell**
 - Service lists are `ObjectModel`s: no `count`/`get(i)` (silently `undefined`); use `model:` or `.values`. Their delegates see `modelData === null` before destruction.
-- `FileView` is async: `reload()` + `text()` with `blockAllReads: true`, not from `onLoaded`. `watchChanges` doesn't work on sysfs. `writeAdapter()` is async: debounce.
+- `FileView` is async: `reload()` + `text()` with `blockAllReads: true`, not from `onLoaded`. `watchChanges` doesn't work on sysfs. `writeAdapter()` is async and, once done, puts what it wrote back into the adapter, undoing a change made meanwhile: `blockWrites: true` on its `FileView`, and debounce.
 - `Process` children survive a SIGTERM'd `qs`: wrap long-lived ones in `setpriv --pdeathsig TERM`.
 - Hot reload needs a content change (`touch` doesn't; saving only `qmldir` doesn't). A new inline component in a loaded file breaks reloads until restart.
 
