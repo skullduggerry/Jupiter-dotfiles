@@ -37,7 +37,7 @@ store() {
 }
 
 paste() {
-    local dir=$1 types type stamp uri path name ext copied=0
+    local dir=$1 types type stamp uri path name ext dest copied=0
     types=$(wl-paste --list-types 2>/dev/null) || exit 1
     # KeePassXC marks its copies; cliphist skips them for the same reason.
     grep -qx 'x-kde-passwordManagerHint' <<<"$types" && exit 3
@@ -46,7 +46,8 @@ paste() {
 
     # Files copied in a file manager: the files themselves.
     if grep -qx 'text/uri-list' <<<"$types"; then
-        while IFS= read -r uri; do
+        # The last line too, which --no-newline leaves unterminated.
+        while IFS= read -r uri || [[ -n $uri ]]; do
             uri=${uri%$'\r'}
             [[ $uri == file://* ]] || continue
             path=${uri#file://}
@@ -57,10 +58,12 @@ paste() {
             name=${name#"${name%%[!.]*}"}
             [[ -n $name ]] || name=$stamp
             if [[ $name == ?*.* ]]; then
-                store "$(fresh "$dir" "${name%.*}" "${name##*.}")" cat -- "$path"
+                dest=$(fresh "$dir" "${name%.*}" "${name##*.}")
             else
-                store "$(fresh "$dir" "$name" "")" cat -- "$path"
+                dest=$(fresh "$dir" "$name" "")
             fi
+            # An empty file is skipped, not the files after it with it.
+            store "$dest" cat -- "$path" || continue
             copied=1
         done < <(wl-paste --no-newline --type text/uri-list)
         ((copied)) && return

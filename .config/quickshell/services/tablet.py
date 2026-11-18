@@ -106,18 +106,23 @@ def describe() -> dict:
     tablet = None
     pad = None
     for event, props in devices():
-        if props.get("ID_INPUT_TABLET_PAD") == "1":
-            if pad is None:
-                pad = {
-                    "buttons": len(buttons(event)),
-                    "readable": os.access(DEV / event.name, os.R_OK),
+        # A device gone since the listing (a Bluetooth pad gone idle) is
+        # skipped, as if it had not been there.
+        try:
+            if props.get("ID_INPUT_TABLET_PAD") == "1":
+                if pad is None:
+                    pad = {
+                        "buttons": len(buttons(event)),
+                        "readable": os.access(DEV / event.name, os.R_OK),
+                    }
+            elif props.get("ID_INPUT_TABLET") == "1" and tablet is None:
+                tablet = {
+                    "name": name(event),
+                    "width": int(props.get("ID_INPUT_WIDTH_MM", "0") or 0),
+                    "height": int(props.get("ID_INPUT_HEIGHT_MM", "0") or 0),
                 }
-        elif props.get("ID_INPUT_TABLET") == "1" and tablet is None:
-            tablet = {
-                "name": name(event),
-                "width": int(props.get("ID_INPUT_WIDTH_MM", "0") or 0),
-                "height": int(props.get("ID_INPUT_HEIGHT_MM", "0") or 0),
-            }
+        except OSError:
+            continue
     return {"tablet": tablet, "pad": pad}
 
 
@@ -127,7 +132,12 @@ def find_pad() -> tuple[Path, list[int]] | None:
         if props.get("ID_INPUT_TABLET_PAD") == "1" and os.access(
             node, os.R_OK
         ):
-            return node, buttons(event)
+            # Gone since the listing: the helper must outlive it, as
+            # Tablet.qml does not start it again.
+            try:
+                return node, buttons(event)
+            except OSError:
+                continue
     return None
 
 
