@@ -16,6 +16,7 @@ Lua one into the login screen's layout.
 """
 
 import json
+import math
 import os
 import subprocess
 import sys
@@ -29,6 +30,13 @@ FIELDS: dict[str, type | tuple[type, ...]] = {
     "transform": int,
     "vrr": int,
     "disabled": bool,
+}
+
+
+LUA_ESCAPES = {
+    **{chr(code): f"\\{code:03d}" for code in (*range(32), 127)},
+    "\\": "\\\\",
+    '"': '\\"',
 }
 
 
@@ -53,9 +61,12 @@ def checked(rules):
             kind = FIELDS.get(key)
             if kind is None:
                 raise SystemExit(f"displays: unknown field {key!r}")
-            # bool is an int in Python; only disabled takes one.
-            if not isinstance(value, kind) or (
-                isinstance(value, bool) and kind is not bool
+            # bool is an int in Python; only disabled takes one. JSON's NaN
+            # and Infinity are floats that Lua has no literal for.
+            if (
+                not isinstance(value, kind)
+                or (isinstance(value, bool) and kind is not bool)
+                or (isinstance(value, float) and not math.isfinite(value))
             ):
                 raise SystemExit(f"displays: {key} cannot be {value!r}")
     return rules
@@ -70,10 +81,8 @@ def lua_value(value):
             if float(value).is_integer()
             else repr(float(value))
         )
-    escaped = (
-        value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
-    )
-    return '"' + escaped + '"'
+    # A control character, a line break above all, would end the string.
+    return '"' + "".join(LUA_ESCAPES.get(char, char) for char in value) + '"'
 
 
 def lua_table(rule):
@@ -97,12 +106,20 @@ def apply(rules):
 
 
 def kept():
+    path = os.path.join(state_dir(), "monitors.json")
     try:
-        with open(
-            os.path.join(state_dir(), "monitors.json"), encoding="utf-8"
-        ) as file:
+        with open(path, encoding="utf-8") as file:
             return checked(json.load(file))
-    except (FileNotFoundError, ValueError, SystemExit):
+    except FileNotFoundError:
+        return []
+    except (ValueError, SystemExit) as error:
+        # Kept aside rather than overwritten: the rules are someone's work.
+        os.replace(path, path + ".broken")
+        print(
+            f"displays: monitors.json unreadable ({error}), "
+            "moved to monitors.json.broken",
+            file=sys.stderr,
+        )
         return []
 
 

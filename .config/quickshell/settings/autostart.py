@@ -329,7 +329,16 @@ def remove(ident):
         os.remove(mine)
 
 
+def checked(ident):
+    # An id names a file in one folder: with a "/" it names one elsewhere.
+    if not ident or "/" in ident:
+        raise SystemExit(f"autostart: not an entry id: {ident!r}")
+    return ident
+
+
 def main(argv):
+    if len(argv) > 2:
+        checked(argv[2])
     if argv[1:2] == ["list"]:
         json.dump(entries(), sys.stdout)
         print()
