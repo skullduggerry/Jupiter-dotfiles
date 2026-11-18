@@ -20,6 +20,7 @@ but not on us, whose "<" is Shift and comma.
 
 import ctypes
 import json
+import os
 import subprocess
 import sys
 
@@ -67,8 +68,30 @@ def hyprland_option(name):
     return None
 
 
+def loaded(name, maps):
+    """The path of the library `name` (any version of it) in a process's
+    memory map."""
+    try:
+        with open(maps, encoding="utf-8", errors="replace") as file:
+            for line in file:
+                fields = line.rstrip("\n").split(maxsplit=5)
+                if len(fields) == 6 and os.path.basename(fields[5]).startswith(
+                    name
+                ):
+                    return fields[5]
+    except OSError:
+        pass
+    raise SystemExit(f"keymap: {name} not found")
+
+
 def library():
-    xkb = ctypes.CDLL("libxkbcommon.so.0")
+    name = "libxkbcommon.so.0"
+    try:
+        xkb = ctypes.CDLL(name)
+    except OSError:
+        # NixOS puts no library where the loader looks by name. The shell
+        # that runs this has it loaded (Qt links it): that one, by its path.
+        xkb = ctypes.CDLL(loaded(name, f"/proc/{os.getppid()}/maps"))
     pointer = ctypes.c_void_p
     signatures = {
         "xkb_context_new": ([ctypes.c_int], pointer),
