@@ -129,7 +129,7 @@ One wallust theme colours the shell and the apps. `.config/wallust/apply.sh`'s h
 ## Definition of done
 
 - `./check.sh` passes (`--fix` formats; `--help` for the rest). Fix what you broke; name pre-existing failures.
-- New behaviour has a test in `../Jupiter-testing` (its `AGENTS.md`): a script → `dotfiles/test_<name>.py`, QML → `dotfiles/qml/<Name>Test.qml`, login, lock, Nextcloud or text from outside → `dotfiles/security/`.
+- New behaviour has a test in `../Jupiter-testing` (its `CLAUDE.md`): a script → `dotfiles/test_<name>.py`, QML → `dotfiles/qml/<Name>Test.qml`, login, lock, Nextcloud or text from outside → `dotfiles/security/`.
 - The whole diff read; the shell's log checked after reload. qmllint misses writes in handlers and anything through `var`; the log is final: `qs log -r '*.debug=true;*.info=true' -- /run/user/$UID/quickshell/by-id/<id>/log.qslog` (failure: `Failed to load configuration`, the old config kept).
 - Risky changes tried outside the live session (`QT_QPA_PLATFORM=offscreen` + `grabToImage()`, or a nested Hyprland with its own `HOME`/`XDG_*`, `render_unfocused = true`, stopped by PID). Never kill daemons by name.
 - Report what changed, why, how it was verified, and what wasn't.
