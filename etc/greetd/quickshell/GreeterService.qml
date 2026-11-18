@@ -26,8 +26,8 @@ Singleton {
     property bool fingerAttempt: false
     // The reader has greetd, from the empty answer until it is done.
     property bool scanning: false
-    // The scan the greeter began by itself, which ending without a finger
-    // (its timeout) is no error to the user.
+    // A scan whose ending without a finger is no error to the user: the
+    // greeter's own (its timeout), or one for a user no longer picked.
     property bool autoScan: false
     // Enter on a password while the reader had greetd: sent once it is done.
     property bool queued: false
@@ -156,12 +156,15 @@ Singleton {
         root.errorText = message;
     }
 
-    // Another user while a question waits: that login is over.
+    // Another user while a question waits: that login is over. While the
+    // reader has greetd, nothing ends it sooner; its end is left unused.
     onUsernameChanged: {
         if (root.answering) {
             Greetd.cancelSession();
             root.fail("");
         }
+        if (root.scanning)
+            root.autoScan = true;
     }
     onPasswordChanged: {
         if (root.password !== "")
@@ -225,6 +228,21 @@ Singleton {
         }
 
         function onReadyToLaunch() {
+            // A finger for the user picked before: not who is asked for now.
+            // Quickshell takes greetd's answer to the cancel for whatever
+            // login it has then, so a password entered meanwhile stays in
+            // the field, for Enter, rather than going at once.
+            if (Greetd.user !== root.username) {
+                Greetd.cancelSession();
+                if (!root.scanning) {
+                    root.fail("");
+                    return;
+                }
+                root.queued = false;
+                root.busy = false;
+                root.scanFailed("");
+                return;
+            }
             const session = root.sessions.find(entry => entry.exec === root.sessionExec);
             if (session === undefined) {
                 Greetd.cancelSession();
