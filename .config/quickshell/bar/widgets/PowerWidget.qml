@@ -72,17 +72,17 @@ Item {
                 {
                     label: "Suspend",
                     danger: false,
-                    run: () => Quickshell.execDetached(["systemctl", "suspend"])
+                    run: () => Session.suspend()
                 },
                 {
                     label: "Reboot",
                     danger: true,
-                    run: () => Quickshell.execDetached(["systemctl", "reboot"])
+                    run: () => Session.reboot()
                 },
                 {
                     label: "Shutdown",
                     danger: true,
-                    run: () => Quickshell.execDetached(["systemctl", "poweroff"])
+                    run: () => Session.poweroff()
                 }
             ]
 

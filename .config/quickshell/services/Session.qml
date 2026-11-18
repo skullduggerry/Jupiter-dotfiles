@@ -28,4 +28,17 @@ Singleton {
     function logout() {
         Quickshell.execDetached(["hyprctl", "eval", "require(\"modules.session\").logout()"]);
     }
+
+    // The bar's power menu and the quick menu's, alike.
+    function suspend() {
+        Quickshell.execDetached(["systemctl", "suspend"]);
+    }
+
+    function reboot() {
+        Quickshell.execDetached(["systemctl", "reboot"]);
+    }
+
+    function poweroff() {
+        Quickshell.execDetached(["systemctl", "poweroff"]);
+    }
 }

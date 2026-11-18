@@ -362,14 +362,15 @@ Scope {
                     PowerProfiles.profile = choices[(index + 1) % choices.length].value;
                 }
             },
-            // As the bar's power menu does them, but asking twice first.
+            // As the bar's power menu does them; the ones that end the session
+            // ask twice first.
             suspend: {
                 label: "Suspend",
                 keys: "S",
                 kind: "action",
                 closes: true,
                 icon: () => Icons.bed,
-                use: () => Quickshell.execDetached(["systemctl", "suspend"])
+                use: () => Session.suspend()
             },
             logOut: {
                 label: "Logout",
@@ -388,7 +389,7 @@ Scope {
                 confirm: true,
                 danger: true,
                 icon: () => Icons.rotateCcw,
-                use: () => Quickshell.execDetached(["systemctl", "reboot"])
+                use: () => Session.reboot()
             },
             shutDown: {
                 label: "Shutdown",
@@ -398,7 +399,7 @@ Scope {
                 confirm: true,
                 danger: true,
                 icon: () => Icons.power,
-                use: () => Quickshell.execDetached(["systemctl", "poweroff"])
+                use: () => Session.poweroff()
             },
             overview: {
                 label: "Every Workspace",
@@ -441,13 +442,23 @@ Scope {
         })
     property var pending: null
 
+    // An entry is "kind:id"; a device's id is its address, which has colons
+    // of its own, so the split is at the first one only.
+    function entryKind(entry: string): string {
+        return entry.slice(0, Math.max(0, entry.indexOf(":")));
+    }
+
+    function entryId(entry: string): string {
+        return entry.indexOf(":") < 0 ? "" : entry.slice(entry.indexOf(":") + 1);
+    }
+
     // A slot's or an item's look and state now: {kind, label, short, name,
     // icon, detail, on, level, adjustable (scroll and the arrows change it),
     // disabled, closes, confirm, danger}; "category" for a category, "empty"
     // for nothing.
     function describe(entry: string): var {
-        const kind = entry.split(":")[0];
-        const id = entry.split(":")[1];
+        const kind = root.entryKind(entry);
+        const id = root.entryId(entry);
         if (kind === "category" && root.categories[id] !== undefined) {
             const category = root.categories[id];
             return {
@@ -494,7 +505,7 @@ Scope {
 
     // What a slot holds, without its state: "category", an item's kind, or "".
     function kindOf(entry: string): string {
-        const id = entry.split(":")[1];
+        const id = root.entryId(entry);
         if (entry.startsWith("category:"))
             return root.categories[id] !== undefined ? "category" : "";
         return entry.startsWith("item:") ? root.definitions[id]?.kind ?? "" : "";
@@ -527,8 +538,8 @@ Scope {
     // the others leave room for, so a long list does not push them out), any
     // this machine has no use for left out, at most maxItems.
     function itemsOf(entry: string): list<string> {
-        const kind = entry.split(":")[0];
-        const id = entry.split(":")[1];
+        const kind = root.entryKind(entry);
+        const id = root.entryId(entry);
         const category = root.categories[id];
         if (kind !== "category" || category === undefined)
             return [];
@@ -557,7 +568,7 @@ Scope {
             if (described.kind === "empty")
                 return "";
 
-            const id = entry.split(":")[1];
+            const id = root.entryId(entry);
             const preferred = (entry.startsWith("category:") ? root.categories[id]?.keys : root.definitions[id]?.keys) ?? "";
             for (const letter of preferred + described.short.toUpperCase().replace(/[^A-Z]/g, "")) {
                 if (!used.includes(letter)) {
@@ -570,7 +581,7 @@ Scope {
     }
 
     function use(entry: string) {
-        const id = entry.split(":")[1];
+        const id = root.entryId(entry);
         if (entry.startsWith("device:")) {
             const device = root.devices.find(candidate => candidate.address === id);
             if (device?.connected)
@@ -585,7 +596,7 @@ Scope {
 
     // Scroll or the arrows: a level, Caffeine's length, Night Light's warmth.
     function adjust(entry: string, steps: int) {
-        const item = root.definitions[entry.split(":")[1]];
+        const item = root.definitions[root.entryId(entry)];
         if (item?.adjust !== undefined)
             item.adjust(steps);
     }
