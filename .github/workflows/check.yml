@@ -23,6 +23,10 @@ on:
   schedule:
     - cron: "17 4 * * *"
 
+# The token reads the repo, nothing more.
+permissions:
+  contents: read
+
 concurrency:
   group: check-${{ github.ref }}
   cancel-in-progress: true
@@ -38,13 +42,14 @@ defaults:
 
 jobs:
   arch:
-    name: Arch (lint, the dotfiles' suites)
+    name: "Arch: lint and test"
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     container:
       image: archlinux:latest
       options: --privileged
     steps:
-      - name: Install tools
+      - name: Install packages
         # What Jupiter-testing's lint.sh and test.sh ask for the dotfiles,
         # and what an installed desktop has that the suites use: neovim's
         # Lua for lua-language-server, the GNOME schemas, Kvantum's
@@ -59,15 +64,16 @@ jobs:
             neovim gsettings-desktop-schemas kvantum diffutils
           # To compare with the desktop when a check passes there only.
           pacman -Q quickshell qt6-declarative hyprland lua-language-server python
-      - name: Add an unprivileged user
+      - name: Create test user
         # Root reads every file, which the permission checks rely on not
         # doing.
         run: |
           useradd -m ci
           # A session's runtime folder, which Hyprland's config check insists on.
           install -d -m 700 -o ci "/run/user/$(id -u ci)"
-      - id: wallust
-        uses: actions/cache/restore@v4
+      - name: Restore wallust cache
+        id: wallust
+        uses: actions/cache/restore@v6
         with:
           path: /home/ci/.cargo
           key: cargo-wallust-3.5.1
@@ -78,15 +84,17 @@ jobs:
           chown -R ci: /home/ci
           sudo -u ci -H cargo install --locked wallust --version 3.5.1
       # Saved straight away, so a failing check doesn't cost the next run the build.
-      - if: steps.wallust.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+      - name: Save wallust cache
+        if: steps.wallust.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
         with:
           path: /home/ci/.cargo
           key: cargo-wallust-3.5.1
-      - uses: actions/checkout@v4
+      - name: Check out
+        uses: actions/checkout@v7
         with:
           path: checkout
-      - name: Lay out the repos
+      - name: Clone repos
         run: |
           chown -R ci: "$GITHUB_WORKSPACE"
           as_ci() { sudo -u ci -H env GIT_TERMINAL_PROMPT=0 "$@"; }
@@ -108,20 +116,23 @@ jobs:
             ./check.sh test dotfiles
 
   nixos:
-    name: NixOS (its Hyprland and Quickshell)
+    name: "NixOS: verify Hyprland and Quickshell"
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out
+        uses: actions/checkout@v7
         with:
           path: checkout
-      - uses: cachix/install-nix-action@v31
-      - name: Lay out the repos
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+      - name: Clone repos
         run: |
           export GIT_TERMINAL_PROMPT=0
           url=https://github.com/skullduggerry/Jupiter-testing.git
           git clone --quiet --depth 1 --branch "$BRANCH" "$url" Jupiter-testing 2>/dev/null ||
             git clone --quiet --depth 1 "$url" Jupiter-testing
           bash Jupiter-testing/scripts/ci-repos.sh checkout "$BRANCH"
-      - name: The dotfiles on NixOS's Hyprland and Quickshell
+      - name: Run NixOS checks
         # Jupiter-testing's scripts/nixos-check.sh says what it checks.
         run: bash Jupiter-testing/scripts/nixos-check.sh dotfiles

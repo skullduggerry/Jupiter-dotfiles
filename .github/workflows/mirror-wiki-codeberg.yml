@@ -11,6 +11,10 @@ on:
   schedule:
     - cron: "17 4 * * *"
 
+# The token reads the repo, nothing more.
+permissions:
+  contents: read
+
 concurrency:
   group: mirror-wiki-codeberg
   cancel-in-progress: false
@@ -19,7 +23,7 @@ jobs:
   mirror:
     runs-on: ubuntu-latest
     steps:
-      - name: Push the wiki
+      - name: Push wiki
         env:
           CODEBERG_TOKEN: ${{ secrets.CODEBERG_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
