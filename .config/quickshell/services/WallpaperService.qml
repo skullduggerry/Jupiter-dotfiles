@@ -26,7 +26,7 @@ Singleton {
     readonly property string currentName: root.current.split("/").pop().replace(/\.[^.]*$/, "")
     readonly property string defaultConfig: (Quickshell.env("XDG_CONFIG_HOME") || root.home + "/.config") + "/hypr/hyprpaper.conf"
     // modules/startup.lua looks for exactly this path.
-    readonly property string savedConfig: (Quickshell.env("XDG_STATE_HOME") || root.home + "/.local/state") + "/quickshell/hyprpaper.conf"
+    readonly property string savedConfig: StateFiles.path("hyprpaper.conf")
     // Static keeps the pick, Rotate moves on through the library, in the
     // grid's order, every rotateMinutes.
     readonly property bool rotating: settings.rotating

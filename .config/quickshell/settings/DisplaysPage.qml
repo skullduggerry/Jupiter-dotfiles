@@ -531,7 +531,7 @@ ScrollPage {
     }
 
     FileView {
-        path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/quickshell/monitors.json"
+        path: StateFiles.path("monitors.json")
         watchChanges: true
         printErrors: false
         onFileChanged: reload()

@@ -24,6 +24,7 @@ singleton Screens 1.0 Screens.qml
 singleton Session 1.0 Session.qml
 singleton SettingsState 1.0 SettingsState.qml
 singleton Shelf 1.0 Shelf.qml
+singleton StateFiles 1.0 StateFiles.qml
 singleton SystemUsage 1.0 SystemUsage.qml
 singleton Tablet 1.0 Tablet.qml
 singleton Time 1.0 Time.qml

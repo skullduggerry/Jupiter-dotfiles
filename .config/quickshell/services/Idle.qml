@@ -15,7 +15,7 @@ Singleton {
 
     readonly property string home: Quickshell.env("HOME")
     // modules/startup.lua starts hypridle on this one once it exists.
-    readonly property string config: (Quickshell.env("XDG_STATE_HOME") || root.home + "/.local/state") + "/quickshell/hypridle.conf"
+    readonly property string config: StateFiles.path("hypridle.conf")
     readonly property string defaultConfig: (Quickshell.env("XDG_CONFIG_HOME") || root.home + "/.config") + "/hypr/hypridle.conf"
     readonly property int lockMinutes: root.minutes("lockAfter")
     readonly property int suspendMinutes: root.minutes("suspendAfter")

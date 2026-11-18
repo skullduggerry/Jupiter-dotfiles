@@ -19,7 +19,7 @@ Singleton {
     property int size: 6
     property var options: ({})
     property var colors: ({})
-    readonly property string config: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/quickshell/blur.lua"
+    readonly property string config: StateFiles.path("blur.lua")
 
     // The blur as a Lua table: the sub-options grouped by variant
     // ({ acrylic = { clarity = 0.82 } }), the keys sorted so the file only

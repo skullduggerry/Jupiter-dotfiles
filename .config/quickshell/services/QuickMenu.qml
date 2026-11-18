@@ -139,7 +139,7 @@ Singleton {
     FileView {
         id: kept
 
-        path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/quickshell/quickmenu.lua"
+        path: StateFiles.path("quickmenu.lua")
         preload: false
         printErrors: false
     }

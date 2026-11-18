@@ -86,7 +86,7 @@ Singleton {
     FileView {
         id: kept
 
-        path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/quickshell/keyboard.lua"
+        path: StateFiles.path("keyboard.lua")
         preload: false
         printErrors: false
     }
