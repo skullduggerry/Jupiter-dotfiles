@@ -41,7 +41,7 @@ else
     }
     if [[ ${1:-} == --from ]]; then
         image=$2
-        wallust -q -s -T run --save-scheme "$image"
+        wallust -q -s -T -d "$dir" run --save-scheme "$image"
         # wallust names the scheme after the file, up to its first dot.
         name=$(basename "$image")
         theme=${name%%.*}
@@ -54,9 +54,11 @@ fi
 # create the folder, which a fresh home does not have yet.
 mkdir -p "${XDG_CACHE_HOME:-$HOME/.cache}/wallust"
 
+# Every run names this folder: ~/.config/wallust need not be it.
 args=(-q)
 if ((shell_only)); then
-    args+=(-C "$dir/shell.toml" -s)
+    # -C and -d exclude each other.
+    args+=(-C "$dir/shell.toml" --templates-dir "$dir/templates" -s)
 else
     # The Settings app's accent and font reach the app templates as
     # appearance.jinja: wallust renders from a copy of this folder in which
@@ -76,7 +78,7 @@ fi
 # and accepts any single file starting with the name, so Nord would pick up a
 # Nord-Custom.json.
 if [[ -f $dir/colorschemes/$theme.json ]]; then
-    wallust "${args[@]}" cs "$theme.json"
+    wallust "${args[@]}" cs "$dir/colorschemes/$theme.json"
 else
     wallust "${args[@]}" theme "$theme"
 fi
