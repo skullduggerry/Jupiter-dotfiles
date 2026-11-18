@@ -16,7 +16,8 @@ import sys
 import tempfile
 
 GROUP = re.compile(r"^\s*\[(.+)\]\s*$")
-ENTRY = re.compile(r"^\s*([^=\[]+?)\s*(\[[^\]]*\])*\s*=(.*)$")
+# The key with its [locale] and [$flags]: Name[de] is not Name.
+ENTRY = re.compile(r"^\s*([^=]+?)\s*=(.*)$")
 
 
 def read_groups(path):
@@ -44,7 +45,7 @@ def entries(lines):
     for line in lines:
         match = ENTRY.match(line)
         if match:
-            found[match.group(1)] = match.group(3)
+            found[match.group(1)] = match.group(2)
     return found
 
 
