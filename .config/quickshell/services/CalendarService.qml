@@ -123,7 +123,7 @@ Singleton {
         // Same rule the helper enforces: https, or plain http only where it
         // cannot leave the machine; a port, but no user before the host
         // (http://localhost:x@example.org is example.org).
-        if (!/^https:\/\//.test(address) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(address))
+        if (!/^https:\/\//.test(address) && !/^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/.test(address))
             return "Needs an https:// address — the app password is sent as HTTP Basic auth";
 
         return "";
@@ -319,8 +319,9 @@ Singleton {
 
         // A cache from before tasks were fetched has none.
         root.adopt(cached.events, cached.tasks ?? []);
-        root.coveredStart = new Date(cached.start);
-        root.coveredEnd = new Date(cached.end);
+        // dayKey()s: a date alone would parse as UTC midnight, not local.
+        root.coveredStart = new Date(cached.start + "T00:00:00");
+        root.coveredEnd = new Date(cached.end + "T00:00:00");
         root.lastUpdated = new Date(cached.updated);
         root.status = "ok";
     }
@@ -415,14 +416,23 @@ Singleton {
         id: login
 
         command: ["python3", Quickshell.shellDir + "/services/nextcloud-login.py", "--url", root.serverUrl]
+        // Still waiting when the helper ends: it printed no outcome (a crash,
+        // no python), or, with 0, the browser was left unfinished.
         onExited: (exitCode, exitStatus) => {
-            if (root.loginMessage === "Finish signing in in your browser…")
-                root.loginMessage = "";
+            if (root.loginMessage === "Opening your browser…" || root.loginMessage === "Finish signing in in your browser…")
+                root.loginMessage = exitCode === 0 ? "" : "Could not sign in";
         }
 
         stdout: SplitParser {
             splitMarker: "\n"
-            onRead: line => root.handleLogin(JSON.parse(line))
+            onRead: line => {
+                try {
+                    root.handleLogin(JSON.parse(line));
+                } catch (error) {
+                    // Not echoed: it may hold the flow's token.
+                    console.warn("calendar: the sign-in helper printed a line that is not JSON");
+                }
+            }
         }
     }
 

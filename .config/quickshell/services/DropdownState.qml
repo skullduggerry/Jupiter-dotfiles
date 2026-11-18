@@ -11,11 +11,14 @@ Singleton {
     readonly property string zoneQuickSettings: "quicksettings"
     property string zone: root.zoneCalendar
     property bool visible: false
-    property ShellScreen screen: Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    // The screen it was opened on last, which goes null when unplugged; the
+    // first screen until then.
+    property ShellScreen picked: null
+    readonly property ShellScreen screen: root.picked ?? Quickshell.screens[0] ?? null
 
     function open(zone: string, screen: ShellScreen) {
         if (screen !== null)
-            root.screen = screen;
+            root.picked = screen;
 
         root.zone = zone;
         root.visible = true;
