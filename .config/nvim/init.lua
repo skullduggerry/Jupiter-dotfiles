@@ -65,8 +65,8 @@ end
 
 -- plugin config
 
-require("mason").setup() --disabled bc nix
-require("mason-lspconfig").setup() --disabled bc nix
+require("mason").setup()
+require("mason-lspconfig").setup()
 require("mini.pairs").setup()
 require("mini.files").setup()
 require("mini.hipatterns").setup()

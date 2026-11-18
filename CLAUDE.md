@@ -6,7 +6,7 @@ A Hyprland desktop: a shell of its own in QML on Quickshell, plus the configs of
 
 Commit and push straight to `main`, here and in Jupiter-installer and Jupiter-testing: no branches or pull requests unless asked. CI (`.github/workflows/check.yml`) checks every push of this repo alone, on Arch and on NixOS; Jupiter-installer's checks the installer, and Jupiter-testing's all three with its tools as pushed.
 
-## Sources of truth, in order
+## References, in order of authority
 
 1. This repo: the header comment of every file you change, then this guide.
 2. `/usr/lib/qt6/qml/Quickshell/**/*.qmltypes` (online docs may be newer than 0.3.2).
@@ -16,7 +16,7 @@ Verify every type, property, signal and dispatcher in 1 or 2. Never copy from ot
 
 ## Map
 
-| Path | What |
+| Path | Purpose |
 | --- | --- |
 | `.config/quickshell/` | the shell (below) |
 | `.config/hypr/` | `hyprland.lua`, `modules/`, `styles/` (layer rules, blur, animations) |
@@ -46,9 +46,9 @@ Tests and linters live in `../Jupiter-testing`; package dependencies in Jupiter-
 - `etc/greetd/monitors.lua` and `vconsole.lua` are links into `.config/hypr/modules/`; the installer copies them as files.
 - IPC targets: `qs ipc show`.
 
-## Where things go
+## File placement
 
-| Adding | Goes |
+| Item | Location |
 | --- | --- |
 | Colour / size, spacing, radius, font, duration | `style/Colors.qml` / `style/Style.qml`, in its feature group |
 | Bar widget | `bar/widgets/` + `qmldir` + `BarContent.qml` (row or `BarDrawer`); `SmallBarContent.qml` if wanted on other screens |
@@ -93,7 +93,7 @@ One wallust theme colours the shell and the apps. `.config/wallust/apply.sh`'s h
 - `/* glass */` lines (GTK) and `class="tint"` (Kvantum) are rewritten by `services/app-tint.sh`.
 - On NixOS, Stylix themes what the templates don't reach (btop, mpv, Zed, the console, fontconfig), from `base16/<theme>.json`: `palette.jinja`'s `base16()` slots (nvim's too), rendered by `scripts/base16-schemes.py`. Jupiter-installer's `nixos/theme.nix` builds a home-manager specialisation of each, and `apply.sh` activates the theme's. Rerun the script after changing the slots or wallust; name a theme to pre-build it.
 
-| Target | Picks up a new theme |
+| Target | Theme applied |
 | --- | --- |
 | Shell, blur, terminals, nvim | at once (terminals and nvim not with `--shell-only`) |
 | GTK 3, portal dialogs, dark/light (portal `color-scheme`) | at once |
@@ -126,7 +126,7 @@ One wallust theme colours the shell and the apps. `.config/wallust/apply.sh`'s h
 - Always `-s` when testing (else escape codes hit every terminal): `wallust -d "$T" -q -s cs <scheme> -f pywal`. `theme X --preview` *applies*.
 - Template errors are warnings with exit 0. No `rgba`, `alpha`, `desaturate`, `invert`, `mix` filters; `hexa` is broken.
 
-## Done means
+## Definition of done
 
 - `./check.sh` passes (`--fix` formats; `--help` for the rest). Fix what you broke; name pre-existing failures.
 - New behaviour has a test in `../Jupiter-testing` (its `AGENTS.md`): a script → `dotfiles/test_<name>.py`, QML → `dotfiles/qml/<Name>Test.qml`, login, lock, Nextcloud or text from outside → `dotfiles/security/`.

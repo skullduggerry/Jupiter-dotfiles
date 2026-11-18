@@ -11,8 +11,9 @@ update changes that file.
 Neutral greys become mix(background, foreground, t), with t measured against
 KvMojave's own window (#302f2e) and text (#ffffff), so the window is exactly
 the palette's background and a light theme mirrors the dark one. Blues become
-the accent (color4) shifted towards white or black by as much as the original
-was lighter or darker than KvMojave's accent (#286adc). White is the text
+the Settings app's accent (palette.jinja's accent()) shifted towards white or
+black by as much as the original was lighter or darker than KvMojave's accent
+(#286adc). White is the text
 colour, except for check marks drawn on the accent, which take the background.
 Black stays black: it is only ever a shadow or an outline at low opacity.
 Windows and dialogs, which KvMojave drew a little translucent, take the

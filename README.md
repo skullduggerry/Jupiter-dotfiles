@@ -7,7 +7,7 @@ Part of Jupiter: [Jupiter-installer](https://github.com/skullduggerry/Jupiter-in
 
 ## Contents
 
-| Path | What |
+| Path | Purpose |
 |---|---|
 | `.config/quickshell/` | The shell: bar, OSD, lock screen, notifications, quick menu, Settings app |
 | `.config/hypr/` | Hyprland, configured in Lua: keybinds, monitors, window rules, autostart |

@@ -242,7 +242,7 @@ if [[ $dest == /etc/greetd ]]; then
     # too. greetd starts a fresh greeter whenever no session is running, which
     # reads these files anyway.
     echo "installed. the greeter picks it up the next time it starts: at logout or boot"
-    echo "(first install: enable greetd as the README's \"Login screen\" says, then reboot;"
+    echo "(first install: enable greetd as the wiki's \"Login screen\" page says, then reboot;"
     echo "starting greetd from inside a session puts it on that session's VT)"
 else
     echo "staged. drive it with:  GREETD_SOCK=<stub> qs -p $dest/quickshell/shell.qml"

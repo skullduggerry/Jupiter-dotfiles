@@ -10,7 +10,7 @@
 #
 # Every added line is `optional` and prefixed with `-`, so a missing or failing
 # pam_gnome_keyring can never block a login. If this file is ever wrong anyway,
-# a TTY (ctrl+alt+F1) authenticates through /etc/pam.d/login and is unaffected.
+# a TTY (ctrl+alt+F2) authenticates through /etc/pam.d/login and is unaffected.
 #
 # The `password` line SDDM had is deliberately omitted: greetd has no password
 # stack to hang it off, and `passwd` rekeys the keyring through /etc/pam.d/passwd
