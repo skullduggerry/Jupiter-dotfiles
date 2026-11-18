@@ -92,7 +92,9 @@ def main(argv: list[str]) -> int:
     if wallust is None:
         print("wallust is not installed", file=sys.stderr)
         return 1
-    themes = args.themes or sorted(path.stem for path in OUT.glob("*.json"))
+    themes = args.themes or sorted(
+        path.stem for path in args.out.glob("*.json")
+    )
     args.out.mkdir(parents=True, exist_ok=True)
     failed = []
     with tempfile.TemporaryDirectory() as work:

@@ -23,13 +23,16 @@ export PATH="$HOME/.cargo/bin:$PATH"
 
 dir=$(dirname "$(readlink -f "$0")")
 state=${XDG_STATE_HOME:-$HOME/.local/state}/wallust/theme
+default=${WALLUST_THEME:-Oxocarbon-Dark}
 
 shell_only=0
 if [[ $# -eq 0 && -z ${WALLUST_THEME:-} && -f $state ]]; then
     {
-        read -r theme
+        read -r theme || true
         read -r scope || true
     } <"$state"
+    # An empty file, as a cut-off write leaves, would stop every login's run.
+    theme=${theme:-$default}
     [[ $scope == shell-only ]] && shell_only=1
 else
     [[ ${1:-} == --shell-only ]] && {
@@ -43,7 +46,7 @@ else
         name=$(basename "$image")
         theme=${name%%.*}
     else
-        theme=${1:-${WALLUST_THEME:-Oxocarbon-Dark}}
+        theme=${1:-$default}
     fi
 fi
 
@@ -110,4 +113,6 @@ if ((! shell_only)); then
 fi
 
 mkdir -p "$(dirname "$state")"
-printf '%s\n%s\n' "$theme" "$( ((shell_only)) && echo shell-only || echo all)" >"$state"
+# Whole or not at all: the next login reads it.
+printf '%s\n%s\n' "$theme" "$( ((shell_only)) && echo shell-only || echo all)" >"$state.new"
+mv "$state.new" "$state"
