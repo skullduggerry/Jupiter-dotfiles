@@ -30,9 +30,10 @@ ScrollPage {
         return Apps.installed.filter(entry => !entry.noDisplay && !taken.includes(entry.id) && (query === "" || entry.name.toLowerCase().includes(query))).sort((left, right) => left.name.localeCompare(right.name));
     }
 
+    // One autostart.py at a time; a click meanwhile waits its turn.
     function change(args) {
-        changer.command = ["python3", root.helper].concat(args);
-        changer.running = true;
+        changer.waiting = changer.waiting.concat([args]);
+        changer.next();
     }
 
     function stateText(app): string {
@@ -97,7 +98,26 @@ ScrollPage {
     Process {
         id: changer
 
-        onExited: appLister.running = true
+        property var current: []
+        property var waiting: []
+
+        function next() {
+            if (changer.running || changer.waiting.length === 0)
+                return;
+            changer.current = changer.waiting[0];
+            changer.waiting = changer.waiting.slice(1);
+            changer.running = true;
+        }
+
+        command: ["python3", root.helper].concat(changer.current)
+        onRunningChanged: {
+            if (changer.running)
+                return;
+            if (changer.waiting.length > 0)
+                changer.next();
+            else
+                appLister.running = true;
+        }
 
         stderr: StdioCollector {
             onStreamFinished: {

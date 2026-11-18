@@ -29,14 +29,16 @@ Scope {
     }
 
     // The line goes to cliphist on stdin, never through a shell's quoting.
+    // A copy while one runs goes after it, the last asked for winning.
     function copy(line: string) {
         copier.line = line;
         copier.running = true;
     }
 
+    // Lines forgotten while a delete runs go together in the next.
     function forget(line: string) {
-        forgetter.line = line;
-        forgetter.running = true;
+        forgetter.waiting.push(line);
+        forgetter.next();
     }
 
     function wipe() {
@@ -99,10 +101,26 @@ Scope {
     Process {
         id: forgetter
 
-        property string line: ""
+        property list<string> lines: []
+        property list<string> waiting: []
 
-        command: ["sh", "-c", "printf '%s' \"$1\" | cliphist delete", "sh", forgetter.line]
-        onExited: root.refresh()
+        function next() {
+            if (forgetter.running || forgetter.waiting.length === 0)
+                return;
+            forgetter.lines = forgetter.waiting;
+            forgetter.waiting = [];
+            forgetter.running = true;
+        }
+
+        command: ["sh", "-c", "printf '%s\\n' \"$@\" | cliphist delete", "sh", ...forgetter.lines]
+        onRunningChanged: {
+            if (forgetter.running)
+                return;
+            if (forgetter.waiting.length > 0)
+                forgetter.next();
+            else
+                root.refresh();
+        }
     }
 
     Process {
