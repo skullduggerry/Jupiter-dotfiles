@@ -17,16 +17,9 @@ import os
 import re
 import sys
 
-# The shell's accents (style/Colors.qml accentNames) as palette slots; orange
-# is halfway from red to yellow there as well.
-SLOTS = {
-    "blue": "color4",
-    "purple": "color5",
-    "cyan": "color6",
-    "green": "color2",
-    "orange": "color1 | blend(color3)",
-    "red": "color1",
-}
+# The shell's accents (style/Colors.qml accentNames), which palette.jinja's
+# accent_color() turns into colours as Colors.qml does.
+ACCENTS = ("blue", "purple", "cyan", "green", "orange", "red")
 DEFAULT_FONT = "JetBrainsMono Nerd Font"
 # The shell's tint for a dark theme until it records one.
 DEFAULT_TINT = 0.6
@@ -53,9 +46,8 @@ def main(path):
     if not isinstance(settings, dict):
         settings = {}
     accent = os.environ.get("APPEARANCE_ACCENT", settings.get("accent"))
-    accent = SLOTS.get(
-        accent if isinstance(accent, str) else "", SLOTS["blue"]
-    )
+    if accent not in ACCENTS:
+        accent = ACCENTS[0]
     font = os.environ.get("APPEARANCE_FONT", settings.get("font"))
     # A family name goes into kdeglobals' comma-separated font lines and
     # qt6ct's quoted ones, and into the template as a string, never as Jinja.
@@ -63,7 +55,7 @@ def main(path):
         r'[,"\x00-\x1f\x7f]', " ", font if isinstance(font, str) else ""
     )
     font = json.dumps(font.strip() or DEFAULT_FONT, ensure_ascii=False)
-    print("{%- macro accent_color() -%}{{ " + accent + " }}{%- endmacro -%}")
+    print("{%- macro accent_name() -%}" + accent + "{%- endmacro -%}")
     print("{%- macro font_family() -%}{{ " + font + " }}{%- endmacro -%}")
     # Kvantum's window and dialog backgrounds, which KvMojave drew at 93% and
     # 92%, as the shell writes the tint (app-tint.sh), two decimals.

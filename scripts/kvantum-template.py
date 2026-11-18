@@ -131,7 +131,7 @@ def role(colour, context):
         t = (own - ref) / (1 - ref) if own >= ref else -(ref - own) / ref
         return f"{{{{ accent({t:.3f}) }}}}"
     if c == (0xFA, 0x23, 0x00):  # tab-close on hover
-        return "{{ color1 }}"
+        return "{{ red() }}"
     return None
 
 
@@ -258,7 +258,7 @@ svg = svg.replace("</svg>", aliases() + "</svg>")
 HEADER = """{#- Rendered to ~/.config/Kvantum/Wallust/Wallust.svg: KvMojave's SVG with its
     colours put on the palette, written by scripts/kvantum-template.py. Edit a
     colour by its role there, not here. -#}
-{%- from "palette.jinja" import shade, accent, selection -%}
+{%- from "palette.jinja" import shade, accent, selection, red -%}
 {%- from "appearance.jinja" import window_opacity -%}
 """
 pathlib.Path(dst).write_text(HEADER + svg)

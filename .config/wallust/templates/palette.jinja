@@ -6,7 +6,7 @@
     the shell agree: every surface is a mix of the background and the text,
     which is what lets a light theme mirror a dark one. -#}
 
-{%- from "appearance.jinja" import accent_color -%}
+{%- from "appearance.jinja" import accent_name -%}
 
 {%- macro channel(a, b, t) -%}
 {%- set value = ((a | int) * (1 - t) + (b | int) * t) | round | int -%}
@@ -16,6 +16,53 @@
 {#- t of the way from a to b; outside 0..1 it keeps going, clamped. -#}
 {%- macro mix(a, b, t) -%}
 #{{ channel(a | red, b | red, t) }}{{ channel(a | green, b | green, t) }}{{ channel(a | blue, b | blue, t) }}
+{%- endmacro -%}
+
+{#- WCAG's relative luminance, and the contrast of a colour with the
+    background, from 1 to 21. -#}
+{%- macro linear(v) -%}
+{%- set c = (v | int) / 255 -%}
+{{- c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 -}}
+{%- endmacro -%}
+{%- macro luminance(value) -%}
+{{- 0.2126 * (linear(value | red) | float) + 0.7152 * (linear(value | green) | float) + 0.0722 * (linear(value | blue) | float) -}}
+{%- endmacro -%}
+{%- macro contrast(value) -%}
+{%- set a = luminance(value) | float -%}
+{%- set b = luminance(background) | float -%}
+{{- ([a, b] | max + 0.05) / ([a, b] | min + 0.05) -}}
+{%- endmacro -%}
+
+{#- A generated palette fills the terminal's slots by brightness rather than
+    hue, so a slot stands for its colour only when it is saturated (HSL) and
+    stands off the background; otherwise the colour the shell falls back to.
+    Colors.qml's distinct() and slot(). -#}
+{%- macro distinct(value) -%}
+{%- set channels = [value | red | int, value | green | int, value | blue | int] -%}
+{%- set high = (channels | max) / 255 -%}
+{%- set low = (channels | min) / 255 -%}
+{%- set saturation = 0 if high == low else (high - low) / (1 - (high + low - 1) | abs) -%}
+{{- "yes" if saturation >= 0.25 and (contrast(value) | float) >= 2 else "" -}}
+{%- endmacro -%}
+{%- macro slot(value, fallback) -%}{{ value if distinct(value) else fallback }}{%- endmacro -%}
+
+{#- The shell's colours (Colors.qml's palette), which the apps' roles take. -#}
+{%- macro blue() -%}{{ slot(color4, "#61afef") }}{%- endmacro -%}
+{%- macro red() -%}{{ slot(color1, "#e06c75") }}{%- endmacro -%}
+{%- macro green() -%}{{ slot(color2, "#98c379") }}{%- endmacro -%}
+{%- macro yellow() -%}{{ slot(color3, "#e5c07b") }}{%- endmacro -%}
+{%- macro purple() -%}{{ slot(color5, "#c678dd") }}{%- endmacro -%}
+{%- macro cyan() -%}{{ slot(color6, "#56b6c2") }}{%- endmacro -%}
+{#- Terminal palettes carry no orange; halfway from red to yellow is one. -#}
+{%- macro orange() -%}
+{{- mix(red(), yellow(), 0.5) if distinct(color1) and distinct(color3) else "#d19a66" -}}
+{%- endmacro -%}
+
+{#- The Settings app's accent (appearance.jinja), as Colors.qml's
+    accentColor() picks it. -#}
+{%- macro accent_color() -%}
+{%- set name = accent_name() -%}
+{{- purple() if name == "purple" else cyan() if name == "cyan" else green() if name == "green" else orange() if name == "orange" else red() if name == "red" else blue() -}}
 {%- endmacro -%}
 
 {#- t of the way from the background to the text. Below 0 is further from the
@@ -53,13 +100,13 @@
     "05": foreground,
     "06": shade(0.9),
     "07": foreground,
-    "08": color1,
-    "09": mix(color1, color3, 0.5),
-    "0A": color3,
-    "0B": color2,
-    "0C": color6,
-    "0D": color4,
-    "0E": color5,
-    "0F": mix(color1, background, 0.4),
+    "08": red(),
+    "09": orange(),
+    "0A": yellow(),
+    "0B": green(),
+    "0C": cyan(),
+    "0D": blue(),
+    "0E": purple(),
+    "0F": mix(red(), background, 0.4),
 }[slot] -}}
 {%- endmacro -%}

@@ -3,7 +3,7 @@
     colours, which adw-gtk3 (adw-gtk-theme) follows in GTK 3 too: the file
     dialogs (xdg-desktop-portal-gtk), blueman, nm-connection-editor. See
     CLAUDE.md, "Theming". -#}
-{%- from "palette.jinja" import shade, accent -%}
+{%- from "palette.jinja" import shade, accent, red, green, yellow -%}
 {%- from "appearance.jinja" import window_opacity -%}
 /* Written by wallust from .config/wallust/templates/gtk.css. */
 
@@ -54,15 +54,15 @@
 @define-color accent_color {{ accent(0) }};
 @define-color accent_bg_color {{ accent(0) }};
 @define-color accent_fg_color {{ background }};
-@define-color destructive_color {{ color1 }};
-@define-color destructive_bg_color {{ color1 }};
+@define-color destructive_color {{ red() }};
+@define-color destructive_bg_color {{ red() }};
 @define-color destructive_fg_color {{ background }};
-@define-color error_color {{ color1 }};
-@define-color error_bg_color {{ color1 }};
+@define-color error_color {{ red() }};
+@define-color error_bg_color {{ red() }};
 @define-color error_fg_color {{ background }};
-@define-color success_color {{ color2 }};
-@define-color success_bg_color {{ color2 }};
+@define-color success_color {{ green() }};
+@define-color success_bg_color {{ green() }};
 @define-color success_fg_color {{ background }};
-@define-color warning_color {{ color3 }};
-@define-color warning_bg_color {{ color3 }};
+@define-color warning_color {{ yellow() }};
+@define-color warning_bg_color {{ yellow() }};
 @define-color warning_fg_color {{ background }};

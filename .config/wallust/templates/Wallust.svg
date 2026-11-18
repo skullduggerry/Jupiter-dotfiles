@@ -1,7 +1,7 @@
 {#- Rendered to ~/.config/Kvantum/Wallust/Wallust.svg: KvMojave's SVG with its
     colours put on the palette, written by scripts/kvantum-template.py. Edit a
     colour by its role there, not here. -#}
-{%- from "palette.jinja" import shade, accent, selection -%}
+{%- from "palette.jinja" import shade, accent, selection, red -%}
 {%- from "appearance.jinja" import window_opacity -%}
 <svg width="450" version="1.0" xmlns="http://www.w3.org/2000/svg" height="800" xmlns:xlink="http://www.w3.org/1999/xlink">
 <defs>
@@ -985,7 +985,7 @@
 <path style="opacity:.65;fill:{{ foreground }};stroke-width:.5" d="m 300,527 a 8,8 0 0,0 -8,8 8,8 0 0,0 8,8 8,8 0 0,0 8,-8 8,8 0 0,0 -8,-8 z  m -2.8281,3.7578 2.8281,2.8281 2.8281,-2.8281 1.4141,1.4141 -2.8281,2.8281 2.8281,2.8281 -1.4141,1.4141 -2.8281,-2.8281 -2.8281,2.8281 -1.4141,-1.4141 2.8281,-2.8281 -2.8281,-2.8281 z " transform="matrix(2,0,0,2,-375,-610)"/>
 </g>
 <g style="fill-rule:evenodd" id="tab-close-pressed" transform="matrix(0.5,0,0,0.5,215.5,305)">
-<circle cx="225" cy="460" style="fill:{{ color1 }}" r="16"/>
+<circle cx="225" cy="460" style="fill:{{ red() }}" r="16"/>
 <path style="fill:{{ foreground }}" d="m 230.6568,451.5147 -5.6568,5.6568 -5.6568,-5.6568 -2.8284,2.8284 5.6568,5.6568 -5.6569,5.6569 2.8284,2.8284 5.6569,-5.6569 5.6569,5.6569 2.8284,-2.8284 -5.6569,-5.6569 5.6568,-5.6568 z"/>
 </g>
 <path style="fill:{{ shade(0.255) }};fill-rule:evenodd" id="progress-pattern-disabled-topleft" d="M 83.5,158.5 V 151 c -3.7212,0 -7.5,3.86715 -7.5,7.5 z"/>

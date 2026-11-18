@@ -4,7 +4,7 @@
     the colour scheme [UiSettings] names: outside Plasma, KDE apps take their
     colours from there. KColorScheme reads the colours as R,G,B decimals, hence
     rgb(). -#}
-{%- from "palette.jinja" import shade, selection, scheme, accent -%}
+{%- from "palette.jinja" import shade, selection, scheme, accent, red, green, yellow, blue, purple -%}
 {%- macro rgb(value) -%}{{ value | rgb }}{%- endmacro -%}
 [General]
 ColorScheme=Wallust
@@ -27,11 +27,11 @@ BackgroundAlternate={{ rgb(shade(0.04)) }}
 ForegroundNormal={{ foreground | rgb }}
 ForegroundInactive={{ rgb(shade(0.58)) }}
 ForegroundActive={{ rgb(accent(0)) }}
-ForegroundLink={{ color4 | rgb }}
-ForegroundVisited={{ color5 | rgb }}
-ForegroundNegative={{ color1 | rgb }}
-ForegroundNeutral={{ color3 | rgb }}
-ForegroundPositive={{ color2 | rgb }}
+ForegroundLink={{ blue() | rgb }}
+ForegroundVisited={{ purple() | rgb }}
+ForegroundNegative={{ red() | rgb }}
+ForegroundNeutral={{ yellow() | rgb }}
+ForegroundPositive={{ green() | rgb }}
 DecorationFocus={{ rgb(accent(0)) }}
 DecorationHover={{ rgb(accent(0)) }}
 
@@ -41,11 +41,11 @@ BackgroundAlternate={{ rgb(shade(0.04)) }}
 ForegroundNormal={{ foreground | rgb }}
 ForegroundInactive={{ rgb(shade(0.58)) }}
 ForegroundActive={{ rgb(accent(0)) }}
-ForegroundLink={{ color4 | rgb }}
-ForegroundVisited={{ color5 | rgb }}
-ForegroundNegative={{ color1 | rgb }}
-ForegroundNeutral={{ color3 | rgb }}
-ForegroundPositive={{ color2 | rgb }}
+ForegroundLink={{ blue() | rgb }}
+ForegroundVisited={{ purple() | rgb }}
+ForegroundNegative={{ red() | rgb }}
+ForegroundNeutral={{ yellow() | rgb }}
+ForegroundPositive={{ green() | rgb }}
 DecorationFocus={{ rgb(accent(0)) }}
 DecorationHover={{ rgb(accent(0)) }}
 
@@ -55,11 +55,11 @@ BackgroundAlternate={{ rgb(shade(0.12)) }}
 ForegroundNormal={{ foreground | rgb }}
 ForegroundInactive={{ rgb(shade(0.58)) }}
 ForegroundActive={{ rgb(accent(0)) }}
-ForegroundLink={{ color4 | rgb }}
-ForegroundVisited={{ color5 | rgb }}
-ForegroundNegative={{ color1 | rgb }}
-ForegroundNeutral={{ color3 | rgb }}
-ForegroundPositive={{ color2 | rgb }}
+ForegroundLink={{ blue() | rgb }}
+ForegroundVisited={{ purple() | rgb }}
+ForegroundNegative={{ red() | rgb }}
+ForegroundNeutral={{ yellow() | rgb }}
+ForegroundPositive={{ green() | rgb }}
 DecorationFocus={{ rgb(accent(0)) }}
 DecorationHover={{ rgb(accent(0)) }}
 
@@ -71,9 +71,9 @@ ForegroundInactive={{ rgb(shade(0.58)) }}
 ForegroundActive={{ foreground | rgb }}
 ForegroundLink={{ foreground | rgb }}
 ForegroundVisited={{ foreground | rgb }}
-ForegroundNegative={{ color1 | rgb }}
-ForegroundNeutral={{ color3 | rgb }}
-ForegroundPositive={{ color2 | rgb }}
+ForegroundNegative={{ red() | rgb }}
+ForegroundNeutral={{ yellow() | rgb }}
+ForegroundPositive={{ green() | rgb }}
 DecorationFocus={{ rgb(accent(0)) }}
 DecorationHover={{ rgb(accent(0)) }}
 
@@ -83,11 +83,11 @@ BackgroundAlternate={{ rgb(shade(0.12)) }}
 ForegroundNormal={{ foreground | rgb }}
 ForegroundInactive={{ rgb(shade(0.58)) }}
 ForegroundActive={{ rgb(accent(0)) }}
-ForegroundLink={{ color4 | rgb }}
-ForegroundVisited={{ color5 | rgb }}
-ForegroundNegative={{ color1 | rgb }}
-ForegroundNeutral={{ color3 | rgb }}
-ForegroundPositive={{ color2 | rgb }}
+ForegroundLink={{ blue() | rgb }}
+ForegroundVisited={{ purple() | rgb }}
+ForegroundNegative={{ red() | rgb }}
+ForegroundNeutral={{ yellow() | rgb }}
+ForegroundPositive={{ green() | rgb }}
 DecorationFocus={{ rgb(accent(0)) }}
 DecorationHover={{ rgb(accent(0)) }}
 
@@ -97,11 +97,11 @@ BackgroundAlternate={{ rgb(shade(0.04)) }}
 ForegroundNormal={{ foreground | rgb }}
 ForegroundInactive={{ rgb(shade(0.58)) }}
 ForegroundActive={{ rgb(accent(0)) }}
-ForegroundLink={{ color4 | rgb }}
-ForegroundVisited={{ color5 | rgb }}
-ForegroundNegative={{ color1 | rgb }}
-ForegroundNeutral={{ color3 | rgb }}
-ForegroundPositive={{ color2 | rgb }}
+ForegroundLink={{ blue() | rgb }}
+ForegroundVisited={{ purple() | rgb }}
+ForegroundNegative={{ red() | rgb }}
+ForegroundNeutral={{ yellow() | rgb }}
+ForegroundPositive={{ green() | rgb }}
 DecorationFocus={{ rgb(accent(0)) }}
 DecorationHover={{ rgb(accent(0)) }}
 
@@ -111,11 +111,11 @@ BackgroundAlternate={{ rgb(shade(0.04)) }}
 ForegroundNormal={{ foreground | rgb }}
 ForegroundInactive={{ rgb(shade(0.58)) }}
 ForegroundActive={{ rgb(accent(0)) }}
-ForegroundLink={{ color4 | rgb }}
-ForegroundVisited={{ color5 | rgb }}
-ForegroundNegative={{ color1 | rgb }}
-ForegroundNeutral={{ color3 | rgb }}
-ForegroundPositive={{ color2 | rgb }}
+ForegroundLink={{ blue() | rgb }}
+ForegroundVisited={{ purple() | rgb }}
+ForegroundNegative={{ red() | rgb }}
+ForegroundNeutral={{ yellow() | rgb }}
+ForegroundPositive={{ green() | rgb }}
 DecorationFocus={{ rgb(accent(0)) }}
 DecorationHover={{ rgb(accent(0)) }}
 
