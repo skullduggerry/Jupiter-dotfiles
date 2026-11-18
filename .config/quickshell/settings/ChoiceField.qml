@@ -46,6 +46,7 @@ Item {
 
         Text {
             text: root.currentChoice !== null ? root.currentChoice.label : ""
+            textFormat: Text.PlainText
             color: Colors.text.base
             font.family: Style.text.font
             font.pixelSize: Style.text.size
@@ -184,6 +185,7 @@ Item {
 
                     Text {
                         text: choiceRow.modelData.label
+                        textFormat: Text.PlainText
                         color: Colors.text.base
                         font.family: choiceRow.modelData.font || Style.text.font
                         font.pixelSize: Style.text.size
@@ -202,6 +204,7 @@ Item {
                         id: detail
 
                         text: choiceRow.modelData.detail || ""
+                        textFormat: Text.PlainText
                         color: Colors.text.muted
                         font.family: Style.text.font
                         font.pixelSize: Style.text.smallSize

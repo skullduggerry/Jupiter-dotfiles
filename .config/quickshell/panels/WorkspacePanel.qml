@@ -97,6 +97,7 @@ PanelFrame {
                                 width: Math.min(implicitWidth, tile.width - tileName.gutter * 2 - (parkedMark.visible ? parkedMark.width + tileName.spacing : 0))
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: root.label(tile.modelData)
+                                textFormat: Text.PlainText
                                 color: tileName.colour
                                 font.family: Style.text.font
                                 font.pixelSize: Style.text.size
@@ -109,6 +110,7 @@ PanelFrame {
 
                             visible: tile.windowCount > 0
                             text: tile.windowCount
+                            textFormat: Text.PlainText
                             color: Colors.text.muted
                             font.family: Style.text.font
                             font.pixelSize: Style.text.smallSize
@@ -138,6 +140,7 @@ PanelFrame {
                 anchors.centerIn: parent
                 visible: root.workspaces.length === 0
                 text: "No workspaces on this monitor"
+                textFormat: Text.PlainText
                 color: Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
@@ -158,6 +161,7 @@ PanelFrame {
                 id: wallpaperTitle
 
                 text: "Wallpaper"
+                textFormat: Text.PlainText
                 color: Colors.text.base
                 font.family: Style.text.font
                 font.pixelSize: Style.text.size
@@ -171,6 +175,7 @@ PanelFrame {
             Text {
                 visible: WallpaperService.rotating
                 text: "every " + WallpaperService.rotateLabel(WallpaperService.rotateMinutes)
+                textFormat: Text.PlainText
                 color: Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
@@ -213,6 +218,7 @@ PanelFrame {
 
             Text {
                 text: "Theme"
+                textFormat: Text.PlainText
                 color: Colors.text.muted
                 font.family: Style.text.font
                 font.pixelSize: Style.text.smallSize
@@ -283,6 +289,7 @@ PanelFrame {
                     id: keyboardTitle
 
                     text: "Keyboard"
+                    textFormat: Text.PlainText
                     color: Colors.text.base
                     font.family: Style.text.font
                     font.pixelSize: Style.text.size
@@ -295,6 +302,7 @@ PanelFrame {
 
                 Text {
                     text: KeyboardLayout.name
+                    textFormat: Text.PlainText
                     color: Colors.text.muted
                     font.family: Style.text.font
                     font.pixelSize: Style.text.smallSize
@@ -378,6 +386,7 @@ PanelFrame {
         Text {
             anchors.verticalCenter: parent.verticalCenter
             text: root.monitorName
+            textFormat: Text.PlainText
             color: Colors.text.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize

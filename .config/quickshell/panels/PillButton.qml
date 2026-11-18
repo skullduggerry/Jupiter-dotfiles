@@ -35,6 +35,7 @@ Rectangle {
         // A pill given a width of its own, like a segment, elides instead of spilling.
         width: Math.min(implicitWidth, root.width - root.padding * 2)
         text: root.text
+        textFormat: Text.PlainText
         color: root.checked || root.action ? Colors.text.base : Colors.text.muted
         font.family: Style.text.font
         font.pixelSize: root.compact ? Style.text.smallSize : Style.text.size

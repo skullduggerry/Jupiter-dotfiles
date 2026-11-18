@@ -613,6 +613,7 @@ ScrollPage {
                             width: parent.width
                             horizontalAlignment: Text.AlignHCenter
                             text: tile.modelData.name
+                            textFormat: Text.PlainText
                             color: Colors.text.base
                             font.family: Style.text.font
                             font.pixelSize: Style.text.size
@@ -665,6 +666,7 @@ ScrollPage {
         Text {
             width: root.columnWidth
             text: root.enabledMonitors.length > 1 ? "Drag a display to move it; click one to change it below." : "Click the display to change it below."
+            textFormat: Text.PlainText
             color: Colors.text.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
@@ -959,6 +961,7 @@ ScrollPage {
                         anchors.verticalCenter: parent.verticalCenter
                         horizontalAlignment: Text.AlignRight
                         text: QuickToggles.nightLightTemperature + " K"
+                        textFormat: Text.PlainText
                         color: Colors.text.muted
                         font.family: Style.text.font
                         font.pixelSize: Style.text.smallSize

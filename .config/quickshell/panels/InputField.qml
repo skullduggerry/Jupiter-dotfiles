@@ -65,6 +65,7 @@ Rectangle {
             anchors.fill: parent
             visible: input.text === ""
             text: root.placeholder
+            textFormat: Text.PlainText
             color: Colors.text.muted
             font.family: Style.text.font
             font.pixelSize: Style.text.smallSize
