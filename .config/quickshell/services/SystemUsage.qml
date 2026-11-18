@@ -11,8 +11,9 @@ Singleton {
     property real memory: 0
     property bool active: false
     // SystemPanels on screen, in the usage dropdown and on the Settings app's
-    // About page, each counting itself. Everything below `cores` is only read
-    // while there is one, and more often: the bar's meters need none of it.
+    // About page, each counting itself. While there is one, everything is
+    // read more often, and `model` and what follows it (sampleDetails()) at
+    // all: the bar's meters need none of it.
     property int viewers: 0
     readonly property bool detailed: root.viewers > 0
     readonly property int interval: root.detailed ? 1000 : 3000

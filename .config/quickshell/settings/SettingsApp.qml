@@ -83,7 +83,7 @@ Scope {
 
         // By name: appearance (and its tabs wallpaper, themes and lockscreen),
         // displays, sound, network (and bluetooth), notifications, power,
-        // keyboard (and keybinds, mouse), tablet, about (and startup).
+        // keyboard (and keybinds, mouse), tablet, calendar, about (and startup).
         function openPage(page: string): void {
             SettingsState.show(page);
         }

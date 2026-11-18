@@ -265,8 +265,6 @@ Item {
             }
 
             Text {
-                id: agendaTitle
-
                 text: root.showingUpcoming ? Qt.formatDate(root.selectedDay, "d MMM") + " · upcoming" : Qt.formatDate(root.selectedDay, "dddd d MMMM")
                 color: Colors.text.base
                 font.family: Style.text.font

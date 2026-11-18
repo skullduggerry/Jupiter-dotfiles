@@ -10,7 +10,8 @@ and a fresh app password, so neither has to be hunted down by hand.
 Line-delimited JSON on stdout, for services/CalendarService.qml to read through
 Quickshell.Io.Process:
 
-    {"status": "open", "url": "https://.../login/v2/flow/..."}   first, always
+    {"status": "open", "url": "https://.../login/v2/flow/..."}   first, unless
+                                                                 the flow fails to start
     {"status": "ok", "server": "...", "loginName": "..."}        on success
     {"status": "error", "message": "..."}
 

@@ -41,7 +41,7 @@ Tests and linters live in `../Jupiter-testing`; package dependencies in Jupiter-
   lock/ notifications/ osd/ overview/ shortcuts/ cursor/ quickmenu/   one surface each
 ```
 
-- **Imports are a DAG**: `style/` and `services/` import nothing from the project; `panels/` only those two. `bar/` never imports `dropdown/` or `lock/`. Shared state lives in `services/`.
+- **Imports are a DAG**: `style/` and `services/` import nothing from the project, `icons/` only `style/`; `panels/` only those three. `bar/` never imports `dropdown/` or `lock/`. Shared state lives in `services/`.
 - **`style/` must run as the greeter** (no readable `$HOME`): read only, no process at construction, never `Quickshell.statePath()` (it creates the folder). Test with `HOME=/nonexistent`.
 - `etc/greetd/monitors.lua` and `vconsole.lua` are links into `.config/hypr/modules/`; the installer copies them as files.
 - IPC targets: `qs ipc show`.

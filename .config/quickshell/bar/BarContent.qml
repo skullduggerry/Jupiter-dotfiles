@@ -62,8 +62,6 @@ Rectangle {
     }
 
     Row {
-        id: rightLead
-
         spacing: Style.bar.spacing
 
         anchors {

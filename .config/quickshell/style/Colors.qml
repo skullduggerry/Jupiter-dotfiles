@@ -148,13 +148,6 @@ QtObject {
     }
     readonly property AccentColors accent: AccentColors {}
 
-    component BluetoothColors: QtObject {
-        readonly property color connected: root.accent.primary
-        readonly property color disconnected: root.accent.red
-        readonly property color pairing: root.accent.purple
-    }
-    readonly property BluetoothColors bluetooth: BluetoothColors {}
-
     component BatteryColors: QtObject {
         readonly property color normal: root.icon.active
         readonly property color low: root.accent.orange
@@ -165,7 +158,6 @@ QtObject {
 
     component WifiColors: QtObject {
         readonly property color connected: root.accent.primary
-        readonly property color disconnected: root.base.border
     }
     readonly property WifiColors wifi: WifiColors {}
 
@@ -191,7 +183,6 @@ QtObject {
 
     component NotificationColors: QtObject {
         readonly property color urgent: root.accent.red
-        readonly property color badge: root.accent.primary
     }
     readonly property NotificationColors notification: NotificationColors {}
 
@@ -201,7 +192,6 @@ QtObject {
     readonly property MenuColors menu: MenuColors {}
 
     component PowerColors: QtObject {
-        readonly property color normal: root.text.base
         readonly property color danger: root.accent.red
     }
     readonly property PowerColors power: PowerColors {}
