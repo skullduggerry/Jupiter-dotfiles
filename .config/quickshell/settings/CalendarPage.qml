@@ -1,6 +1,5 @@
 import "../panels"
 import "../services"
-import "../style"
 import QtQuick
 
 // How the calendar dropdown lays out its grid (CalendarService): the day each

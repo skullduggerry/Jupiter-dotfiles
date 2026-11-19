@@ -1,5 +1,4 @@
 import "../services"
-import "../style"
 import QtQuick
 
 // The mouse's and the touchpad's speed and scrolling (Pointer). A speed's
