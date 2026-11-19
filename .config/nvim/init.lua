@@ -84,7 +84,7 @@ local servers = {
 	"cssls", -- GTK's CSS
 	"yamlls", -- YAML (workflows)
 	"taplo", -- TOML
-	"nixd", -- Nix
+	"nixd", -- Nix (on NixOS: Arch has no official package)
 }
 for _, server in ipairs(servers) do
 	local cmd = vim.lsp.config[server].cmd
