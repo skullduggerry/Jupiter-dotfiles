@@ -67,6 +67,32 @@ end
 
 require("mason").setup()
 require("mason-lspconfig").setup()
+
+-- Language servers for the languages the Jupiter repos use, from the
+-- system's packages (Jupiter-installer's pacman.txt and packages.nix) rather
+-- than mason's downloads, which NixOS cannot run; nvim-lspconfig configures
+-- them. Each starts only where its command is on PATH, as those lists can be
+-- trimmed. Arch links Qt 6's qmlls as qmlls6, beside Qt 5's tools.
+vim.lsp.config("qmlls", { cmd = { vim.fn.executable("qmlls6") == 1 and "qmlls6" or "qmlls" } })
+local servers = {
+	"qmlls", -- QML
+	"lua_ls", -- Lua (.luarc.json)
+	"ruff", -- Python: lint and format
+	"pyright", -- Python: types
+	"bashls", -- shell, with shellcheck
+	"jsonls", -- JSON
+	"cssls", -- GTK's CSS
+	"yamlls", -- YAML (workflows)
+	"taplo", -- TOML
+	"nil_ls", -- Nix
+}
+for _, server in ipairs(servers) do
+	local cmd = vim.lsp.config[server].cmd
+	if type(cmd) == "table" and vim.fn.executable(cmd[1]) == 1 then
+		vim.lsp.enable(server)
+	end
+end
+
 require("mini.pairs").setup()
 require("mini.files").setup()
 require("mini.hipatterns").setup()
