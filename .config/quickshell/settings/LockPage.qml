@@ -204,7 +204,7 @@ ScrollPage {
 
             ActionRow {
                 width: parent.width
-                text: installer.running ? "Installing…" : root.installError !== "" ? root.installError : root.loginCurrent ? "Up to date" : "Not applied yet: the login screen keeps a copy"
+                text: installer.running ? "Installing…" : root.installError !== "" ? root.installError : root.loginCurrent ? "Up to date" : "Settings not applied"
                 action: "Apply"
                 onActivated: {
                     if (!installer.running)

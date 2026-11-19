@@ -79,7 +79,6 @@ Item {
         id: footer
 
         width: root.columnWidth
-        text: "As Hyprland has them, described in keybinds.lua"
         action: "Edit keybinds.lua"
         onActivated: Session.app(["xdg-open", root.keybindsFile])
 

@@ -78,14 +78,5 @@ ScrollPage {
                 onMoved: position => Pointer.setTouchpad(Pointer.touchpadSpeed, root.scrollAt(position))
             }
         }
-
-        Text {
-            width: root.columnWidth
-            wrapMode: Text.WordWrap
-            text: (Pointer.touchpads.length === 0 ? "No touchpad found: its speed applies once this page has seen one. " : "") + "A speed of 0 is the device's own, and the pointer still speeds up with a faster movement. Scrolling multiplies how far each notch of the wheel or each swipe goes."
-            color: Colors.text.muted
-            font.family: Style.text.font
-            font.pixelSize: Style.text.smallSize
-        }
     }
 }

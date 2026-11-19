@@ -90,20 +90,4 @@ Item {
             }
         }
     }
-
-    Text {
-        width: root.columnWidth
-        wrapMode: Text.WordWrap
-        text: "The screens go off half a minute after the lock, and suspending locks first. Caffeine, in the quick settings, holds all of it off."
-        color: Colors.text.muted
-        font.family: Style.text.font
-        font.pixelSize: Style.text.smallSize
-
-        anchors {
-            top: idle.bottom
-            left: parent.left
-            leftMargin: Style.settings.padding
-            topMargin: Style.bar.spacing
-        }
-    }
 }

@@ -818,7 +818,7 @@ ScrollPage {
                 Text {
                     text: {
                         if (DisplayChange.waiting)
-                            return "Keep these settings? Going back in " + DisplayChange.secondsLeft + " s";
+                            return "Keep current settings? Resetting in:" + DisplayChange.secondsLeft + " s";
 
                         if (DisplayChange.error !== "")
                             return DisplayChange.error;
@@ -826,7 +826,7 @@ ScrollPage {
                         if (root.hasPending)
                             return "Not applied yet";
 
-                        return root.keptRule !== null ? "Kept by Settings, applied at every login" : "As the Hyprland config sets it";
+                        return root.keptRule !== null ? "Settings saved" : "Set to default";
                     }
                     textFormat: Text.PlainText
                     color: DisplayChange.error !== "" && !DisplayChange.waiting ? Colors.status.error : Colors.text.muted

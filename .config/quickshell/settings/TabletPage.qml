@@ -21,7 +21,7 @@ ScrollPage {
     Text {
         width: root.columnWidth
         wrapMode: Text.WordWrap
-        text: Tablet.tablet !== null ? `${Tablet.tablet.name}, ${Tablet.tablet.width} × ${Tablet.tablet.height} mm` : "No tablet connected. What is set here applies once one is."
+        text: Tablet.tablet !== null ? `${Tablet.tablet.name}, ${Tablet.tablet.width} × ${Tablet.tablet.height} mm` : "Connect tablet to apply settings."
         textFormat: Text.PlainText
         color: Colors.text.muted
         font.family: Style.text.font
@@ -73,7 +73,7 @@ ScrollPage {
             }
 
             FormRow {
-                label: "Draws on"
+                label: "Focus area"
 
                 ChoiceField {
                     choices: [
@@ -82,7 +82,7 @@ ScrollPage {
                             value: "all"
                         },
                         {
-                            label: "The focused screen",
+                            label: "focused screen",
                             value: "focused"
                         }
                     ].concat(Quickshell.screens.map(screen => ({
@@ -101,15 +101,6 @@ ScrollPage {
                 }
             }
         }
-
-        Text {
-            width: root.columnWidth
-            wrapMode: Text.WordWrap
-            text: "Keeping proportions leaves the tablet's edges unused where its shape differs from the screen's, so that circles stay round. SUPER+T holds it to the focused screen and SUPER+SHIFT+T to the focused window, until pressed again."
-            color: Colors.text.muted
-            font.family: Style.text.font
-            font.pixelSize: Style.text.smallSize
-        }
     }
 
     Section {
@@ -119,27 +110,18 @@ ScrollPage {
             width: root.columnWidth
 
             LevelRow {
-                label: "Starts at"
+                label: "min Pressure"
                 position: Tablet.pressureMin / Tablet.startsAtMost
                 reading: root.percent(Tablet.pressureMin)
                 onMoved: position => Tablet.setPressure(Math.round(position * Tablet.startsAtMost * 100) / 100, Tablet.pressureMax)
             }
 
             LevelRow {
-                label: "Full at"
+                label: "max Pressure"
                 position: (Tablet.pressureMax - Tablet.fullAtLeast) / (1 - Tablet.fullAtLeast)
                 reading: root.percent(Tablet.pressureMax)
                 onMoved: position => Tablet.setPressure(Tablet.pressureMin, Math.round((Tablet.fullAtLeast + position * (1 - Tablet.fullAtLeast)) * 100) / 100)
             }
-        }
-
-        Text {
-            width: root.columnWidth
-            wrapMode: Text.WordWrap
-            text: "Of the pen's whole range: a stroke starts once it presses harder than the first, and is at full strength from the second. Lower both for a lighter touch. Apps with a pressure curve of their own apply it on top."
-            color: Colors.text.muted
-            font.family: Style.text.font
-            font.pixelSize: Style.text.smallSize
         }
     }
 
@@ -215,10 +197,10 @@ ScrollPage {
             wrapMode: Text.WordWrap
             text: {
                 if (Tablet.padButtons === 0)
-                    return "No pad seen yet: its keys show here once the tablet is connected.";
+                    return "No tablet connected";
                 if (Tablet.pad !== null && !Tablet.pad.readable)
                     return "The keys need the pad to be readable: run the installer's phase 4 again, or reconnect the tablet after it ran.";
-                return "A custom shortcut works as if pressed on the keyboard: one of the desktop's keybinds does what it does there, and any other goes to the focused window. While any key is set, apps no longer see the pad's keys themselves.";
+                return "Overrides the default shortcuts";
             }
             color: Tablet.pad !== null && !Tablet.pad.readable ? Colors.status.error : Colors.text.muted
             font.family: Style.text.font

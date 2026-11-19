@@ -15,7 +15,7 @@ ScrollPage {
             width: root.columnWidth
 
             FormRow {
-                label: "Week starts on"
+                label: "Week start"
 
                 ChoiceField {
                     choices: CalendarService.weekStartChoices
@@ -34,15 +34,6 @@ ScrollPage {
                     onPicked: weeks => CalendarService.setShownWeeks(weeks)
                 }
             }
-        }
-
-        Text {
-            width: root.columnWidth
-            wrapMode: Text.WordWrap
-            text: "A few weeks start from this one, and the arrows go on by as many."
-            color: Colors.text.muted
-            font.family: Style.text.font
-            font.pixelSize: Style.text.smallSize
         }
     }
 }

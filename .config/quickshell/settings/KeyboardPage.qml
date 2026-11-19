@@ -226,7 +226,7 @@ ScrollPage {
 
         ActionRow {
             width: root.columnWidth
-            text: "SUPER+SPACE switches, and a login starts on the first"
+            text: "SUPER+SPACE to switch layouts"
             action: root.adding ? "Cancel" : "Add layout…"
             onActivated: {
                 root.adding = !root.adding;
@@ -329,25 +329,16 @@ ScrollPage {
             PillGroup {
                 choices: [
                     {
-                        label: "Opens the quick menu",
+                        label: "Quick menu",
                         value: true
                     },
                     {
-                        label: "Locks capitals",
+                        label: "Caps lock",
                         value: false
                     }
                 ]
                 current: QuickMenu.capsLock
                 onPicked: menu => QuickMenu.setCapsLock(menu)
-            }
-
-            Text {
-                width: parent.width
-                text: "SUPER+A opens the quick menu either way. Hold the key, move toward an item and let go, or tap it to keep the menu open."
-                color: Colors.text.muted
-                font.family: Style.text.font
-                font.pixelSize: Style.text.smallSize
-                wrapMode: Text.WordWrap
             }
         }
     }
