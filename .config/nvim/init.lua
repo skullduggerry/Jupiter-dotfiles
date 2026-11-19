@@ -92,6 +92,9 @@ for _, server in ipairs(servers) do
 		vim.lsp.enable(server)
 	end
 end
+-- Each problem's message at the end of its line, which nvim 0.11 stopped
+-- showing by default.
+vim.diagnostic.config({ virtual_text = true })
 
 require("mini.pairs").setup()
 require("mini.files").setup()
