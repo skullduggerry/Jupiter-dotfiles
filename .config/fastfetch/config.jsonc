@@ -1,0 +1,28 @@
+{
+  //"$schema": "https://github.com/fastfetch-cli/fastfetch/raw/master/doc/json_schema.json",
+  "logo": {
+    "type": "auto",        // Logo type: auto, builtin, small, file, etc.
+    "source": "arch",      // Built-in logo name or file path
+},
+  "display": {
+	  "separator": ": ",
+	  "key": {
+		  "width": 12
+	  }
+  },
+  "modules": [
+    "title",
+    "separator",
+    "os",
+    "kernel",
+    "uptime",
+    "packages",
+    "memory",
+    "swap",
+    {
+	"type": "battery",
+	"key": "Battery"
+    },
+    "poweradapter"
+  ]
+}

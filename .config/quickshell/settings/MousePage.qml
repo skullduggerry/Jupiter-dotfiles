@@ -37,7 +37,6 @@ ScrollPage {
 
     Section {
         title: "MOUSE"
-
         FormCard {
             width: root.columnWidth
 
