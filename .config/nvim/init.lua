@@ -72,8 +72,12 @@ require("mason-lspconfig").setup()
 -- system's packages (Jupiter-installer's pacman.txt and packages.nix) rather
 -- than mason's downloads, which NixOS cannot run; nvim-lspconfig configures
 -- them. Each starts only where its command is on PATH, as those lists can be
--- trimmed. Arch links Qt 6's qmlls as qmlls6, beside Qt 5's tools.
-vim.lsp.config("qmlls", { cmd = { vim.fn.executable("qmlls6") == 1 and "qmlls6" or "qmlls" } })
+-- trimmed. Arch links Qt 6's qmlls as qmlls6, beside Qt 5's tools; qmlls
+-- keeps to qml, as nvim has no qmljs filetype that nvim-lspconfig also names.
+vim.lsp.config("qmlls", {
+	cmd = { vim.fn.executable("qmlls6") == 1 and "qmlls6" or "qmlls" },
+	filetypes = { "qml" },
+})
 local servers = {
 	"qmlls", -- QML
 	"lua_ls", -- Lua (.luarc.json)
