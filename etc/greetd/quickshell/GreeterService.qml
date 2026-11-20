@@ -29,6 +29,8 @@ Singleton {
     // A scan whose ending without a finger is no error to the user: the
     // greeter's own (its timeout), or one for a user no longer picked.
     property bool autoScan: false
+    // The success response to the cancellation of a scan whose user changed.
+    property bool cancellingScan: false
     // Enter on a password while the reader had greetd: sent once it is done.
     property bool queued: false
     readonly property string noPassword: "No password entered!"
@@ -93,6 +95,7 @@ Singleton {
         root.fingerAttempt = true;
         root.scanning = true;
         root.autoScan = auto;
+        root.cancellingScan = false;
         Greetd.createSession(root.username);
     }
 
@@ -151,6 +154,7 @@ Singleton {
         root.answering = false;
         root.fingerAttempt = false;
         root.queued = false;
+        root.cancellingScan = false;
         root.promptText = root.passwordPrompt;
         root.promptSecret = true;
         root.errorText = message;
@@ -233,12 +237,18 @@ Singleton {
             // login it has then, so a password entered meanwhile stays in
             // the field, for Enter, rather than going at once.
             if (Greetd.user !== root.username) {
+                if (root.cancellingScan) {
+                    root.cancellingScan = false;
+                    return;
+                }
                 Greetd.cancelSession();
                 if (!root.scanning) {
                     root.fail("");
                     return;
                 }
+                root.queued = false;
                 root.busy = false;
+                root.cancellingScan = true;
                 root.scanFailed("");
                 return;
             }
