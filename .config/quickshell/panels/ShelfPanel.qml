@@ -214,6 +214,7 @@ PanelFrame {
         anchors.centerIn: itemList
         visible: itemList.count === 0
         text: "Nothing here yet..."
+        textFormat: Text.PlainText
         color: Colors.text.muted
         font.family: Style.text.font
         font.pixelSize: Style.text.size
