@@ -238,9 +238,6 @@ Singleton {
                     root.fail("");
                     return;
                 }
-                root.queued = false;
-                root.busy = false;
-                root.scanFailed("");
                 return;
             }
             const session = root.sessions.find(entry => entry.exec === root.sessionExec);
