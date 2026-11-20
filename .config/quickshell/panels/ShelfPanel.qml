@@ -12,7 +12,7 @@ import Quickshell.Io
 PanelFrame {
     id: root
 
-    readonly property string statusText: Shelf.error !== "" ? Shelf.error : Shelf.synced ? "" : "Only on this machine: no Nextcloud folder found"
+    readonly property string statusText: Shelf.error !== "" ? Shelf.error : Shelf.synced ? "" : "No nextcloud folder found"
     readonly property list<string> imageSuffixes: ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"]
     readonly property list<string> textSuffixes: ["txt", "md"]
     implicitHeight: root.chromeHeight + note.height + Style.bar.spacing + Math.max(Style.popup.itemHeight, itemList.contentHeight) + status.height
@@ -49,7 +49,7 @@ PanelFrame {
         id: note
 
         icon: Icons.fileText
-        placeholder: "A note, Enter puts it on the shelf"
+        placeholder: "Enter note here"
         onAccepted: {
             Shelf.addNote(note.text);
             note.text = "";
@@ -213,7 +213,7 @@ PanelFrame {
     Text {
         anchors.centerIn: itemList
         visible: itemList.count === 0
-        text: "Nothing on the shelf yet"
+        text: "Nothing here yet..."
         color: Colors.text.muted
         font.family: Style.text.font
         font.pixelSize: Style.text.size

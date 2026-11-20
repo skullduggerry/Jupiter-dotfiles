@@ -390,23 +390,6 @@ Column {
                         current: QuickMenu.look
                         onPicked: look => QuickMenu.setLook(look)
                     }
-
-                    Text {
-                        width: parent.width
-                        wrapMode: Text.WordWrap
-                        text: {
-                            switch (QuickMenu.look) {
-                            case "halo":
-                                return "One disc, its items in a band beside it.";
-                            case "orbit":
-                                return "A round button for each item, on a ring.";
-                            }
-                            return `Orbit over Blur, Halo over Solid: ${Theme.blur ? "Orbit" : "Halo"} now.`;
-                        }
-                        color: Colors.text.muted
-                        font.family: Style.text.font
-                        font.pixelSize: Style.text.smallSize
-                    }
                 }
             }
 

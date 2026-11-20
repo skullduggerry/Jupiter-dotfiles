@@ -12,7 +12,7 @@ local bind = tablet.bind
 -- modifiers show there as one row, like the workspace numbers below.
 bind(vars.mainMod .. " + SHIFT + M", session.logout, { description = "Log out" })
 bind(vars.mainMod .. " + E", hl.dsp.exec_cmd(session.app(vars.fileManager)), { description = "Open the file manager" })
-bind(vars.mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }), { description = "Float or tile the window" })
+bind(vars.mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }), { description = "Float or tile" })
 bind(vars.mainMod .. " + R", hl.dsp.global(vars.menu), { description = "Open the launcher" })
 bind(vars.mainMod .. " + L", hl.dsp.global("quickshell:lock"), { description = "Lock the screen" })
 bind(vars.mainMod .. " + B", hl.dsp.global("quickshell:barExpand"), { description = "Open or close the bar's drawer" })
@@ -143,5 +143,5 @@ hl.gesture({
 
 -- The drawing tablet (modules/tablet.lua) on the focused screen or window
 -- alone, until the same keys let it go again.
-bind(vars.mainMod .. " + T", tablet.holdScreen, { description = "Hold the tablet to this screen" })
-bind(vars.mainMod .. " + SHIFT + T", tablet.holdWindow, { description = "Hold the tablet to this window" })
+bind(vars.mainMod .. " + T", tablet.holdScreen, { description = "Hold the tablet to current screen" })
+bind(vars.mainMod .. " + SHIFT + T", tablet.holdWindow, { description = "Hold the tablet to current window" })
