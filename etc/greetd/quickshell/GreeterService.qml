@@ -29,8 +29,6 @@ Singleton {
     // A scan whose ending without a finger is no error to the user: the
     // greeter's own (its timeout), or one for a user no longer picked.
     property bool autoScan: false
-    // The scan's greetd session is being cancelled because its user changed.
-    property bool cancellingScan: false
     // Enter on a password while the reader had greetd: sent once it is done.
     property bool queued: false
     readonly property string noPassword: "No password entered!"
@@ -95,7 +93,6 @@ Singleton {
         root.fingerAttempt = true;
         root.scanning = true;
         root.autoScan = auto;
-        root.cancellingScan = false;
         Greetd.createSession(root.username);
     }
 
@@ -105,7 +102,6 @@ Singleton {
         const auto = root.autoScan;
         root.scanning = false;
         root.autoScan = false;
-        root.cancellingScan = false;
         root.fingerAttempt = false;
         if (root.queued) {
             root.sendQueued();
@@ -155,7 +151,6 @@ Singleton {
         root.answering = false;
         root.fingerAttempt = false;
         root.queued = false;
-        root.cancellingScan = false;
         root.promptText = root.passwordPrompt;
         root.promptSecret = true;
         root.errorText = message;
@@ -229,11 +224,6 @@ Singleton {
         }
 
         function onStateChanged() {
-            if (root.cancellingScan && Greetd.state === GreetdState.Inactive) {
-                root.cancellingScan = false;
-                root.scanFailed("");
-                return;
-            }
             root.sendQueued();
         }
 
@@ -248,7 +238,8 @@ Singleton {
                     root.fail("");
                     return;
                 }
-                root.cancellingScan = true;
+                root.busy = false;
+                root.scanFailed("");
                 return;
             }
             const session = root.sessions.find(entry => entry.exec === root.sessionExec);
