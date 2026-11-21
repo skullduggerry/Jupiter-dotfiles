@@ -1,8 +1,7 @@
 {#- Rendered to ~/.config/gtk-4.0/gtk.css, which every GTK 4 app loads, and
     included by gtk-3.0.css, the Wallust GTK 3 theme. libadwaita's named
     colours, which adw-gtk3 (adw-gtk-theme) follows in GTK 3 too: the file
-    dialogs (xdg-desktop-portal-gtk), blueman, nm-connection-editor. See
-    CLAUDE.md, "Theming". -#}
+    dialogs (xdg-desktop-portal-gtk), blueman, nm-connection-editor. -#}
 {%- from "palette.jinja" import shade, accent, red, green, yellow -%}
 {%- from "appearance.jinja" import window_opacity -%}
 /* Written by wallust from .config/wallust/templates/gtk.css. */

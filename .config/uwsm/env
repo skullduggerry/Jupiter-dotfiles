@@ -9,7 +9,7 @@
 
 # Qt apps take their widget style (Kvantum), icon theme and font from qt6ct's
 # config, KDE apps their colours from the colour scheme kdeglobals names; wallust
-# renders all of them, see CLAUDE.md, "Theming".
+# renders all of them (.config/wallust/apply.sh).
 export QT_QPA_PLATFORMTHEME=qt6ct
 # Hyprland draws the frame, not Qt.
 export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
